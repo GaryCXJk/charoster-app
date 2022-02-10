@@ -1,0 +1,70 @@
+@import "./sass/variables";
+
+:root {
+  --main-color: #{$lightColor};
+  --main-bg-color: #{darken($lightBackground, 5%)};
+  --sub-bg-color: #{$lightBackground};
+  --elem-bg-color: #{lighten($lightBackground, 5%)};
+  --btn-press-bg-color: #{lighten($lightBackground, 10%)};
+  --disabled-color: #{lighten($lightColor, 25%)};
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --main-color: #{$darkColor};
+    --main-bg-color: #{darken($darkBackground, 5%)};
+    --sub-bg-color: #{$darkBackground};
+    --elem-bg-color: #{lighten($darkBackground, 5%)};
+    --btn-press-bg-color: #{lighten($darkBackground, 10%)};
+    --disabled-color: #{lighten($darkBackground, 10%)};
+  }
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: "Open Sans";
+  font-weight: 400;
+  font-style: normal;
+  font-size: 10pt;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  color: var(--main-color);
+  background-color: var(--main-bg-color);
+}
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+}
+
+input, button {
+  background-color: var(--elem-bg-color);
+  color: var(--main-color);
+  border: 1px solid var(--main-color);
+  padding: 0.5rem;
+
+  &:disabled {
+    background-color: var(--main-bg-color);
+    color: var(--disabled-color);
+    border-color: var(--disabled-color);
+  }
+}
+
+button:active {
+  background-color: var(--btn-press-bg-color);
+}

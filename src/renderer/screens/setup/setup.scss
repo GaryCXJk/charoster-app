@@ -1,0 +1,45 @@
+#app.setup {
+  .content {
+    flex: 1 0 0;
+    padding: 2rem;
+
+    p {
+      margin: 1rem 0;
+      &:first-child {
+        margin-top: 0;
+      }
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .choice {
+      margin: 1rem 0;
+      padding: 1rem;
+      border: 1px solid var(--main-color);
+    }
+
+    .custom-choice {
+      display: flex;
+      margin-top: 1rem;
+
+      .custom-choice-input {
+        flex: 1 0 0;
+
+        input {
+          width: 100%;
+        }
+      }
+
+      button {
+        margin-left: 1rem;
+      }
+    }
+  }
+
+  .footer {
+    text-align: right;
+    background-color: var(--sub-bg-color);
+    padding: 2rem;
+  }
+}

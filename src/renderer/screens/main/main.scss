@@ -1,0 +1,16 @@
+#app.main {
+  .sections {
+    font-size: #{(100 / 1280 * 14)}vw;
+
+    .panels {
+      display: flex;
+      flex: 1 0 0;
+    }
+
+    .preview {
+      height: 30%;
+      background-color: var(--sub-bg-color);
+      padding: 1rem;
+    }
+  }
+}
