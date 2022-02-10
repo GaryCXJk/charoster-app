@@ -117,3 +117,33 @@ ipcMain.handle('config:pick-folder', async (_event, choice) => {
     properties: ['openDirectory', 'createDirectory'],
   });
 });
+
+ipcMain.handle('config:set-workfolder', async (_event, data) => {
+  const {
+    choice,
+    customChoice,
+  } = data;
+
+  config.workFolder = choice === 'custom' ? customChoice : choice;
+  let folder = config.workFolder;
+
+  switch (choice) {
+    case 'appdata':
+      folder = path.join(app.getPath('userData'), 'work');
+      break;
+    case 'documents':
+      folder = path.join(app.getPath('documents'), app.name);
+    default:
+      break;
+  }
+
+  if (choice === 'custom' && !existsSync(folder)) {
+    await new Promise((resolve) => {
+      mkdir(folder, {
+        recursive: true,
+      }, resolve);
+    });
+  }
+
+  saveConfig();
+});

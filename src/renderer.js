@@ -28,10 +28,7 @@
 
 import './index.scss';
 import screens from './renderer/screens';
-
-const params = new Proxy(new URLSearchParams(window.location.search), {
-    get: (searchParams, prop) => searchParams.get(prop),
-});
+import params from './helpers/params';
 
 let screen = params.screen ?? 'main';
 if (!screens[screen]) {

@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 import { EventEmitter } from 'events';
 import { IS_DEVELOPMENT } from '../global/constants';
 
@@ -13,6 +13,11 @@ export const createWindow = (id, options = {}) => {
     return false;
   }
 
+  const {
+    screen = null,
+    ...browserWindowOptions
+  } = options;
+
   const window = new BrowserWindow({
     title: 'ChaRoster',
     titleBarStyle: 'hidden',
@@ -25,7 +30,7 @@ export const createWindow = (id, options = {}) => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
     show: false,
-    ...options
+    ...browserWindowOptions
   });
 
   const emitter = new WindowEmitter();
@@ -36,7 +41,7 @@ export const createWindow = (id, options = {}) => {
     });
   }
 
-  window.loadURL(`${MAIN_WINDOW_WEBPACK_ENTRY}?screen=${id}`);
+  window.loadURL(`${MAIN_WINDOW_WEBPACK_ENTRY}?id=${id}&screen=${screen ?? id}`);
 
   window.on('closed', () => {
     emitter.emit('closed');
@@ -72,3 +77,44 @@ export const getWindow = (id) => {
   }
   return null;
 }
+
+export const notifyWindow = (message, payload = {}, id = null) => {
+  if (!id) {
+    Object.keys(windowInstances).forEach((windowId) => {
+      notifyWindow(message, payload, windowId);
+    });
+  } else {
+    const window = getWindow(id);
+
+    if (window) {
+      window.window.webContents.send(message, payload);
+    }
+  }
+}
+
+ipcMain.handle('curwin:minimize', (_event, id) => {
+  const window = getWindow(id);
+  if (window) {
+    window.window.minimize();
+  }
+});
+
+ipcMain.handle('curwin:maximize', (_event, id) => {
+  const window = getWindow(id);
+  if (window) {
+    if (!window.window.isMaximized()) {
+      window.window.maximize();
+    } else {
+      window.window.unmaximize();
+    }
+  }
+  return window.window.isMaximized();
+});
+
+ipcMain.handle('curwin:close', (_event, id) => {
+  const window = getWindow(id);
+  if (window) {
+    window.window.setClosable(true);
+    window.window.close();
+  }
+});

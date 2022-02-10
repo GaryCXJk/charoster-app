@@ -2,6 +2,7 @@ import { app } from 'electron';
 import { debounce } from 'throttle-debounce';
 import { hasWindow, createWindow } from './window-manager';
 import { executeOnConfigLoad, getConfig, setConfig } from './config-manager';
+import { discoverPacks } from './packs-manager';
 
 let mainWindow;
 
@@ -11,7 +12,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
-})
+});
 
 app.on('activate', () => {
   // on macOS it is common to re-create a window even after all windows have been closed
@@ -23,6 +24,7 @@ app.on('activate', () => {
 // create main BrowserWindow when electron is ready
 app.on('ready', () => {
   executeOnConfigLoad(() => {
+    discoverPacks();
     const windowSize = getConfig('windowSize');
     mainWindow = createWindow('main', {
       ...windowSize,
@@ -55,6 +57,14 @@ app.on('ready', () => {
           parent: mainWindow.window,
           modal: true,
           closable: false,
+          minimizable: false,
+          maximizable: false,
+        });
+
+        setupWindow.window.webContents.on('before-input-event', (event, input) => {
+          if (input.code === 'F4' && input.alt) {
+            event.preventDefault();
+          }
         });
       }
     });

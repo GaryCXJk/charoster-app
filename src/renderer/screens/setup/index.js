@@ -93,6 +93,10 @@ export default () => {
     customChoiceInput.disabled = data.choice !== 'custom';
     customChoiceMain.appendChild(customChoiceInput);
 
+    customChoiceInput.addEventListener('input', () => {
+      data.customChoice = customChoiceInput.value;
+    });
+
     const customChoiceBtn = document.createElement('button');
     customChoiceBtn.type = 'button';
     customChoiceBtn.textContent = 'Choose...';
@@ -103,7 +107,6 @@ export default () => {
 
     customChoiceBtn.addEventListener('click', async () => {
       const pick = await window.config.pickFolder(data.customChoice);
-      console.log(pick);
       eventTarget.dispatchEvent(new Event('custom-choice-set'));
     });
 
@@ -124,6 +127,7 @@ export default () => {
 
   container.appendChild(titlebar({
     title: 'Work folder',
+    closable: false,
   }));
 
   const content = createContent();
@@ -136,6 +140,11 @@ export default () => {
   const pickBtn = document.createElement('button');
   pickBtn.textContent = 'Save';
   footer.appendChild(pickBtn);
+
+  pickBtn.addEventListener('click', async () => {
+    await window.config.setWorkFolder(data);
+    window.curWin.close();
+  });
 
   return container;
 }
