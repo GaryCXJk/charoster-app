@@ -1,10 +1,19 @@
 import { app } from 'electron';
 import { debounce } from 'throttle-debounce';
-import { hasWindow, createWindow } from './window-manager';
-import { executeOnConfigLoad, getConfig, setConfig } from './config-manager';
-import { discoverPacks } from './packs-manager';
+import { hasWindow, createWindow } from './managers/window-manager';
+import { executeOnConfigLoad, getConfig, setConfig } from './managers/config-manager';
+import { discoverPacks } from './managers/packs-manager';
 
 let mainWindow;
+let pickerWindow;
+
+const disableF4 = (window) => {
+  window.webContents.on('before-input-event', (event, input) => {
+    if (input.code === 'F4' && input.alt) {
+      event.preventDefault();
+    }
+  });
+}
 
 // quit application when all windows are closed
 app.on('window-all-closed', () => {
@@ -25,19 +34,42 @@ app.on('activate', () => {
 app.on('ready', () => {
   executeOnConfigLoad(() => {
     discoverPacks();
-    const windowSize = getConfig('windowSize');
+    const { width, height, fullscreen } = getConfig('windowSize');
     mainWindow = createWindow('main', {
-      ...windowSize,
+      width,
+      height,
+      ...(fullscreen ? { fullscreen } : {}),
       minWidth: 800,
       minHeight: 600,
+      fullscreenable: true,
     });
+
+    const mainPosition = mainWindow.window.getPosition();
+
+    pickerWindow = createWindow('picker', {
+      width: 300,
+      height: 600,
+      minWidth: 250,
+      maxWidth: 450,
+      minHeight: 400,
+      parent: mainWindow.window,
+      closable: false,
+      minimizable: false,
+      fullscreenable: false,
+      x: mainPosition[0] - 300,
+      y: mainPosition[1],
+    });
+
+    disableF4(pickerWindow.window);
 
     const storeResize = debounce(250, () => {
       const size = mainWindow.window.getSize();
+      const fullscreen = mainWindow.window.isFullScreen();
       setConfig({
         windowSize: {
           width: size[0],
           height: size[1],
+          fullscreen,
         },
       });
     });
@@ -61,11 +93,7 @@ app.on('ready', () => {
           maximizable: false,
         });
 
-        setupWindow.window.webContents.on('before-input-event', (event, input) => {
-          if (input.code === 'F4' && input.alt) {
-            event.preventDefault();
-          }
-        });
+        disableF4(setupWindow.window);
       }
     });
   });

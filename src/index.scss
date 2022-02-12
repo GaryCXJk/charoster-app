@@ -2,12 +2,13 @@
 
 :root {
   --main-color: #{$lightColor};
-  --main-bg-color: #{darken($lightBackground, 5%)};
-  --sub-bg-color: #{$lightBackground};
-  --elem-bg-color: #{lighten($lightBackground, 5%)};
+  --main-bg-color: #{$lightBackground};
+  --sub-bg-color: #{darken($lightBackground, 5%)};
+  --elem-bg-color: #{lighten($lightBackground, 2.5%)};
   --btn-hover-bg-color: #{lighten($lightBackground, 5%)};
   --btn-press-bg-color: #{lighten($lightBackground, 10%)};
   --disabled-color: #{lighten($lightColor, 25%)};
+  --scrollbar-bg-color: #{darken($lightBackground, 25%)};
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,11 +20,27 @@
     --btn-hover-bg-color: #{lighten($darkBackground, 5%)};
     --btn-press-bg-color: #{lighten($darkBackground, 10%)};
     --disabled-color: #{lighten($darkBackground, 10%)};
+    --scrollbar-bg-color: #{darken($darkBackground, 2.5%)};
+    --scrollbar-btn-color: #{lighten($darkBackground, 2.5%)};
   }
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  background-color: transparent;
+  width: 12px;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-bg-color);
+  border-radius: 6px;
 }
 
 html {

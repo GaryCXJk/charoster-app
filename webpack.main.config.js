@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = {
   /**
    * This is the main entry point for your application, it's the first file
@@ -7,5 +9,13 @@ module.exports = {
   // Put your normal webpack config below here
   module: {
     rules: require('./webpack.rules'),
+  },
+  resolve: {
+    alias: {
+      '@@helpers': path.resolve(__dirname, 'src/helpers'),
+    }
+  },
+  externals: {
+    sharp: "commonjs sharp",
   },
 };

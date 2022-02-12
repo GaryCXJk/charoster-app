@@ -29,6 +29,7 @@ module.exports = {
   }),
   resolve: {
     alias: {
+      '@@helpers': path.resolve(__dirname, 'src/helpers'),
       '@components': path.resolve(__dirname, 'src/renderer/components'),
     }
   },

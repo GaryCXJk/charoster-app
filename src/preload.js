@@ -1,31 +1,45 @@
+import deepmerge from 'deepmerge';
 import { contextBridge, ipcRenderer } from 'electron';
 import params from './helpers/params';
+import * as general from './preload/general';
+import * as main from './preload/main';
+import * as picker from './preload/picker';
+import * as setup from './preload/setup';
 
-contextBridge.exposeInMainWorld('curWin', {
-  minimize: () => ipcRenderer.invoke('curwin:minimize', params.id),
-  maximize: () => ipcRenderer.invoke('curwin:maximize', params.id),
-  close: () => ipcRenderer.invoke('curwin:close', params.id),
-});
-
-contextBridge.exposeInMainWorld('darkMode', {
-  check: () => ipcRenderer.invoke('dark-mode:check'),
-  toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
-  system: () => ipcRenderer.invoke('dark-mode:system'),
-});
-
-const config = {
-  pickFolder: (choice) => ipcRenderer.invoke('config:pick-folder', choice),
+const screens = {
+  main,
+  picker,
+  setup,
 };
 
-switch (params.screen) {
-  case 'setup':
-    Object.assign(config, {
-      getWorkFolder: (override) => ipcRenderer.invoke('config:get-workfolder', override),
-      setWorkFolder: (data) => ipcRenderer.invoke('config:set-workfolder', data),
-    });
-    break;
-  default:
-    break;
+let contextBridgePaths = deepmerge({}, general.contextBridgePaths);
+if (screens[params.screen] && screens[params.screen].contextBridgePaths) {
+  contextBridgePaths = deepmerge(contextBridgePaths, screens[params.screen].contextBridgePaths);
 }
 
-contextBridge.exposeInMainWorld('config', config);
+if (screens[params.screen] && screens[params.screen].ipcListeners) {
+  const eventTarget = new EventTarget();
+
+  const { ipcListeners } = screens[params.screen];
+
+  ipcListeners.forEach((event) => {
+    ipcRenderer.on(event, (_event, ...args) => {
+      eventTarget.dispatchEvent(new CustomEvent(event, {
+        detail: args,
+      }));
+    });
+  });
+  contextBridgePaths = deepmerge(contextBridgePaths, {
+    globalEventHandler: {
+      on: (event, callback) => {
+        eventTarget.addEventListener(event, callback);
+      },
+    },
+  });
+}
+
+Object.keys(contextBridgePaths).forEach((cbPath) => {
+  const cbObj = contextBridgePaths[cbPath];
+
+  contextBridge.exposeInMainWorld(cbPath, cbObj);
+});

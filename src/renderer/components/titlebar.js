@@ -1,3 +1,5 @@
+import Block from './base/Block';
+import Button from './base/Button';
 import './titlebar.scss';
 
 export default (options = {}) => {
@@ -7,44 +9,52 @@ export default (options = {}) => {
     minimizable = true,
     closable = true,
   } = options;
-  const titlebar = document.createElement('div');
-  titlebar.className = 'titlebar';
 
-  const dragHandle = document.createElement('div');
-  dragHandle.className = 'handle';
-  titlebar.appendChild(dragHandle);
+  const titlebar = new Block({
+    className: 'titlebar',
+  });
+
+  const dragHandle = new Block({
+    className: 'handle',
+  });
+  titlebar.append(dragHandle);
 
   if (hasIcon) {
-    const icon = document.createElement('div');
-    icon.className = 'icon';
-    dragHandle.appendChild(icon);
+    const icon = new Block({
+      className: 'icon',
+    });
+    dragHandle.append(icon);
   }
 
-  const label = document.createElement('h1');
-  label.className = 'label';
-  label.textContent = title;
-  dragHandle.appendChild(label);
+  const label = new Block({
+    element: 'h1',
+    className: 'label',
+    textContent: title,
+  });
+  dragHandle.append(label);
 
   if (minimizable) {
-    const minBtn = document.createElement('button');
-    minBtn.type = 'button';
-    minBtn.innerHTML = '_';
-    titlebar.appendChild(minBtn);
-
-    minBtn.addEventListener('click', () => {
-      window.curWin.minimize();
+    const minBtn = new Button({
+      innerHTML: '_',
+      on: {
+        click: () => {
+          window.curWin.minimize();
+        },
+      }
     });
+    titlebar.append(minBtn);
   }
 
   if (closable) {
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.innerHTML = '&times;';
-    titlebar.appendChild(closeBtn);
-
-    closeBtn.addEventListener('click', () => {
-      window.curWin.close();
+    const closeBtn = new Button({
+      innerHTML: '&times;',
+      on: {
+        click: () => {
+          window.curWin.close();
+        },
+      },
     });
+    titlebar.append(closeBtn);
   }
 
   return titlebar;

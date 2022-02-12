@@ -128,7 +128,7 @@ export default () => {
   container.appendChild(titlebar({
     title: 'Work folder',
     closable: false,
-  }));
+  }).element);
 
   const content = createContent();
   container.appendChild(content);

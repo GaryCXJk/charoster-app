@@ -1,0 +1,58 @@
+#app.picker {
+  .content {
+    flex: 1 0 0;
+    overflow: auto;
+    scrollbar-gutter: stable both-edges;
+    padding: 0 1rem;
+
+    .pack {
+      border: 1px solid var(--main-color);
+      padding: 1rem 0.75rem;
+      margin: 1rem 0;
+
+      .label {
+        font-family: "Montserrat";
+        font-weight: 700;
+        font-size: 0.8rem;
+        margin-top: -1.5rem;
+        background-color: var(--main-bg-color);
+        padding: 0 0.5rem;
+        margin-bottom: 1rem;
+        float: left;
+
+        &::after {
+          content: '';
+          clear: both;
+          display: table;
+        }
+      }
+
+      .panels {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: start;
+        clear: both;
+      }
+    }
+  }
+
+  .panel {
+    width: 5.5rem;
+    height: 4rem;
+    background-color: var(--elem-bg-color);
+    border: 1px solid var(--main-color);
+
+    .image {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center center;
+    }
+  }
+
+  .costumes {
+    background-color: var(--sub-bg-color);
+    height: 10rem;
+    padding: 1rem;
+  }
+}

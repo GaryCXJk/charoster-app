@@ -7,7 +7,7 @@ export default () => {
 
   container.appendChild(titlebar({
     hasIcon: true,
-  }));
+  }).element);
 
   const panels = document.createElement('div');
   panels.className = 'panels';
