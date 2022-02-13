@@ -34,8 +34,16 @@ export default class Block {
     this.#container[prop] = value;
   }
 
+  css(style) {
+    this.#props.style = this.#props.style ?? {};
+    Object.assign(this.#props.style, style);
+    Object.assign(this.#container.style, style);
+  }
+
   append(block) {
-    if(block instanceof Block) {
+    if (typeof block === 'string') {
+      this.#container.appendChild(document.createTextNode(block));
+    } else if(block instanceof Block) {
       this.#container.appendChild(block.element);
     } else if (block instanceof HTMLCollection) {
       Array.from(block).forEach((node) => {
@@ -44,6 +52,26 @@ export default class Block {
     } else {
       this.#container.appendChild(block);
     }
+  }
+
+  detach() {
+    if (this.#container.parentNode) {
+      this.#container.parentNode.removeChild(this.#container);
+    }
+  }
+
+  empty() {
+    Array.from(this.#container.children).forEach((child) => {
+      this.#container.removeChild(child);
+    });
+  }
+
+  index() {
+    if (this.#container.parentNode) {
+      const { parentNode } = this.#container;
+      return Array.from(parentNode.children).indexOf(this.#container);
+    }
+    return -1;
   }
 
   on(event, callback = null) {

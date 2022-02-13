@@ -252,7 +252,10 @@ export const getCostumeImages = async (imageId) => {
       .png()
       .toBuffer();
 
-    returnImages[size] = `data:image/png;base64,${buffer.toString('base64')}`;
+    returnImages[size] = {
+      buffer,
+      data: `data:image/png;base64,${buffer.toString('base64')}`,
+    };
   }
   imageCache[imageId] = returnImages;
   waiter.resolve();

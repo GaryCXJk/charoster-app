@@ -8,6 +8,7 @@ export default (options = {}) => {
   const {
     title = 'ChaRoster',
     hasIcon = false,
+    buttons = [],
     minimizable = true,
     closable = true,
   } = options;
@@ -34,6 +35,26 @@ export default (options = {}) => {
     textContent: title,
   });
   dragHandle.append(label);
+
+  buttons.forEach((button) => {
+    if (button === 'divider') {
+      const divider = new Block({
+        element: 'span',
+        className: 'divider',
+      });
+      titlebar.append(divider);
+    } else {
+      const {
+        on = {},
+        content = null,
+      } = button;
+      const btn = new Button({
+        on,
+      });
+      btn.append(content);
+      titlebar.append(btn);
+    }
+  });
 
   if (minimizable) {
     const minBtn = new Button({

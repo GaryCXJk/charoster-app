@@ -58,7 +58,7 @@ app.on('ready', () => {
       closable: false,
       minimizable: false,
       fullscreenable: false,
-      x: Math.max(0, mainPosition[0] - 300),
+      x: Math.max(0, mainPosition[0] - 320),
       y: mainPosition[1],
     });
 

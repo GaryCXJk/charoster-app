@@ -6,6 +6,7 @@ const imageQueue = [];
 const waiters = {
   images: {},
 };
+const renderedLabels = {};
 
 let queueRunning = false;
 
@@ -66,9 +67,34 @@ const setPanelImage = async ({
     });
     panel.append(panelLabel);
 
-    panelLabel.prop('textContent', (
-      label ?? entity.allCapsDisplayName ?? (entity.displayName ? entity.displayName.toUpperCase() : null) ?? entity.allCapsName ?? (entity.name ?? entity.id).toUpperCase()
-    ));
+    const displayLabel = label ?? entity.allCapsDisplayName ?? (entity.displayName ? entity.displayName.toUpperCase() : null) ?? entity.allCapsName ?? (entity.name ?? entity.id).toUpperCase();
+
+    panelLabel.prop('textContent', displayLabel);
+
+    if (!renderedLabels[displayLabel]) {
+      await document.fonts.ready;
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      context.font = 'bold 144px "Montserrat"';
+      context.fillStyle = 'white';
+      const metric = context.measureText(displayLabel);
+      const labelY = Math.ceil(metric.actualBoundingBoxAscent);
+      const labelWidth = Math.ceil(metric.width);
+      const labelHeight = Math.ceil(metric.actualBoundingBoxAscent + metric.actualBoundingBoxDescent);
+
+      canvas.width = labelWidth;
+      canvas.height = labelHeight;
+      context.font = 'bold 144px Montserrat';
+      context.fillStyle = 'white';
+      context.fillText(displayLabel, 0, labelY);
+      renderedLabels[displayLabel] = canvas.toDataURL();
+    }
+
+    panelLabel.prop('textContent', '');
+    const labelImage = document.createElement('img');
+    labelImage.className = 'label-image';
+    labelImage.src = renderedLabels[displayLabel];
+    panelLabel.append(labelImage);
   }
 
   let panelImageId = imageId;
@@ -80,16 +106,16 @@ const setPanelImage = async ({
   }
 
   if (panelImageId) {
-    const waiter = createWaiter();
     waiters.images[type] = waiters.images[type] ?? {};
-    waiters.images[type][panelImageId] = waiter;
+    waiters.images[type][panelImageId] = waiters.images[type][panelImageId] ?? createWaiter();
+    const waiter = waiters.images[type][panelImageId];
 
     queueImage(type, panelImageId);
 
     const imageData = await waiter;
 
     if (imageData) {
-      panelImage.element.style.backgroundImage = `url(${imageData.panel})`;
+      panelImage.element.style.backgroundImage = `url(${imageData.panel.data})`;
     }
   }
 };
