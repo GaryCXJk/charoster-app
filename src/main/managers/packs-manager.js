@@ -2,11 +2,15 @@ import deepmerge from 'deepmerge';
 import { ipcMain } from 'electron';
 import { promises as fsPromises } from 'fs';
 import * as path from 'path';
-import { awaitCharacterQueue, fetchCharacters, queueCharacter } from './characters-manager';
+import { awaitCharacterQueue, fetchCharacters, getCostumeImages, queueCharacter } from './characters-manager';
 import { getConfig } from './config-manager';
 import { notifyWindow } from './window-manager';
 
 const { readdir, readFile, stat } = fsPromises;
+
+const imageReaders = {
+  characters: getCostumeImages,
+};
 
 const packs = {};
 
@@ -100,3 +104,11 @@ export const getPackList = () => {
 }
 
 ipcMain.handle('packs:get-pack-list', getPackList);
+
+ipcMain.handle('packs:get-images', (_event, type, imageId) => {
+  if (!imageReaders[type]) {
+    return null;
+  }
+
+  return imageReaders[type](imageId);
+});

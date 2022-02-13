@@ -9,6 +9,8 @@
   --btn-press-bg-color: #{lighten($lightBackground, 10%)};
   --disabled-color: #{lighten($lightColor, 25%)};
   --scrollbar-bg-color: #{darken($lightBackground, 25%)};
+  --border-color: #{darken($lightBackground, 25%)};
+  --border-active-color: #{$lightColor};
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,8 +22,10 @@
     --btn-hover-bg-color: #{lighten($darkBackground, 5%)};
     --btn-press-bg-color: #{lighten($darkBackground, 10%)};
     --disabled-color: #{lighten($darkBackground, 10%)};
-    --scrollbar-bg-color: #{darken($darkBackground, 2.5%)};
-    --scrollbar-btn-color: #{lighten($darkBackground, 2.5%)};
+    --scrollbar-bg-color: #{darken($darkColor, 2.5%)};
+    --scrollbar-btn-color: #{lighten($darkColor, 2.5%)};
+    --border-color: #{lighten($darkBackground, 12.5%)};
+    --border-active-color: #{$darkColor};
   }
 }
 
@@ -93,3 +97,5 @@ button {
     background-color: var(--btn-press-bg-color);
   }
 }
+
+@import "./sass/panels";

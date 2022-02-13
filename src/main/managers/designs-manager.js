@@ -1,4 +1,5 @@
-const designs = {};
+const designs = {
+};
 const sizes = {
   panel: 452 / 300,
   preview: 128 / 160,

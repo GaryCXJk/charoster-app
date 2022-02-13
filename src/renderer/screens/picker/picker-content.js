@@ -1,87 +1,119 @@
 import Block from "@components/base/Block";
-import createWaiter from "@@helpers/create-waiter";
+import { createPanel as createPanelBase } from '@components/panels/panel';
 
 let pickerContent;
+let costumePicker;
 const packs = {};
 const blocks = {};
 const characters = {};
+const waiters = {};
+let activePanel = null;
 
-const imageQueue = [];
-
-let queueRunning = false;
-
-const waiters = {
-  costumes: {},
-};
-
-window.globalEventHandler.on('character-updated', (...args) => {
-  console.log(args);
+window.globalEventHandler.on('character-updated', (characterData) => {
+  characters[characterData.fullId] = characterData;
+  if (waiters[characterData.fullId]) {
+    waiters[characterData.fullId].resolve(characterData);
+  }
 });
 
-const runImageQueue = async () => {
-  if (queueRunning) {
-    return;
-  }
-  queueRunning = true;
-
-  while (imageQueue.length) {
-    const imageId = imageQueue.shift();
-
-    const imageData = await window.characters.getImages(imageId);
-    waiters.costumes[imageId].resolve(imageData);
-  }
-
-  queueRunning = false;
-};
-
-const queueImage = (imageId) => {
-  imageQueue.push(imageId);
-  runImageQueue();
-};
-
-const setPanelImage = async (panel, charId) => {
-  const panelImage = new Block({
-    className: 'image',
-  });
-  panel.append(panelImage);
-
+const getCostumeList = (charId) => {
+  const costumes = [];
   const character = characters[charId];
 
-  if (!character) {
-    // TODO: Wait for character information.
-  }
-
-  let costumeId = character.defaultCostume;
-
-  if (!costumeId && character.costumes && character.costumes) {
-    character.costumes.every((costume) => {
-      if (costume.images && costume.images.length) {
-        costumeId = `${costume.fullId}>0`;
-        return false;
+  if (character.costumes) {
+    character.costumes.forEach((costume) => {
+      if (costume.images) {
+        const costumeInfo = {
+          name: costume.name ?? null,
+          images: [],
+        }
+        for (let idx = 0; idx < costume.images.length; idx += 1) {
+          costumeInfo.images.push(`${costume.fullId}>${idx}`);
+        }
+        costumes.push(costumeInfo);
       }
-      return true;
     });
   }
-  if (costumeId) {
-    const waiter = createWaiter();
-    waiters.costumes[costumeId] = waiter;
+  return costumes;
+}
 
-    queueImage(costumeId);
+const createPanel = (charId, imageId = null) => {
+  const panel = createPanelBase({
+    type: 'characters',
+    entityId: charId,
+    imageId,
+    showLabel: !imageId,
+    draggable: true,
+    callbacks: {
+      panel: {
+        dragstart: () => {
+          window.panels.startDrag(charId, imageId);
+        },
+        dragend: () => {
+          window.panels.endDrag();
+        },
+        ...(
+          !imageId
+          ? {
+            click: () => {
+              panel.element.classList.toggle('active');
+              const isActive = panel.element.classList.contains('active');
+              costumePicker.element.innerHTML = '';
 
-    const imageData = await waiter;
+              if (isActive) {
+                if (activePanel) {
+                  activePanel.element.classList.remove('active');
+                }
+                activePanel = panel;
 
-    if (imageData) {
-      panelImage.element.style.backgroundImage = `url(${imageData.panel})`;
-    }
-  }
-};
+                getCostumeList(charId).forEach((costumeInfo) => {
+                  const costumeHeader = new Block({
+                    className: 'header',
+                    textContent: costumeInfo.name ?? '',
+                  });
+                  costumePicker.append(costumeHeader);
+                  costumeInfo.images.forEach((costumeId) => {
+                    const costumePanel = createPanel(charId, costumeId);
+                    costumePicker.append(costumePanel);
+                  });
+                });
+              } else {
+                activePanel = null;
+              }
+            }
+          }
+          : {}
+        ),
+      },
+      image: {
+        setEntity: async (entityId) => {
+          let character = characters[entityId];
 
-const createPanel = (charId) => {
-  const panel = new Block({
-    className: 'panel',
+          if (!character) {
+            characters[entityId] = await window.characters.getCharacter(entityId);
+            character = characters[entityId];
+          }
+          return character;
+        },
+        setImage: ({
+          entity: character,
+        }) => {
+          let costumeId = character.defaultCostume;
+
+          if (!costumeId && character.costumes && character.costumes) {
+            character.costumes.every((costume) => {
+              if (costume.images && costume.images.length) {
+                costumeId = `${costume.fullId}>0`;
+                return false;
+              }
+              return true;
+            });
+          }
+          return costumeId;
+        }
+      }
+    },
   });
-
-  setPanelImage(panel, charId);
 
   return panel;
 }
@@ -126,10 +158,12 @@ const initPickerContent = async (pickerContent) => {
   });
 }
 
-export default () => {
+export default (costumePickerElement) => {
   pickerContent = new Block({
     className: 'content',
   });
+
+  costumePicker = costumePickerElement;
 
   initPickerContent(pickerContent);
 

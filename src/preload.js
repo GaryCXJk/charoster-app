@@ -23,16 +23,19 @@ if (screens[params.screen] && screens[params.screen].ipcListeners) {
   const { ipcListeners } = screens[params.screen];
 
   ipcListeners.forEach((event) => {
-    ipcRenderer.on(event, (_event, ...args) => {
-      eventTarget.dispatchEvent(new CustomEvent(event, {
-        detail: args,
-      }));
+    ipcRenderer.on(event, (_event, detail) => {
+      const customEvent = new CustomEvent(event, {
+        detail,
+      });
+      eventTarget.dispatchEvent(customEvent);
     });
   });
   contextBridgePaths = deepmerge(contextBridgePaths, {
     globalEventHandler: {
       on: (event, callback) => {
-        eventTarget.addEventListener(event, callback);
+        eventTarget.addEventListener(event, (e) => {
+          callback(e.detail);
+        });
       },
     },
   });

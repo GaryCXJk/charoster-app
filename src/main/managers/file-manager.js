@@ -1,10 +1,8 @@
-import { promises as fsPromises } from 'fs';
+import { readdir, readFile, stat } from 'fs/promises';
 import * as path from 'path';
 import deepmerge from 'deepmerge';
 import createWaiter from '@@helpers/create-waiter';
 import { getConfig } from './config-manager';
-
-const { readdir, readFile, stat } = fsPromises;
 
 /**
  *

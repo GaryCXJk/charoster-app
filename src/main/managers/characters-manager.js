@@ -28,30 +28,33 @@ const prepareCharacterData = (charInfo, id) => {
   }
   if (charInfo.costumes) {
     const { costumes: costumeList } = charInfo;
+    charInfo.costumeMap = {};
     charInfo.costumes = costumeList.filter((costume) => costume.id).map((costume) => {
       costume.fullId = `${id}>${costume.id}`;
       costumes[costume.fullId] = costume;
+      charInfo.costumeMap[costume.fullId] = costume;
       return costume;
     });
   }
 };
 
 const loadCostume = async (costumeInfo) => {
-  const parentId = costumeInfo.value.parent;
+  const parentId = costumeInfo.parent;
   await loadCharacter(parentId);
-  if (waiter[parentId].status === 'rejected') {
+  if (waiting[parentId].status === 'rejected') {
     return null;
   }
   const parentInfo = characters[parentId];
   parentInfo.costumes.push(...costumeInfo.costumes);
+  Object.assign(parentInfo.costumeMap, costumeInfo.costumeMap);
 
   return parentInfo;
 };
 
 const loadMeta = async (metaInfo) => {
-  const parentId = metaInfo.value.parent;
+  const parentId = metaInfo.parent;
   await loadCharacter(parentId);
-  if (waiter[parentId].status === 'rejected') {
+  if (waiting[parentId].status === 'rejected') {
     return null;
   }
   const parentInfo = characters[parentId];
@@ -61,7 +64,7 @@ const loadMeta = async (metaInfo) => {
 };
 
 const notifyCharacterUpdated = (characterId) => {
-  const character = deepmerge({}, characters[characterId]);
+  const character = characters[characterId] ? deepmerge({}, characters[characterId]) : null;
   notifyWindow('character-updated', {
     characterId,
     character,
@@ -89,7 +92,7 @@ const loadCharacter = async (characterId) => {
 
       waiting[characterId].resolve(charInfo);
       notifyCharacterUpdated(characterId);
-      return deepmerge({}, returnInfo);
+      return returnInfo ? deepmerge({}, returnInfo) : null;
     },
     onProgressEntity: async () => {
       const waiter = waiting[characterId];
@@ -176,13 +179,15 @@ export const getCostumeImages = async (imageId) => {
     return null;
   }
 
-  const image = costume.images[index];
+  const imageInfo = costume.images[index];
 
-  if (!image) {
+  if (!imageInfo) {
     imageCache[imageId] = null;
     waiter.resolve();
     return null;
   }
+
+  const image = (typeof imageInfo === 'string' ? imageInfo : imageInfo.image);
 
   const workFolder = getConfig('workFolder');
   const costumePath = path.join(workFolder, 'packs', folder, 'characters', characterId, costumeId, image);
@@ -255,5 +260,10 @@ export const getCostumeImages = async (imageId) => {
 }
 
 ipcMain.handle('characters:get-character-list', (_event, filterCharacter) => getCharacterList(filterCharacter));
+
+ipcMain.handle('characters:get-character', (_event, characterId) => {
+  queueCharacter(characterId);
+  return loadCharacter(characterId);
+});
 
 ipcMain.handle('characters:get-images', (_event, imageId) => getCostumeImages(imageId));

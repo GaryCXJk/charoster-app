@@ -1,3 +1,5 @@
+import { icon } from '@fortawesome/fontawesome-svg-core';
+import { faClose, faWindowMinimize } from '@fortawesome/free-solid-svg-icons';
 import Block from './base/Block';
 import Button from './base/Button';
 import './titlebar.scss';
@@ -35,25 +37,25 @@ export default (options = {}) => {
 
   if (minimizable) {
     const minBtn = new Button({
-      innerHTML: '_',
       on: {
         click: () => {
           window.curWin.minimize();
         },
       }
     });
+    minBtn.append(icon(faWindowMinimize).node);
     titlebar.append(minBtn);
   }
 
   if (closable) {
     const closeBtn = new Button({
-      innerHTML: '&times;',
       on: {
         click: () => {
           window.curWin.close();
         },
       },
     });
+    closeBtn.append(icon(faClose).node);
     titlebar.append(closeBtn);
   }
 

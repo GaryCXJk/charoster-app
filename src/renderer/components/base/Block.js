@@ -37,6 +37,10 @@ export default class Block {
   append(block) {
     if(block instanceof Block) {
       this.#container.appendChild(block.element);
+    } else if (block instanceof HTMLCollection) {
+      Array.from(block).forEach((node) => {
+        this.#container.appendChild(node);
+      });
     } else {
       this.#container.appendChild(block);
     }

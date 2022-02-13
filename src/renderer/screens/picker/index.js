@@ -14,12 +14,13 @@ export default () => {
     minimizable: false,
   }));
 
-  const pickerContent = setPickerContent();
-  container.append(pickerContent);
-
   const costumePicker = new Block({
     className: 'costumes',
   });
+
+  const pickerContent = setPickerContent(costumePicker);
+  container.append(pickerContent);
+
   container.append(costumePicker);
 
   window.packs.getPackList();

@@ -3,6 +3,8 @@ import { debounce } from 'throttle-debounce';
 import { hasWindow, createWindow } from './managers/window-manager';
 import { executeOnConfigLoad, getConfig, setConfig } from './managers/config-manager';
 import { discoverPacks } from './managers/packs-manager';
+import './managers/workspace-manager';
+import './helpers/drag-helper';
 
 let mainWindow;
 let pickerWindow;
@@ -47,7 +49,7 @@ app.on('ready', () => {
     const mainPosition = mainWindow.window.getPosition();
 
     pickerWindow = createWindow('picker', {
-      width: 300,
+      width: 320,
       height: 600,
       minWidth: 250,
       maxWidth: 450,
@@ -56,7 +58,7 @@ app.on('ready', () => {
       closable: false,
       minimizable: false,
       fullscreenable: false,
-      x: mainPosition[0] - 300,
+      x: Math.max(0, mainPosition[0] - 300),
       y: mainPosition[1],
     });
 
