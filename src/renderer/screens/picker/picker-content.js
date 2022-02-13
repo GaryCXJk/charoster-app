@@ -11,14 +11,40 @@ let activePanel = null;
 
 let query = '';
 
-const off = new Block();
+const elements = {
+  off: new Block(),
+};
 
-window.globalEventHandler.on('character-updated', (characterData) => {
-  characters[characterData.fullId] = characterData;
-  if (waiters[characterData.fullId]) {
-    waiters[characterData.fullId].resolve(characterData);
-  }
-});
+const setHandlers = () => {
+  window.globalEventHandler.on('character-updated', (characterData) => {
+    characters[characterData.fullId] = characterData;
+    if (waiters[characterData.fullId]) {
+      waiters[characterData.fullId].resolve(characterData);
+    }
+  });
+
+  window.globalEventHandler.on('pack-ready', (pack) => {
+    const packId = pack.id;
+    packs[packId] = pack;
+    pack.characters = [];
+    elements.off.append(createPackBlock(packId));
+    addPackBlocks();
+  });
+
+  window.globalEventHandler.on('pack-character-list-ready', (data) => {
+    const {
+      packId,
+      characters,
+    } = data;
+    packs[packId].characters.push(...characters);
+    characters.forEach((charId) => {
+      const panel = createPanel(charId);
+
+      blocks[packId].panels.append(panel);
+    });
+    addPackBlocks();
+  });
+}
 
 const getCostumeList = (charId) => {
   const costumes = [];
@@ -149,6 +175,7 @@ const createPackBlock = (packId) => {
 
   block.pack = pack;
   block.off = new Block();
+  block.panels = panels;
 
   return block;
 }
@@ -157,7 +184,7 @@ const addPackBlocks = () => {
   Object.keys(blocks).forEach((packId) => {
     const block = blocks[packId];
 
-    off.append(block);
+    elements.off.append(block);
 
     if (block.pack.characters.length) {
       pickerContent.append(block);
@@ -166,6 +193,8 @@ const addPackBlocks = () => {
 }
 
 const initPickerContent = async () => {
+  setHandlers();
+
   const fetchPacks = await window.packs.getPackList();
   const fetchCharacters = await window.characters.getCharacterList();
 
@@ -173,7 +202,7 @@ const initPickerContent = async () => {
   Object.assign(characters, fetchCharacters);
 
   Object.keys(fetchPacks).forEach((packId) => {
-    off.append(createPackBlock(packId));
+    elements.off.append(createPackBlock(packId));
   });
 
   addPackBlocks();

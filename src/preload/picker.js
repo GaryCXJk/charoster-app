@@ -2,7 +2,11 @@ import deepmerge from 'deepmerge';
 import { ipcRenderer } from 'electron';
 import * as managers from './managers';
 
-export const ipcListeners = [...managers.ipcListeners];
+export const ipcListeners = [
+  ...managers.ipcListeners,
+  'pack-ready',
+  'pack-character-list-ready',
+];
 
 export const contextBridgePaths = deepmerge(managers.contextBridgePaths, {
   panels: {

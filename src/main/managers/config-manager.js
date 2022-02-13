@@ -1,9 +1,12 @@
 import { mkdir } from 'fs';
+import createWaiter from '../../helpers/create-waiter';
 
 const { app, ipcMain, nativeTheme, dialog } = require('electron');
 const path = require('path');
 const { access, constants, readFile, writeFile, fstat, existsSync } = require('fs');
 const deepmerge = require('deepmerge');
+
+const workFolderWaiter = createWaiter();
 
 const defaultConfig = {
   darkMode: 'system',
@@ -51,6 +54,9 @@ const fileLoad = new Promise((resolve) => {
 
           setDarkMode(null, false);
         }
+        if (config.workFolder) {
+          workFolderWaiter.resolve();
+        }
         resolve();
       });
     } else {
@@ -90,6 +96,10 @@ export const getWorkFolder = (override = null) => {
   }
 };
 
+export const waitForWorkFolder = async () => {
+  await workFolderWaiter;
+}
+
 ipcMain.handle('dark-mode:check', () => nativeTheme.shouldUseDarkColors);
 ipcMain.handle('dark-mode:toggle', () => {
   setDarkMode(nativeTheme.shouldUseDarkColors ? 'light' : 'dark');
@@ -101,7 +111,7 @@ ipcMain.handle('dark-mode:system', () => {
 });
 
 ipcMain.handle('config:get-workfolder', (_event, override) => getWorkFolder(override));
-ipcMain.handle('config:pick-folder', async (_event, choice) => {
+ipcMain.handle('config:pick-folder', async (_event, id, choice) => {
   const defaultPath = choice || path.join(app.getPath('documents'), app.name);
 
   if (!existsSync(defaultPath)) {
@@ -112,7 +122,7 @@ ipcMain.handle('config:pick-folder', async (_event, choice) => {
     });
   }
 
-  return dialog.showOpenDialog({
+  return dialog.showOpenDialog(getWindow(id), {
     defaultPath,
     properties: ['openDirectory', 'createDirectory'],
   });
@@ -145,5 +155,6 @@ ipcMain.handle('config:set-workfolder', async (_event, data) => {
     });
   }
 
+  workFolderWaiter.resolve();
   saveConfig();
 });

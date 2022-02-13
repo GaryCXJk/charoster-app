@@ -3,7 +3,7 @@ import { ipcMain } from 'electron';
 import { promises as fsPromises } from 'fs';
 import * as path from 'path';
 import { awaitCharacterQueue, fetchCharacters, getCostumeImages, queueCharacter } from './characters-manager';
-import { getConfig } from './config-manager';
+import { getConfig, waitForWorkFolder } from './config-manager';
 import { notifyWindow } from './window-manager';
 
 const { readdir, readFile, stat } = fsPromises;
@@ -54,6 +54,10 @@ export const fetchPack = async (folder) => {
           if (addons.length) {
             packInfo.addons = addons;
           }
+          notifyWindow('pack-character-list-ready', {
+            packId: packInfo.id,
+            characters: packInfo.characters,
+          });
         }).catch(() => {
           // Do nothing
         });
@@ -71,6 +75,7 @@ export const fetchPack = async (folder) => {
 }
 
 export const discoverPacks = async () => {
+  await waitForWorkFolder();
   const files = [];
   const workFolder = path.join(getConfig('workFolder'), 'packs');
 

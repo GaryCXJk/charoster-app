@@ -220,13 +220,11 @@ export const getCostumeImages = async (imageId) => {
 
       if (sizeData.x < 0) {
         extendData.left = Math.abs(sizeData.x);
-        newSize.width += extendData.left;
         sizeData.width -= extendData.left;
         sizeData.x = 0;
       }
       if (sizeData.y < 0) {
         extendData.top = Math.abs(sizeData.y);
-        newSize.height += extendData.top;
         sizeData.height -= extendData.top;
         sizeData.y = 0;
       }

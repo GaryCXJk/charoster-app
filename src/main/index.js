@@ -50,7 +50,7 @@ app.on('ready', () => {
 
     pickerWindow = createWindow('picker', {
       width: 320,
-      height: 600,
+      height: 640,
       minWidth: 250,
       maxWidth: 450,
       minHeight: 400,

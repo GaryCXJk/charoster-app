@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import params, { param } from '@@helpers/params';
+import params from '@@helpers/params';
 
 export const contextBridgePaths = {
   curWin: {
@@ -13,6 +13,6 @@ export const contextBridgePaths = {
     system: () => ipcRenderer.invoke('dark-mode:system'),
   },
   config: {
-    pickFolder: (choice) => ipcRenderer.invoke('config:pick-folder', choice),
+    pickFolder: (choice) => ipcRenderer.invoke('config:pick-folder', params.id, choice),
   },
 };

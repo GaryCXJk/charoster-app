@@ -4,6 +4,7 @@
   height: 4rem;
   background-color: var(--elem-bg-color);
   border: 1px solid var(--border-color);
+  overflow: hidden;
 
   &.active {
     border-color: var(--border-active-color);

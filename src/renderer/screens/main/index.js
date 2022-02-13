@@ -19,17 +19,19 @@ const elements = {};
 let placeholder = null;
 let placeholderRoster = null;
 
-window.globalEventHandler.on('drag-helper-info', (detail) => {
-  dragInfo = detail;
-});
+const setHandlers = () => {
+  window.globalEventHandler.on('drag-helper-info', (detail) => {
+    dragInfo = detail;
+  });
 
-window.globalEventHandler.on('drag-helper-done', () => {
-  if (!isDragEnter) {
-    dragInfo = null;
-    placeholder = null;
-    placeholderRoster = null;
-  }
-});
+  window.globalEventHandler.on('drag-helper-done', () => {
+    if (!isDragEnter) {
+      dragInfo = null;
+      placeholder = null;
+      placeholderRoster = null;
+    }
+  });
+}
 
 const getCurrentRoster = () => workspace.rosters[workspace.displayRoster];
 
@@ -88,14 +90,35 @@ const getStyleProperties = () => {
   return returnStyle;
 }
 
-const setStyle = () => {
-  const design = {
-    panels: {
-      gap: '0.25em',
-      margin: '1.5em',
+const processCSSFilters = (filters) => {
+  const processedFilters = [];
+
+  filters.forEach((filter) => {
+    const { type, value } = filter;
+    let processedValue = [];
+    switch (type) {
+      case 'drop-shadow':
+        processedValue.push(value.x, value.y);
+        if (value.radius) {
+          processedValue.push(value.radius);
+        }
+        if (value.color) {
+          processedValue.push(value.color);
+        }
+        break;
+      default:
+        break;
     }
-  }; // TODO: Use design manager to manage design
+    processedFilters.push(`${type}(${processedValue.join(' ')})`);
+  });
+  return processedFilters.join(' ');
+};
+
+const setStyle = async () => {
+  const design = await window.designs.get();
   const rosterStyle = getStyleProperties();
+
+  const imageFilters = processCSSFilters(design.panels.image.filters);
 
   const stylesheet = `
 #app.main .content {
@@ -111,6 +134,11 @@ const setStyle = () => {
   width: ${rosterStyle.panels.width};
   height: ${rosterStyle.panels.height};
   padding: ${design.panels.gap};
+}
+
+#app.main .panels .panel .image {${
+  imageFilters ? `filter: ${imageFilters};` : ''
+}
 }
 `;
   elements.style.innerHTML = stylesheet;
@@ -282,6 +310,8 @@ const convertEntity = () => {
 }
 
 export default () => {
+  setHandlers();
+
   const setupPromise = setupWorkspace();
 
   const container = document.createElement('div');
@@ -316,7 +346,6 @@ export default () => {
               storeWorkspace();
               prepareRoster();
               renderRoster();
-              console.log(workspace);
             }
           }
         }
@@ -335,7 +364,6 @@ export default () => {
     on: {
       drop: async (event) => {
         await setupPromise;
-        console.log(dragInfo);
         if (dragInfo) {
           event.preventDefault();
 

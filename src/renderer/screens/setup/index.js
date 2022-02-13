@@ -107,6 +107,9 @@ export default () => {
 
     customChoiceBtn.addEventListener('click', async () => {
       const pick = await window.config.pickFolder(data.customChoice);
+      if (!pick.cancelled) {
+        data.customChoice = pick.filePaths[0];
+      }
       eventTarget.dispatchEvent(new Event('custom-choice-set'));
     });
 
