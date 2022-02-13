@@ -9,6 +9,10 @@ const characters = {};
 const waiters = {};
 let activePanel = null;
 
+let query = '';
+
+const off = new Block();
+
 window.globalEventHandler.on('character-updated', (characterData) => {
   characters[characterData.fullId] = characterData;
   if (waiters[characterData.fullId]) {
@@ -143,10 +147,25 @@ const createPackBlock = (packId) => {
 
   blocks[packId] = block;
 
+  block.pack = pack;
+  block.off = new Block();
+
   return block;
 }
 
-const initPickerContent = async (pickerContent) => {
+const addPackBlocks = () => {
+  Object.keys(blocks).forEach((packId) => {
+    const block = blocks[packId];
+
+    off.append(block);
+
+    if (block.pack.characters.length) {
+      pickerContent.append(block);
+    }
+  });
+}
+
+const initPickerContent = async () => {
   const fetchPacks = await window.packs.getPackList();
   const fetchCharacters = await window.characters.getCharacterList();
 
@@ -154,8 +173,10 @@ const initPickerContent = async (pickerContent) => {
   Object.assign(characters, fetchCharacters);
 
   Object.keys(fetchPacks).forEach((packId) => {
-    pickerContent.append(createPackBlock(packId));
+    off.append(createPackBlock(packId));
   });
+
+  addPackBlocks();
 }
 
 export default (costumePickerElement) => {
@@ -165,7 +186,7 @@ export default (costumePickerElement) => {
 
   costumePicker = costumePickerElement;
 
-  initPickerContent(pickerContent);
+  initPickerContent();
 
   return pickerContent;
 }

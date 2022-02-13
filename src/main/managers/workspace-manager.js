@@ -10,6 +10,10 @@ const defaultWorkspace = {
       mode: 'dynamic',
       width: 8,
       height: 5,
+      alignment: {
+        horizontal: 'center',
+        vertical: 'center',
+      },
       roster: [],
       meta: {
         rowColRatio: [3, 8],

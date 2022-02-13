@@ -7,6 +7,10 @@ let dragInfo = null;
 let isDragEnter = false;
 let workspace = {};
 const characters = {};
+const entities = {
+  characters: {},
+  stages: {},
+};
 
 let roster = [];
 const elements = {};
@@ -54,6 +58,19 @@ const getDynamicStyleProperties = (currentRoster, returnStyle) => {
 const getStyleProperties = () => {
   const returnStyle = {};
   const currentRoster = getCurrentRoster();
+  returnStyle.alignment = {
+    horizontal: 'center',
+    vertical: 'center',
+    ...(currentRoster.alignment ?? {})
+  };
+
+  if (returnStyle.alignment.horizontal === 'left') {
+    returnStyle.alignment.horizontal = 'start';
+  }
+
+  if (returnStyle.alignment.vertical === 'top') {
+    returnStyle.alignment.vertical = 'start';
+  }
 
   switch (currentRoster.mode) {
     case 'dynamic':
@@ -74,8 +91,8 @@ const setStyle = () => {
 
   const stylesheet = `
 #app.main .panels {
-  justify-content: center;
-  align-content: center;
+  justify-content: ${rosterStyle.alignment.horizontal};
+  align-content: ${rosterStyle.alignment.vertical};
 }
 
 #app.main .panels .panel-container {
