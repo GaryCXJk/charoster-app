@@ -174,7 +174,7 @@ const getEntity = async (type, entityId) => {
 const getImageId = (type, entity) => {
   let imageId = null;
   if (funcs[type] && funcs[type].getImageId) {
-    funcs[type].getImageId(entity);
+    imageId = funcs[type].getImageId(entity);
   }
 
   return imageId;
@@ -245,6 +245,7 @@ const setSelection = (panel) => {
 };
 
 const addPanel = (type, entity) => {
+  console.log(type, entity, getImageId(type, entity));
   const panelContainer = new Block({
     className: 'panel-container',
   });

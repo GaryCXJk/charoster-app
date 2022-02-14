@@ -7,7 +7,7 @@ import { queueFranchise } from './franchises-manager';
 import { notifyWindow } from './window-manager';
 import { ipcMain } from 'electron';
 import { getConfig } from './config-manager';
-import { getSize } from './designs-manager';
+import { getSize, getSizeKeys } from './designs-manager';
 
 const characters = {};
 const costumes = {};
@@ -199,7 +199,7 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
   const workFolder = getConfig('workFolder');
   const costumePath = path.join(workFolder, 'packs', folder, 'characters', characterId, costumeId, image);
 
-  const sizes = ['raw', ...Object.keys(costume.sizes)];
+  const sizes = ['raw', ...getSizeKeys()];
   const foundImages = {};
   const returnImages = {};
   for (let idx = 0; idx < sizes.length; idx += 1) {
@@ -212,7 +212,7 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
 
     const sharpImage = new Sharp(costumePath);
     const sharpMeta = await sharpImage.metadata();
-    let sizeData = costume.sizes[size];
+    let sizeData = costume.sizes && costume.sizes[size];
 
     if (!sizeData) {
       // TODO: Auto-crop to the largest possible size for the current image,
@@ -220,9 +220,10 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
         x: 0,
         y: 0,
         width: sharpMeta.width,
-        height: Math.round(sizeData.width / heightRatio),
+        height: heightRatio ? Math.round(sharpMeta.width / heightRatio) : sharpMeta.height,
       };
       if (sizeData.height > sharpMeta.height) {
+        console.log(sizeData);
         sizeData.width = Math.round(sharpMeta.height * heightRatio);
         sizeData.height = sharpMeta.height;
         sizeData.x = Math.floor((sharpMeta.width - sizeData.width) / 2);
