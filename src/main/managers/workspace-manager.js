@@ -3,7 +3,7 @@ import deepmerge from "deepmerge";
 import * as path from "path";
 import { readFile, writeFile } from "fs/promises";
 import { getWorkFolder } from "./config-manager";
-import { getWindow } from "./window-manager";
+import { getWindow, notifyWindow } from "./window-manager";
 
 const defaultWorkspace = {
   title: 'Untitled',
@@ -86,6 +86,8 @@ export const saveWorkspace = async (screen, saveAs = false) => {
 export const updateWorkspace = (workspaceData) => {
   workspace = workspaceData;
 
+  notifyWindow('sync-workspace', workspace, 'render');
+
   return workspace;
 }
 
@@ -93,8 +95,28 @@ export const getWorkspace = () => workspace;
 
 createWorkspace();
 
+const exportImage = async (screen) => {
+  const window = getWindow('render');
+  const image = await window.window.webContents.capturePage();
+  const status = await dialog.showSaveDialog(getWindow(screen).window, {
+    defaultPath: getWorkFolder(),
+    filters: [
+      {
+        name: 'PNG',
+        extensions: ['png'],
+      }
+    ],
+    properties: [],
+  });
+  if (status.canceled) {
+    return null;
+  }
+  await writeFile(status.filePath.toString(), image.toPNG());
+}
+
 ipcMain.handle('workspace:new', createWorkspace);
 ipcMain.handle('workspace:load', (_event, screen) => loadWorkspace(screen));
 ipcMain.handle('workspace:save', (_event, screen, saveAs = false) => saveWorkspace(screen, saveAs));
 ipcMain.handle('workspace:retrieve', getWorkspace);
 ipcMain.handle('workspace:update', (_event, workspaceData) => updateWorkspace(workspaceData));
+ipcMain.handle('workspace:export-image', (_event, screen) => exportImage(screen));

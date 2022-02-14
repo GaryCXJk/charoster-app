@@ -4,11 +4,13 @@ import params from './helpers/params';
 import * as general from './preload/general';
 import * as main from './preload/main';
 import * as picker from './preload/picker';
+import * as render from './preload/render';
 import * as setup from './preload/setup';
 
 const screens = {
   main,
   picker,
+  render,
   setup,
 };
 
