@@ -161,8 +161,9 @@ export const getCharacterList = async (filterCharacter = null) => {
 
 export const getCostumeImages = async (imageId, filterSizes = null) => {
   const workspace = getWorkspace();
-  const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? 'default';
-  const currentImageCache = imageCache[designId]?.[imageId];
+  const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? null;
+  const designKey = designId ?? '';
+  const currentImageCache = imageCache[designKey]?.[imageId];
   if (currentImageCache) {
     if (currentImageCache instanceof Promise) {
       await currentImageCache;
@@ -177,8 +178,8 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
     return currentImageCache;
   }
   const waiter = createWaiter();
-  imageCache[designId] = imageCache[designId] ?? {};
-  imageCache[designId][imageId] = waiter;
+  imageCache[designKey] = imageCache[designKey] ?? {};
+  imageCache[designKey][imageId] = waiter;
   const [folder, characterId, costumeId, index] = imageId.split('>');
   const fullCostumeId = `${folder}>${characterId}>${costumeId}`;
   if (!costumes[fullCostumeId]) {
@@ -186,7 +187,7 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
   }
   const costume = costumes[fullCostumeId];
   if (!costume) {
-    imageCache[designId][imageId] = null;
+    imageCache[designKey][imageId] = null;
     waiter.resolve();
     return null;
   }
@@ -194,7 +195,7 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
   const imageInfo = costume.images[index];
 
   if (!imageInfo) {
-    imageCache[designId][imageId] = null;
+    imageCache[designKey][imageId] = null;
     waiter.resolve();
     return null;
   }
@@ -295,10 +296,10 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
       data: `data:image/png;base64,${buffer.toString('base64')}`,
     };
   }
-  imageCache[designId][imageId] = foundImages;
+  imageCache[designKey][imageId] = foundImages;
   if (filterSizes) {
     filterSizes.forEach((filterSize) => {
-      returnImages[filterSize] = imageCache[designId][imageId][filterSize] ?? imageCache[designId][imageId].raw;
+      returnImages[filterSize] = imageCache[designKey][imageId][filterSize] ?? imageCache[designKey][imageId].raw;
     })
   }
   waiter.resolve();
