@@ -211,11 +211,29 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
     }
 
     const sharpImage = new Sharp(costumePath);
-    const sizeData = deepmerge({}, costume.sizes[size]);
+    const sharpMeta = await sharpImage.metadata();
+    let sizeData = costume.sizes[size];
+
+    if (!sizeData) {
+      // TODO: Auto-crop to the largest possible size for the current image,
+      sizeData = {
+        x: 0,
+        y: 0,
+        width: sharpMeta.width,
+        height: Math.round(sizeData.width / heightRatio),
+      };
+      if (sizeData.height > sharpMeta.height) {
+        sizeData.width = Math.round(sharpMeta.height * heightRatio);
+        sizeData.height = sharpMeta.height;
+        sizeData.x = Math.floor((sharpMeta.width - sizeData.width) / 2);
+      } else {
+        sizeData.y = Math.floor((sharpMeta.height - sizeData.height) / 2);
+      }
+    } else {
+      sizeData = deepmerge({}, costume.sizes[size]);
+    }
     if (heightRatio) {
       sizeData.height = Math.round(sizeData.width / heightRatio);
-
-      const sharpMeta = await sharpImage.metadata();
 
       if (sizeData.x < 0 || sizeData.y < 0 || sizeData.x + sizeData.width > sharpMeta.width || sizeData.y + sizeData.height > sharpMeta.height) {
         const newSize = {
