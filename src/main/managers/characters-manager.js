@@ -192,61 +192,65 @@ export const getCostumeImages = async (imageId) => {
   const workFolder = getConfig('workFolder');
   const costumePath = path.join(workFolder, 'packs', folder, 'characters', characterId, costumeId, image);
 
-  const sizes = Object.keys(costume.sizes);
+  const sizes = ['raw', ...Object.keys(costume.sizes)];
   const returnImages = {};
   for (let idx = 0; idx < sizes.length; idx += 1) {
     const size = sizes[idx];
-    const sizeData = deepmerge({}, costume.sizes[size]);
-    const heightRatio = await getSize(size) || 1;
-    sizeData.height = Math.round(sizeData.width / heightRatio);
+    const heightRatio = await getSize('characters', size);
 
-    const sharpImage = new Sharp(costumePath);
-    const sharpMeta = await sharpImage.metadata();
+    if (heightRatio) {
+      const sizeData = deepmerge({}, costume.sizes[size]);
+      sizeData.height = Math.round(sizeData.width / heightRatio);
 
-    if (sizeData.x < 0 || sizeData.y < 0 || sizeData.x + sizeData.width > sharpMeta.width || sizeData.y + sizeData.height > sharpMeta.height) {
-      const newSize = {
-        width: sharpMeta.width,
-        height: sharpMeta.height,
-      };
+      const sharpImage = new Sharp(costumePath);
+      const sharpMeta = await sharpImage.metadata();
 
-      const extendData = {
-        background: {
-          r: 0,
-          g: 0,
-          b: 0,
-          alpha: 0,
-        },
-      };
+      if (sizeData.x < 0 || sizeData.y < 0 || sizeData.x + sizeData.width > sharpMeta.width || sizeData.y + sizeData.height > sharpMeta.height) {
+        const newSize = {
+          width: sharpMeta.width,
+          height: sharpMeta.height,
+        };
 
-      if (sizeData.x < 0) {
-        extendData.left = Math.abs(sizeData.x);
-        sizeData.width -= extendData.left;
-        sizeData.x = 0;
+        const extendData = {
+          background: {
+            r: 0,
+            g: 0,
+            b: 0,
+            alpha: 0,
+          },
+        };
+
+        if (sizeData.x < 0) {
+          extendData.left = Math.abs(sizeData.x);
+          sizeData.width -= extendData.left;
+          sizeData.x = 0;
+        }
+        if (sizeData.y < 0) {
+          extendData.top = Math.abs(sizeData.y);
+          sizeData.height -= extendData.top;
+          sizeData.y = 0;
+        }
+        if (sizeData.x + sizeData.width > newSize.width) {
+          extendData.right = sizeData.x + sizeData.width - newSize.width;
+          sizeData.width -= extendData.right;
+        }
+        if (sizeData.y + sizeData.height > newSize.height) {
+          extendData.bottom = sizeData.y + sizeData.height - newSize.height;
+          sizeData.height -= extendData.bottom;
+        }
+
+        await sharpImage.extend(extendData);
       }
-      if (sizeData.y < 0) {
-        extendData.top = Math.abs(sizeData.y);
-        sizeData.height -= extendData.top;
-        sizeData.y = 0;
-      }
-      if (sizeData.x + sizeData.width > newSize.width) {
-        extendData.right = sizeData.x + sizeData.width - newSize.width;
-        sizeData.width -= extendData.right;
-      }
-      if (sizeData.y + sizeData.height > newSize.height) {
-        extendData.bottom = sizeData.y + sizeData.height - newSize.height;
-        sizeData.height -= extendData.bottom;
-      }
-
-      await sharpImage.extend(extendData);
+      await sharpImage
+        .extract({
+          left: sizeData.x,
+          top: sizeData.y,
+          width: sizeData.width,
+          height: sizeData.height,
+        });
     }
 
     const buffer = await sharpImage
-      .extract({
-        left: sizeData.x,
-        top: sizeData.y,
-        width: sizeData.width,
-        height: sizeData.height,
-      })
       .png()
       .toBuffer();
 

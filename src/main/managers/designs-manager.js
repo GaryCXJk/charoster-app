@@ -38,15 +38,17 @@ const designs = {
   },
 };
 const sizes = {
-  panel: 452 / 300,
-  preview: 128 / 160,
+  characters: {
+    panel: 452 / 300,
+    preview: 128 / 160,
+  },
 };
 
-export const getSize = async (sizeId) => {
-  if (sizes[sizeId]) {
-    return sizes[sizeId];
+export const getSize = async (type, sizeId) => {
+  if (sizes[type][sizeId]) {
+    return sizes[type][sizeId];
   }
-  return 1;
+  return null;
   /*
   const sizeSegments = sizeId.split('>');
   if (sizeSegments.length === 1) {
