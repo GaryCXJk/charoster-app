@@ -44,6 +44,10 @@ const sizes = {
   },
 };
 
+export const getSizeKeys = (type) => {
+  return Object.keys(sizes[type] ?? {});
+}
+
 export const getSize = async (type, sizeId) => {
   if (sizes[type][sizeId]) {
     return sizes[type][sizeId];

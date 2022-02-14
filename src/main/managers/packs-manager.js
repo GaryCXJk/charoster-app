@@ -48,7 +48,7 @@ export const fetchPack = async (folder) => {
             if (value.value.type === 'character') {
               packInfo.characters.push(value.value.fullId);
             } else {
-              addons.push(value.value.fullId);
+              addons.push(`characters>${value.value.type}:${value.value.fullId}`);
             }
           });
           if (addons.length) {
