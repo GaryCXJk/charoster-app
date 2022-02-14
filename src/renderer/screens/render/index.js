@@ -10,7 +10,6 @@ export default () => {
   const elements = createPanelScreen();
 
   container.append(elements.content);
-  container.append(elements.preview);
   container.append(elements.style);
 
   window.globalEventHandler.on('sync-workspace', (workspace) => {

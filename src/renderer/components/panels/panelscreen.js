@@ -1,7 +1,7 @@
 import Block from '@components/base/Block';
 import { createPanel, getImage } from './panel';
 import funcs from './funcs';
-import params from '../../../helpers/params';
+import { createStylesheet } from './panelstyle';
 
 let workspace = {};
 const entities = {
@@ -49,123 +49,21 @@ export const getCurrentWorkspace = async () => {
   return workspace;
 };
 
+export const getDesignId = () => getCurrentRoster().theme ?? workspace.theme ?? 'default';
+
+export const getDesign = async () => {
+  return await window.designs.get(getDesignId());
+}
+
 export const getCurrentRoster = () => workspace.rosters[workspace.displayRoster];
 
-const getDynamicStyleProperties = (returnStyle) => {
-  const currentRoster = getCurrentRoster();
-  let { width, height, meta = {} } = currentRoster;
-
-  let rowColRatio = [height, width];
-  if (meta.rowColRatio && Array.isArray(meta.rowColRatio)) {
-    rowColRatio[0] = meta.rowColRatio[0] ?? rowColRatio[0];
-    rowColRatio[1] = (meta.rowColRatio[1] ?? rowColRatio[1]) || 1;
-  }
-  const rcRatio = rowColRatio[0] / rowColRatio[1];
-
-  let totalCells = width * height;
-
-  while ((placeholderRoster ?? roster).length > totalCells) {
-    const ratio = height / width;
-    if (ratio > rcRatio) {
-        width++;
-    } else {
-        height++;
-    }
-    totalCells = width * height;
-  }
-
-  returnStyle.panels = {
-    width: `${100 / width}%`,
-    height: `${100 / height}%`,
-  };
-}
-
-const getStyleProperties = () => {
-  const returnStyle = {};
-  const currentRoster = getCurrentRoster();
-  returnStyle.alignment = {
-    horizontal: 'center',
-    vertical: 'center',
-    ...(currentRoster.alignment ?? {})
-  };
-
-  if (returnStyle.alignment.horizontal === 'left') {
-    returnStyle.alignment.horizontal = 'start';
-  }
-
-  if (returnStyle.alignment.vertical === 'top') {
-    returnStyle.alignment.vertical = 'start';
-  }
-
-  switch (currentRoster.mode) {
-    case 'dynamic':
-    default:
-      getDynamicStyleProperties(returnStyle);
-      break;
-  }
-  return returnStyle;
-}
-
-const processCSSFilters = (filters) => {
-  const processedFilters = [];
-
-  filters.forEach((filter) => {
-    const { type, value } = filter;
-    let processedValue = [];
-    switch (type) {
-      case 'drop-shadow':
-        processedValue.push(value.x, value.y);
-        if (value.radius) {
-          processedValue.push(value.radius);
-        }
-        if (value.color) {
-          processedValue.push(value.color);
-        }
-        break;
-      default:
-        break;
-    }
-    processedFilters.push(`${type}(${processedValue.join(' ')})`);
-  });
-  return processedFilters.join(' ');
-};
-
 const setStyle = async () => {
-  const design = await window.designs.get();
-  const rosterStyle = getStyleProperties();
-
-  const panelImageFilters = processCSSFilters(design.panels.image.filters);
-  const previewImageFilters = processCSSFilters(design.preview.image.filters);
-
-  const screen = params.screen;
-
-  const stylesheet = `
-#app.${screen} .content {
-  padding: ${design.panels.margin};
-}
-
-#app.${screen} .panels {
-  justify-content: ${rosterStyle.alignment.horizontal};
-  align-content: ${rosterStyle.alignment.vertical};
-}
-
-#app.${screen} .panels .panel-container {
-  width: ${rosterStyle.panels.width};
-  height: ${rosterStyle.panels.height};
-  padding: ${design.panels.gap};
-}
-
-#app.${screen} .panels .panel .image {${
-  panelImageFilters ? `filter: ${panelImageFilters};` : ''
-}
-}
-
-#app.${screen} .preview .image {${
-  previewImageFilters ? `filter: ${previewImageFilters};` : ''
-}
-}
-`;
-  elements.style.innerHTML = stylesheet;
+  const design = await getDesign();
+  elements.style.innerHTML = createStylesheet({
+    design,
+    currentRoster: getCurrentRoster(),
+    roster: placeholderRoster ?? roster,
+  });
 };
 
 const getEntity = async (type, entityId) => {
@@ -261,6 +159,7 @@ export const addPanel = (type, entity) => {
 
   const panel = createPanel({
     type: type,
+    design: getDesign(),
     ...entity,
     callbacks: {
       panel: {
@@ -306,7 +205,6 @@ export const renderRoster = (displayRoster = null) => {
   useRoster.forEach((panel) => {
     elements.panels.append(panel);
   });
-  console.log(useRoster);
   setStyle();
 }
 

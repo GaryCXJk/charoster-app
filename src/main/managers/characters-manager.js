@@ -161,7 +161,7 @@ export const getCharacterList = async (filterCharacter = null) => {
 
 export const getCostumeImages = async (imageId, filterSizes = null) => {
   const workspace = getWorkspace();
-  const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme;
+  const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? 'default';
   const currentImageCache = imageCache[designId]?.[imageId];
   if (currentImageCache) {
     if (currentImageCache instanceof Promise) {

@@ -1,9 +1,23 @@
+import deepmerge from "deepmerge";
 import { ipcMain } from "electron";
 import traverse from "../../helpers/traverse";
 
 const designs = {
   default: {
     panels: {
+      layout: [
+        {
+          type: 'image',
+          size: ['panel', 'preview'],
+        },
+        {
+          type: 'label',
+          display: 'image',
+        },
+      ],
+      border: {
+        width: '0.1em',
+      },
       gap: '0.25em',
       margin: '1.5em',
       image: {
@@ -72,7 +86,10 @@ export const getSize = async (type, sizeId, designId = null) => {
 export const getDesign = async (designId = 'default') => {
   const sizeSegments = designId.split('>');
 
-  const design = traverse(sizeSegments, designs);
+  let design = traverse(sizeSegments, designs);
+  if (designId !== 'default') {
+    design = deepmerge(getDesign(), design);
+  }
 
   return design;
 }
