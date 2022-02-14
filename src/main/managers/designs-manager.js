@@ -44,21 +44,29 @@ const sizes = {
   },
 };
 
+const sizeKeys = {
+  characters: ['panel', 'preview'],
+  stages: ['preview'],
+};
+
 export const getSizeKeys = (type) => {
-  return Object.keys(sizes[type] ?? {});
+  return sizeKeys[type] ?? [];
 }
 
-export const getSize = async (type, sizeId) => {
+export const getSize = async (type, sizeId, designId = null) => {
+  if (designId) {
+    if (!designs[designId]) {
+      // TODO: Load design file
+    }
+    const returnSize = designs[designId]?.size?.[type]?.[sizeId];
+    if (returnSize) {
+      return returnSize;
+    }
+  }
   if (sizes[type][sizeId]) {
     return sizes[type][sizeId];
   }
   return null;
-  /*
-  const sizeSegments = sizeId.split('>');
-  if (sizeSegments.length === 1) {
-
-  }
-  */
 }
 
 export const getDesign = async (designId = 'default') => {
