@@ -1,6 +1,6 @@
 import titlebar from '@components/titlebar';
 import Block from '@components/base/Block';
-import { createPanel } from '@components/panels/panel';
+import { createPanel, getImage } from '@components/panels/panel';
 import './main.scss';
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faCopy, faFolderOpen, faSave } from '@fortawesome/free-solid-svg-icons';
@@ -19,9 +19,12 @@ const elements = {};
 let placeholder = null;
 let placeholderRoster = null;
 
+let activePanel = null;
+
 const setHandlers = () => {
   window.globalEventHandler.on('drag-helper-info', (detail) => {
     dragInfo = detail;
+    clearSelection();
   });
 
   window.globalEventHandler.on('drag-helper-done', () => {
@@ -118,7 +121,8 @@ const setStyle = async () => {
   const design = await window.designs.get();
   const rosterStyle = getStyleProperties();
 
-  const imageFilters = processCSSFilters(design.panels.image.filters);
+  const panelImageFilters = processCSSFilters(design.panels.image.filters);
+  const previewImageFilters = processCSSFilters(design.preview.image.filters);
 
   const stylesheet = `
 #app.main .content {
@@ -137,7 +141,12 @@ const setStyle = async () => {
 }
 
 #app.main .panels .panel .image {${
-  imageFilters ? `filter: ${imageFilters};` : ''
+  panelImageFilters ? `filter: ${panelImageFilters};` : ''
+}
+}
+
+#app.main .preview .image {${
+  previewImageFilters ? `filter: ${previewImageFilters};` : ''
 }
 }
 `;
@@ -186,6 +195,70 @@ const getImageId = (type, entity) => {
   return imageId;
 };
 
+const createPreviewImage = () => {
+  const container = new Block({
+    className: 'image-container',
+  });
+
+  const image = new Block({
+    className: 'image',
+  });
+  container.append(image);
+
+  container.setImage = async (type, entity) => {
+    const { entityId } = entity;
+    const entityInfo = await getEntity(type, entityId);
+    const imageId = entity.imageId ?? getImageId(type, entityInfo);
+
+    const imageData = await getImage(type, imageId);
+
+    image.css({
+      backgroundImage: `url(${imageData.preview.data})`,
+    });
+  };
+
+  container.clearImage = () => {
+    image.css({
+      backgroundImage: null,
+    });
+  };
+
+  return container;
+};
+
+const createPreviewElements = (preview) => {
+  const image = createPreviewImage();
+  preview.append(image);
+
+  preview.image = image;
+};
+
+const clearPreview = () => {
+  elements.preview.image.clearImage();
+}
+
+const setPreview = (type, entity) => {
+  elements.preview.image.setImage(type, entity);
+}
+
+const clearSelection = () => {
+  if (activePanel) {
+    activePanel.panel.element.classList.remove('active');
+    activePanel = null;
+    clearPreview();
+  }
+};
+
+const setSelection = (panel) => {
+  const isActive = panel.panel.element.classList.contains('active');
+  clearSelection();
+  if (!isActive) {
+    panel.panel.element.classList.add('active');
+    activePanel = panel;
+    setPreview(panel.entityType, panel.entity);
+  }
+};
+
 const addPanel = (type, entity) => {
   const panelContainer = new Block({
     className: 'panel-container',
@@ -197,6 +270,9 @@ const addPanel = (type, entity) => {
     ...entity,
     callbacks: {
       panel: {
+        click: () => {
+          setSelection(panelContainer);
+        },
         dragstart: () => {
           const {
             entityId: panelId,
@@ -216,6 +292,9 @@ const addPanel = (type, entity) => {
           placeholder.css({
             opacity: 0.5,
           });
+
+          clearSelection();
+
           storeWorkspace();
         },
         dragend: () => {
@@ -259,6 +338,9 @@ const addPanel = (type, entity) => {
     },
   });
   panelContainer.append(panel);
+  panelContainer.panel = panel;
+  panelContainer.entity = entity;
+  panelContainer.entityType = type;
 
   return panelContainer;
 };
@@ -429,9 +511,12 @@ export default () => {
   });
   content.append(panels);
 
-  const preview = document.createElement('div');
-  preview.className = 'preview';
-  container.appendChild(preview);
+  const preview = new Block({
+    className: 'preview',
+  });
+  container.appendChild(preview.element);
+
+  createPreviewElements(preview);
 
   const style = document.createElement('style');
   container.appendChild(style);

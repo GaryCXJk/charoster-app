@@ -20,6 +20,21 @@ const designs = {
         ],
       },
     },
+    preview: {
+      image: {
+        filters: [
+          {
+            type: 'drop-shadow',
+            value: {
+              x: '0.5em',
+              y: '0.5em',
+              radius: '0.2em',
+              color: '#222',
+            },
+          }
+        ],
+      },
+    }
   },
 };
 const sizes = {

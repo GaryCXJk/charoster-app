@@ -31,6 +31,16 @@ const queueImage = (type, imageId) => {
   runImageQueue();
 };
 
+export const getImage = async (type, imageId) => {
+  waiters.images[type] = waiters.images[type] ?? {};
+  waiters.images[type][imageId] = waiters.images[type][imageId] ?? createWaiter();
+  const waiter = waiters.images[type][imageId];
+
+  queueImage(type, imageId);
+
+  return await waiter;
+}
+
 const setPanelImage = async ({
   panel,
   type,
@@ -106,13 +116,7 @@ const setPanelImage = async ({
   }
 
   if (panelImageId) {
-    waiters.images[type] = waiters.images[type] ?? {};
-    waiters.images[type][panelImageId] = waiters.images[type][panelImageId] ?? createWaiter();
-    const waiter = waiters.images[type][panelImageId];
-
-    queueImage(type, panelImageId);
-
-    const imageData = await waiter;
+    const imageData = await getImage(type, panelImageId);
 
     if (imageData) {
       panelImage.element.style.backgroundImage = `url(${imageData.panel.data})`;
