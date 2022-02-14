@@ -1,3 +1,4 @@
+import deepmerge from 'deepmerge';
 import { BrowserWindow, ipcMain } from 'electron';
 import { EventEmitter } from 'events';
 import { IS_DEVELOPMENT } from '../../global/constants';
@@ -15,10 +16,11 @@ export const createWindow = (id, options = {}) => {
 
   const {
     screen = null,
+    showWindow = true,
     ...browserWindowOptions
   } = options;
 
-  const window = new BrowserWindow({
+  const window = new BrowserWindow(deepmerge({
     title: 'ChaRoster',
     titleBarStyle: 'hidden',
     width: 800,
@@ -30,8 +32,7 @@ export const createWindow = (id, options = {}) => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
     show: false,
-    ...browserWindowOptions
-  });
+  }, browserWindowOptions));
 
   const emitter = new WindowEmitter();
 
@@ -48,10 +49,12 @@ export const createWindow = (id, options = {}) => {
     windowInstances[id] = null;
   })
 
-  window.once('ready-to-show', () => {
-    emitter.emit('ready');
-    window.show();
-  });
+    window.once('ready-to-show', () => {
+      emitter.emit('ready');
+      if (showWindow) {
+        window.show();
+      }
+    });
 
   window.webContents.on('devtools-opened', () => {
     window.focus()

@@ -1,7 +1,7 @@
 import Block from '@components/base/Block';
 import { createPanel, getImage } from './panel';
 import funcs from './funcs';
-import './panelscreen.scss';
+import params from '../../../helpers/params';
 
 let workspace = {};
 const entities = {
@@ -32,9 +32,15 @@ export const resetRoster = () => {
   renderRoster();
 }
 
-export const setCurrentWorkspace = (newWorkspace) => {
+export const setCurrentWorkspace = (newWorkspace, store = true, recreateRoster = false) => {
   workspace = newWorkspace;
-  storeWorkspace();
+  if (store) {
+    storeWorkspace();
+  }
+  if (recreateRoster) {
+    const currentRoster = getCurrentRoster();
+    roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
+  }
   resetRoster();
 }
 
@@ -131,28 +137,30 @@ const setStyle = async () => {
   const panelImageFilters = processCSSFilters(design.panels.image.filters);
   const previewImageFilters = processCSSFilters(design.preview.image.filters);
 
+  const screen = params.screen;
+
   const stylesheet = `
-#app.main .content {
+#app.${screen} .content {
   padding: ${design.panels.margin};
 }
 
-#app.main .panels {
+#app.${screen} .panels {
   justify-content: ${rosterStyle.alignment.horizontal};
   align-content: ${rosterStyle.alignment.vertical};
 }
 
-#app.main .panels .panel-container {
+#app.${screen} .panels .panel-container {
   width: ${rosterStyle.panels.width};
   height: ${rosterStyle.panels.height};
   padding: ${design.panels.gap};
 }
 
-#app.main .panels .panel .image {${
+#app.${screen} .panels .panel .image {${
   panelImageFilters ? `filter: ${panelImageFilters};` : ''
 }
 }
 
-#app.main .preview .image {${
+#app.${screen} .preview .image {${
   previewImageFilters ? `filter: ${previewImageFilters};` : ''
 }
 }
@@ -298,6 +306,7 @@ export const renderRoster = (displayRoster = null) => {
   useRoster.forEach((panel) => {
     elements.panels.append(panel);
   });
+  console.log(useRoster);
   setStyle();
 }
 
@@ -329,7 +338,7 @@ export const storeWorkspace = async () => {
 export default ({
   panels: panelsOptions = {},
   onAddPanel = null,
-}) => {
+} = {}) => {
   addPanelCallbacks = onAddPanel;
   setupPromise = setupWorkspace();
 

@@ -8,6 +8,7 @@ import './helpers/drag-helper';
 
 let mainWindow;
 let pickerWindow;
+let renderWindow;
 
 const disableF4 = (window) => {
   window.webContents.on('before-input-event', (event, input) => {
@@ -44,6 +45,15 @@ app.on('ready', () => {
       minWidth: 800,
       minHeight: 600,
       fullscreenable: true,
+    });
+
+    renderWindow = createWindow('render', {
+      width: 1920,
+      height: 1080,
+      webPreferences: {
+        offscreen: true,
+      },
+      showWindow: false,
     });
 
     const mainPosition = mainWindow.window.getPosition();
