@@ -10,6 +10,11 @@ const renderedLabels = {};
 
 let queueRunning = false;
 
+const imageFilters = {
+  characters: ['panel', 'preview'],
+  stages: ['preview'],
+};
+
 const runImageQueue = async () => {
   if (queueRunning) {
     return;
@@ -19,7 +24,7 @@ const runImageQueue = async () => {
   while (imageQueue.length) {
     const [type, imageId] = imageQueue.shift();
 
-    const imageData = await window.packs.getImages(type, imageId);
+    const imageData = await window.packs.getImages(type, imageId, imageFilters[type]);
     waiters.images[type][imageId].resolve(imageData);
   }
 
@@ -119,7 +124,7 @@ const setPanelImage = async ({
     const imageData = await getImage(type, panelImageId);
 
     if (imageData) {
-      panelImage.element.style.backgroundImage = `url(${imageData.panel.data})`;
+      panelImage.element.style.backgroundImage = `url(${(imageData.panel ?? imageData.preview).data})`;
     }
   }
 };
