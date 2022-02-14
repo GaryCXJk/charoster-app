@@ -11,6 +11,7 @@ const defaultWorkspace = {
     {
       type: 'characters',
       mode: 'dynamic',
+      theme: 'default',
       width: 8,
       height: 5,
       alignment: {
@@ -24,6 +25,7 @@ const defaultWorkspace = {
     }
   ],
   displayRoster: 0,
+  theme: 'default',
 };
 
 let workspace;
@@ -87,10 +89,12 @@ export const updateWorkspace = (workspaceData) => {
   return workspace;
 }
 
+export const getWorkspace = () => workspace;
+
 createWorkspace();
 
 ipcMain.handle('workspace:new', createWorkspace);
 ipcMain.handle('workspace:load', (_event, screen) => loadWorkspace(screen));
 ipcMain.handle('workspace:save', (_event, screen, saveAs = false) => saveWorkspace(screen, saveAs));
-ipcMain.handle('workspace:retrieve', () => workspace);
+ipcMain.handle('workspace:retrieve', getWorkspace);
 ipcMain.handle('workspace:update', (_event, workspaceData) => updateWorkspace(workspaceData));

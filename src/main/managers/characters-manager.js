@@ -8,6 +8,7 @@ import { notifyWindow } from './window-manager';
 import { ipcMain } from 'electron';
 import { getConfig } from './config-manager';
 import { getSize, getSizeKeys } from './designs-manager';
+import { getWorkspace } from './workspace-manager';
 
 const characters = {};
 const costumes = {};
@@ -159,21 +160,25 @@ export const getCharacterList = async (filterCharacter = null) => {
 }
 
 export const getCostumeImages = async (imageId, filterSizes = null) => {
-  if (imageCache[imageId]) {
-    if (imageCache[imageId] instanceof Promise) {
-      await imageCache[imageId];
+  const workspace = getWorkspace();
+  const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme;
+  const currentImageCache = imageCache[designId]?.[imageId];
+  if (currentImageCache) {
+    if (currentImageCache instanceof Promise) {
+      await currentImageCache;
     }
-    if (imageCache[imageId] && filterSizes) {
+    if (currentImageCache && filterSizes) {
       const filteredImages = {};
       filterSizes.forEach((filterSize) => {
-        filteredImages[filterSize] = imageCache[imageId][filterSize] ?? imageCache[imageId].raw;
+        filteredImages[filterSize] = currentImageCache[filterSize] ?? currentImageCache.raw;
       })
       return filteredImages;
     }
-    return imageCache[imageId];
+    return currentImageCache;
   }
   const waiter = createWaiter();
-  imageCache[imageId] = waiter;
+  imageCache[designId] = imageCache[designId] ?? {};
+  imageCache[designId][imageId] = waiter;
   const [folder, characterId, costumeId, index] = imageId.split('>');
   const fullCostumeId = `${folder}>${characterId}>${costumeId}`;
   if (!costumes[fullCostumeId]) {
@@ -181,7 +186,7 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
   }
   const costume = costumes[fullCostumeId];
   if (!costume) {
-    imageCache[imageId] = null;
+    imageCache[designId][imageId] = null;
     waiter.resolve();
     return null;
   }
@@ -189,7 +194,7 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
   const imageInfo = costume.images[index];
 
   if (!imageInfo) {
-    imageCache[imageId] = null;
+    imageCache[designId][imageId] = null;
     waiter.resolve();
     return null;
   }
@@ -199,12 +204,12 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
   const workFolder = getConfig('workFolder');
   const costumePath = path.join(workFolder, 'packs', folder, 'characters', characterId, costumeId, image);
 
-  const sizes = ['raw', ...getSizeKeys()];
+  const sizes = ['raw', ...getSizeKeys('characters')];
   const foundImages = {};
   const returnImages = {};
   for (let idx = 0; idx < sizes.length; idx += 1) {
     const size = sizes[idx];
-    const heightRatio = await getSize('characters', size);
+    const heightRatio = await getSize('characters', size, designId);
 
     if (!heightRatio && size !== 'raw') {
       continue;
@@ -223,7 +228,6 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
         height: heightRatio ? Math.round(sharpMeta.width / heightRatio) : sharpMeta.height,
       };
       if (sizeData.height > sharpMeta.height) {
-        console.log(sizeData);
         sizeData.width = Math.round(sharpMeta.height * heightRatio);
         sizeData.height = sharpMeta.height;
         sizeData.x = Math.floor((sharpMeta.width - sizeData.width) / 2);
@@ -291,10 +295,10 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
       data: `data:image/png;base64,${buffer.toString('base64')}`,
     };
   }
-  imageCache[imageId] = foundImages;
+  imageCache[designId][imageId] = foundImages;
   if (filterSizes) {
     filterSizes.forEach((filterSize) => {
-      returnImages[filterSize] = imageCache[imageId][filterSize] ?? imageCache[imageId].raw;
+      returnImages[filterSize] = imageCache[designId][imageId][filterSize] ?? imageCache[designId][imageId].raw;
     })
   }
   waiter.resolve();
