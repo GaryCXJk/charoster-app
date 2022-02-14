@@ -158,10 +158,17 @@ export const getCharacterList = async (filterCharacter = null) => {
   return deepmerge({}, characters);
 }
 
-export const getCostumeImages = async (imageId) => {
+export const getCostumeImages = async (imageId, filterSizes = null) => {
   if (imageCache[imageId]) {
     if (imageCache[imageId] instanceof Promise) {
       await imageCache[imageId];
+    }
+    if (imageCache[imageId] && filterSizes) {
+      const filteredImages = {};
+      filterSizes.forEach((filterSize) => {
+        filteredImages[filterSize] = imageCache[imageId][filterSize] ?? imageCache[imageId].raw;
+      })
+      return filteredImages;
     }
     return imageCache[imageId];
   }
@@ -193,16 +200,21 @@ export const getCostumeImages = async (imageId) => {
   const costumePath = path.join(workFolder, 'packs', folder, 'characters', characterId, costumeId, image);
 
   const sizes = ['raw', ...Object.keys(costume.sizes)];
+  const foundImages = {};
   const returnImages = {};
   for (let idx = 0; idx < sizes.length; idx += 1) {
     const size = sizes[idx];
     const heightRatio = await getSize('characters', size);
 
+    if (!heightRatio && size !== 'raw') {
+      continue;
+    }
+
+    const sharpImage = new Sharp(costumePath);
+    const sizeData = deepmerge({}, costume.sizes[size]);
     if (heightRatio) {
-      const sizeData = deepmerge({}, costume.sizes[size]);
       sizeData.height = Math.round(sizeData.width / heightRatio);
 
-      const sharpImage = new Sharp(costumePath);
       const sharpMeta = await sharpImage.metadata();
 
       if (sizeData.x < 0 || sizeData.y < 0 || sizeData.x + sizeData.width > sharpMeta.width || sizeData.y + sizeData.height > sharpMeta.height) {
@@ -241,25 +253,31 @@ export const getCostumeImages = async (imageId) => {
 
         await sharpImage.extend(extendData);
       }
-      await sharpImage
-        .extract({
-          left: sizeData.x,
-          top: sizeData.y,
-          width: sizeData.width,
-          height: sizeData.height,
-        });
     }
+
+    await sharpImage
+      .extract({
+        left: sizeData.x,
+        top: sizeData.y,
+        width: sizeData.width,
+        height: sizeData.height,
+      });
 
     const buffer = await sharpImage
       .png()
       .toBuffer();
 
-    returnImages[size] = {
+    foundImages[size] = {
       buffer,
       data: `data:image/png;base64,${buffer.toString('base64')}`,
     };
   }
-  imageCache[imageId] = returnImages;
+  imageCache[imageId] = foundImages;
+  if (filterSizes) {
+    filterSizes.forEach((filterSize) => {
+      returnImages[filterSize] = imageCache[imageId][filterSize] ?? imageCache[imageId].raw;
+    })
+  }
   waiter.resolve();
   return returnImages;
 }
@@ -271,4 +289,4 @@ ipcMain.handle('characters:get-character', (_event, characterId) => {
   return loadCharacter(characterId);
 });
 
-ipcMain.handle('characters:get-images', (_event, imageId) => getCostumeImages(imageId));
+ipcMain.handle('characters:get-images', (_event, imageId, filter = null) => getCostumeImages(imageId, filter));

@@ -1,9 +1,14 @@
 import titlebar from '@components/titlebar';
 import Block from '@components/base/Block';
 import { createPanel, getImage } from '@components/panels/panel';
+import * as characterFunctions from './characters';
 import './main.scss';
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faCopy, faFolderOpen, faSave } from '@fortawesome/free-solid-svg-icons';
+
+const funcs = {
+  characters: characterFunctions,
+};
 
 let dragInfo = null;
 let isDragEnter = false;
@@ -166,30 +171,10 @@ const getEntity = async (type, entityId) => {
   return entities[type][entityId];
 };
 
-const getCharacterImageId = (character) => {
-  let costumeId = character.defaultCostume;
-
-  if (!costumeId && character.costumes && character.costumes) {
-    character.costumes.every((costume) => {
-      if (costume.images && costume.images.length) {
-        costumeId = `${costume.fullId}>0`;
-        return false;
-      }
-      return true;
-    });
-  }
-
-  return costumeId;
-}
-
 const getImageId = (type, entity) => {
   let imageId = null;
-  switch (type) {
-    case 'characters':
-      imageId = getCharacterImageId(entity);
-      break;
-    default:
-      break;
+  if (funcs[type] && funcs[type].getImageId) {
+    funcs[type].getImageId(entity);
   }
 
   return imageId;
