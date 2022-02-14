@@ -134,7 +134,6 @@ export default () => {
       },
     },
     onAddPanel: (panel) => {
-      console.log(panel);
       panel.prop('draggable', true);
 
       panel.on('dragstart', () => {
