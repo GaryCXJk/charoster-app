@@ -77,7 +77,7 @@ export const loadEntity = async (entityType, entityWaiting, entities, fullEntity
     if (callbacks.onProgressEntity) {
       return callbacks.onProgressEntity();
     }
-    return entities[entityId];
+    return entities[fullEntityId];
   }
 }
 

@@ -163,10 +163,11 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
   const workspace = getWorkspace();
   const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? null;
   const designKey = designId ?? '';
-  const currentImageCache = imageCache[designKey]?.[imageId];
+  let currentImageCache = imageCache[designKey]?.[imageId];
   if (currentImageCache) {
     if (currentImageCache instanceof Promise) {
       await currentImageCache;
+      currentImageCache = imageCache[designKey]?.[imageId] ?? null;
     }
     if (currentImageCache && filterSizes) {
       const filteredImages = {};

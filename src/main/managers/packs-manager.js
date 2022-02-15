@@ -4,12 +4,14 @@ import { promises as fsPromises } from 'fs';
 import * as path from 'path';
 import { awaitCharacterQueue, fetchCharacters, getCostumeImages, queueCharacter } from './characters-manager';
 import { getConfig, waitForWorkFolder } from './config-manager';
+import { fetchDesigns, getDesignImage, queueDesign } from './designs-manager';
 import { notifyWindow } from './window-manager';
 
 const { readdir, readFile, stat } = fsPromises;
 
 const imageReaders = {
   characters: getCostumeImages,
+  designs: getDesignImage,
 };
 
 const packs = {};
@@ -61,6 +63,17 @@ export const fetchPack = async (folder) => {
         }).catch(() => {
           // Do nothing
         });
+      }
+    }
+    if (packInfo.designs) {
+      const designs = await fetchDesigns(folder);
+
+      if (designs.length) {
+        designs.forEach((designId) => {
+          queueDesign(designId);
+        });
+
+        packInfo.designs = designs;
       }
     }
 

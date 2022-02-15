@@ -1,7 +1,5 @@
 import titlebar from '@components/titlebar';
 import Block from '@components/base/Block';
-import { createPanel, getImage } from '@components/panels/panel';
-import funcs from '../../components/panels/funcs';
 import './main.scss';
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faCopy, faFolderOpen, faSave } from '@fortawesome/free-solid-svg-icons';
@@ -215,7 +213,7 @@ export default () => {
           click: async () => {
             const newWorkspace = await window.workspace.load();
             if (newWorkspace) {
-              setCurrentWorkspace(newWorkspace);
+              setCurrentWorkspace(newWorkspace, true, true);
             }
           }
         }
