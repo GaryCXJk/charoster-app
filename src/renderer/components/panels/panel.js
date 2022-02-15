@@ -1,5 +1,4 @@
 import createWaiter from '@@helpers/create-waiter';
-import { layer } from '@fortawesome/fontawesome-svg-core';
 import deepmerge from 'deepmerge';
 import Block from "../base/Block";
 
@@ -8,6 +7,7 @@ const waiters = {
   images: {},
 };
 const renderedLabels = {};
+const imageCache = {};
 
 let queueRunning = false;
 
@@ -23,26 +23,32 @@ const runImageQueue = async () => {
   queueRunning = true;
 
   while (imageQueue.length) {
-    const [type, imageId] = imageQueue.shift();
+    const [designId, type, imageId] = imageQueue.shift();
 
     const imageData = await window.packs.getImages(type, imageId, imageFilters[type]);
-    waiters.images[type][imageId].resolve(imageData);
+    waiters.images[designId][type][imageId].resolve(imageData);
+    imageQueue[`${designId},${type}:${imageId}`] = imageData;
   }
 
   queueRunning = false;
 };
 
-const queueImage = (type, imageId) => {
-  imageQueue.push([type, imageId]);
+const queueImage = (type, imageId, designId = '') => {
+  imageQueue.push([designId, type, imageId]);
   runImageQueue();
 };
 
-export const getImage = async (type, imageId) => {
-  waiters.images[type] = waiters.images[type] ?? {};
-  waiters.images[type][imageId] = waiters.images[type][imageId] ?? createWaiter();
-  const waiter = waiters.images[type][imageId];
+export const getImage = async (type, imageId, designId = '') => {
+  const cacheStr = `${designId},${type}:${imageId}`;
+  if (imageCache[cacheStr]) {
+    return imageCache[cacheStr];
+  }
+  waiters.images[designId] = waiters.images[designId] ?? {};
+  waiters.images[designId][type] = waiters.images[designId][type] ?? {};
+  waiters.images[designId][type][imageId] = waiters.images[designId][type][imageId] ?? createWaiter();
+  const waiter = waiters.images[designId][type][imageId];
 
-  queueImage(type, imageId);
+  queueImage(type, imageId, designId);
 
   return await waiter;
 }
@@ -52,6 +58,7 @@ const imageContent = async (block, layerInfo, {
   imageId = null,
   entity,
   callbacks,
+  designId = '',
 }) => {
   let panelImageId = imageId;
 
@@ -62,12 +69,19 @@ const imageContent = async (block, layerInfo, {
   }
 
   if (panelImageId) {
-    const imageData = await getImage(type, panelImageId);
+    let usedSizes = ['raw'];
+    let imageData = null;
+    if (layerInfo.file) {
+      imageData = await getImage('designs', `${designId}>${layerInfo.file}`, designId);
+    } else {
+      imageData = await getImage(type, panelImageId, designId);
+      usedSizes = layerInfo.size;
+    }
 
     if (imageData) {
       let imageSize = null;
-      for (let idx = 0; idx < layerInfo.size.length; idx += 1) {
-        const size = layerInfo.size[idx];
+      for (let idx = 0; idx < usedSizes.length; idx += 1) {
+        const size = usedSizes[idx];
         if (imageData[size]) {
           imageSize = imageData[size];
           break;
@@ -123,8 +137,9 @@ const labelContent = async (block, layerInfo, {
 };
 
 const preContentFuncs = {
-  image: () => ({
+  image: (layerInfo, { type }) => ({
     shown: true,
+    className: !layerInfo.file ? `image image-${type}` : null,
   }),
   label: (_layerInfo, { showLabel = true }) => ({
     shown: showLabel,
@@ -148,7 +163,7 @@ const setPanelContent = async ({
   if (designPromise) {
     design = await designPromise;
   }
-  const layout = design?.panels?.layout ?? [
+  const layers = design?.panels?.layers ?? [
     {
       type: 'image',
       size: ['panel', 'preview'],
@@ -184,8 +199,8 @@ const setPanelContent = async ({
     ...props
   };
 
-  for (let idx = 0; idx < layout.length; idx += 1) {
-    const layer = layout[idx];
+  for (let idx = 0; idx < layers.length; idx += 1) {
+    const layer = layers[idx];
     const contentInfo = {
       shown: true,
       className: layer.type,
@@ -193,8 +208,9 @@ const setPanelContent = async ({
     if (preContentFuncs[layer.type]) {
       Object.assign(contentInfo, preContentFuncs[layer.type](layer, contentProps));
     }
+
     if (layer.className) {
-      contentInfo.className = `${contentInfo.className} ${layer.className}`;
+      contentInfo.className = `${contentInfo.className ?? layer.type} ${layer.className}`;
     }
 
     if (contentInfo.shown) {

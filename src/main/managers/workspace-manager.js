@@ -11,7 +11,6 @@ const defaultWorkspace = {
     {
       type: 'characters',
       mode: 'dynamic',
-      theme: 'default',
       width: 8,
       height: 5,
       alignment: {
@@ -25,7 +24,6 @@ const defaultWorkspace = {
     }
   ],
   displayRoster: 0,
-  theme: 'default',
 };
 
 let workspace;

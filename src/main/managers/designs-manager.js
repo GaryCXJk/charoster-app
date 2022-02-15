@@ -1,11 +1,16 @@
+import * as path from 'path';
 import deepmerge from "deepmerge";
+import Sharp from 'sharp';
 import { ipcMain } from "electron";
+import createWaiter from "../../helpers/create-waiter";
 import traverse from "../../helpers/traverse";
+import { getConfig } from "./config-manager";
 import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
 
 const designs = {};
 const designQueue = [];
 const waiting = {};
+const images = {};
 
 let queueIsRunning = null;
 
@@ -34,7 +39,7 @@ const defaultDesign = {
             x: '0.5em',
             y: '0.5em',
             radius: '0.2em',
-            color: '#222',
+            color: 'rgba(32, 32, 32, 0.7)',
           },
         }
       ],
@@ -49,7 +54,7 @@ const defaultDesign = {
             x: '0.5em',
             y: '0.5em',
             radius: '0.2em',
-            color: '#222',
+            color: 'rgba(32, 32, 32, 0.7)',
           },
         }
       ],
@@ -89,18 +94,21 @@ export const getSize = async (type, sizeId, designId = null) => {
 }
 
 export const getDesign = async (designId = null) => {
-
   let design = deepmerge({}, defaultDesign);
   if (designId) {
     const sizeSegments = designId.split('>');
+    const designGroup = sizeSegments.splice(0, 2).join('>');
+    sizeSegments.unshift(designGroup);
     design = traverse(sizeSegments, designs);
     if (!design) {
-      const designGroup = sizeSegments.slice(0, 2).join('>');
-      queueEntity(designQueue, waiting, designGroup);
+      queueDesign(designGroup);
+      await waiting[designGroup];
+      design = traverse(sizeSegments, designs);
     }
-    design = deepmerge(getDesign(), defaultDesign);
+    const originalLayout = design?.panels?.layout ?? [];
+    design = deepmerge(defaultDesign, design ?? {});
+    design.panels.layout = deepmerge([], originalLayout);
   }
-
   return design;
 }
 
@@ -131,4 +139,35 @@ export const queueDesign = (designId) => {
   runDesignQueue();
 }
 
-ipcMain.handle('designs:get', (_event, designId) => getDesign(designId));
+export const getDesignImage = async (imageId) => {
+  let currentImageCache = images[imageId];
+  if (currentImageCache) {
+    if (currentImageCache instanceof Promise) {
+      await currentImageCache;
+      currentImageCache = images[imageId] ?? null;
+    }
+    return currentImageCache;
+  }
+  const waiter = createWaiter();
+  images[imageId] = waiter;
+  const [folder, designId, image] = imageId.split('>');
+  const workFolder = getConfig('workFolder');
+  const designPath = path.join(workFolder, 'packs', folder, 'designs', designId, image);
+
+  const sharpImage = new Sharp(designPath);
+
+  const buffer = await sharpImage
+    .png()
+    .toBuffer();
+
+  images[imageId] = {
+    raw: {
+      buffer,
+      data: `data:image/png;base64,${buffer.toString('base64')}`,
+    },
+  };
+  waiter.resolve();
+  return images[imageId];
+}
+
+ipcMain.handle('designs:get', (_event, designId = null) => getDesign(designId));

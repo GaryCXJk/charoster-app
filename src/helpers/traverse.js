@@ -6,6 +6,9 @@ const traverse = (segments, obj) => {
   }
   const retObj = obj[seg];
   if (segs.length) {
+    if (typeof retObj !== 'object') {
+      return null;
+    }
     return traverse(segs, retObj);
   }
   return retObj;

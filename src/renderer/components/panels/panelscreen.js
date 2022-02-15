@@ -1,7 +1,7 @@
 import Block from '@components/base/Block';
 import { createPanel, getImage } from './panel';
 import funcs from './funcs';
-import { createStylesheet } from './panelstyle';
+import { createDesignQueue, createStylesheet } from './panelstyle';
 
 let workspace = {};
 const entities = {
@@ -49,7 +49,7 @@ export const getCurrentWorkspace = async () => {
   return workspace;
 };
 
-export const getDesignId = () => getCurrentRoster().theme ?? workspace.theme ?? 'default';
+export const getDesignId = () => getCurrentRoster().theme ?? workspace.theme ?? null;
 
 export const getDesign = async () => {
   return await window.designs.get(getDesignId());
@@ -59,8 +59,17 @@ export const getCurrentRoster = () => workspace.rosters[workspace.displayRoster]
 
 const setStyle = async () => {
   const design = await getDesign();
+  const designId = getDesignId();
+  const designQueue = createDesignQueue(design, designId);
+  const imageFiles = {};
+  for (var idx = 0; idx < designQueue.length; idx += 1) {
+    const file = designQueue[idx];
+    const imageId = `${designId}>${file}`;
+    imageFiles[file] = await getImage('designs', imageId, designId);
+  }
   elements.style.innerHTML = createStylesheet({
     design,
+    imageFiles,
     currentRoster: getCurrentRoster(),
     roster: placeholderRoster ?? roster,
   });
@@ -103,7 +112,7 @@ const createPreviewImage = () => {
     const entityInfo = await getEntity(type, entityId);
     const imageId = entity.imageId ?? getImageId(type, entityInfo);
 
-    const imageData = await getImage(type, imageId);
+    const imageData = await getImage(type, imageId, getDesignId());
 
     image.css({
       backgroundImage: `url(${imageData.preview.data})`,
@@ -159,6 +168,7 @@ export const addPanel = (type, entity) => {
 
   const panel = createPanel({
     type: type,
+    designId: getDesignId(),
     design: getDesign(),
     ...entity,
     callbacks: {
