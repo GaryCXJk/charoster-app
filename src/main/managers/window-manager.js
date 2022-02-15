@@ -49,24 +49,30 @@ export const createWindow = (id, options = {}) => {
   window.on('closed', () => {
     emitter.emit('closed');
     windowInstances[id] = null;
-  })
+  });
 
-    window.once('ready-to-show', async () => {
-      emitter.emit('ready');
-      if (showWindow) {
-        if (parent) {
-          parent.emitter.once('shown', () => {
-            window.show();
-            if (!window.getParentWindow()) {
-              window.setParentWindow(parent.window);
-            }
-          });
-        } else {
+  window.once('ready-to-show', async () => {
+    emitter.emit('ready');
+    if (showWindow) {
+      if (parent) {
+        if (parent.window.isVisible()) {
           window.show();
+          if (!window.getParentWindow()) {
+            window.setParentWindow(parent.window);
+          }
         }
+        parent.emitter.once('shown', () => {
+          window.show();
+          if (!window.getParentWindow()) {
+            window.setParentWindow(parent.window);
+          }
+        });
+      } else {
+        window.show();
       }
-      emitter.emit('shown');
-    });
+    }
+    emitter.emit('shown');
+  });
 
   window.webContents.on('devtools-opened', () => {
     window.focus()
