@@ -17,6 +17,7 @@ export const createWindow = (id, options = {}) => {
   const {
     screen = null,
     showWindow = true,
+    parent = null,
     ...browserWindowOptions
   } = options;
 
@@ -32,6 +33,7 @@ export const createWindow = (id, options = {}) => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
     show: false,
+    parent: parent ? parent.window : null,
   }, browserWindowOptions));
 
   const emitter = new WindowEmitter();
@@ -49,11 +51,21 @@ export const createWindow = (id, options = {}) => {
     windowInstances[id] = null;
   })
 
-    window.once('ready-to-show', () => {
+    window.once('ready-to-show', async () => {
       emitter.emit('ready');
       if (showWindow) {
-        window.show();
+        if (parent) {
+          parent.emitter.once('shown', () => {
+            window.show();
+            if (!window.getParentWindow()) {
+              window.setParentWindow(parent.window);
+            }
+          });
+        } else {
+          window.show();
+        }
       }
+      emitter.emit('shown');
     });
 
   window.webContents.on('devtools-opened', () => {

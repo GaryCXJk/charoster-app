@@ -23,7 +23,7 @@ const checkFileImages = (found, queue) => {
 export const createDesignQueue = (design) => {
   const queue = [];
   const checks = [
-    'background.image',
+    'page.background.image',
     'panels.background.image',
     'panels.container.background.image',
     'preview.background.image',
@@ -73,6 +73,9 @@ const getStyleProperties = (currentRoster, roster) => {
 };
 
 const processCSSFilters = (filters) => {
+  if (!filters) {
+    return null;
+  }
   const processedFilters = [];
 
   filters.forEach((filter) => {
@@ -110,7 +113,6 @@ const createStyleString = (styles) => {
     }
     dummy.setAttribute('style', '');
   });
-  console.log(lines);
   return lines.join('\n');
 };
 
@@ -217,7 +219,7 @@ const handleBorders = (border, imageFiles, styleObject = null, prefix = null) =>
       const val = border[prop];
       if (val) {
         if (typeof mapTo === 'function') {
-          mapTo(styleProps, val, imageFiles, prop);
+          mapTo(val, imageFiles, styleProps, prop);
         } else {
           styleProps[`border-${prefix ? `${prefix}-` : ''}${mapTo}`] = val;
         }
@@ -265,6 +267,17 @@ const handleMask = (mask, imageFiles, styleObject = null) => {
   return background;
 };
 
+const handleCSSFilters = (filters, styleObject = null) => {
+  const cssFilters = processCSSFilters(filters);
+  if (cssFilters) {
+    if (styleObject) {
+      styleObject.filter = cssFilters;
+    }
+    return cssFilters;
+  }
+  return '';
+}
+
 export const createStylesheet = ({
   design,
   currentRoster,
@@ -277,8 +290,8 @@ export const createStylesheet = ({
   const previewImageFilters = processCSSFilters(design.preview.image.filters);
 
   const combinedStyles = {};
-  if (design.background) {
-    combinedStyles['.sections'] = handleBackground(design.background, imageFiles);
+  if (design.page?.background) {
+    combinedStyles['.sections'] = handleBackground(design.page.background, imageFiles);
   }
   combinedStyles['.content'] = {
     padding: design.panels.margin,
@@ -348,7 +361,7 @@ export const createStylesheet = ({
     combinedStyles['.sections .preview .image-container'].width = design.preview.image.width;
   }
   if (design.preview.image.height) {
-    combinedStyles['.sections .preview .image-container'].width = design.preview.image.height;
+    combinedStyles['.sections .preview .image-container'].height = design.preview.image.height;
   }
   if (design.preview.image.background) {
     handleBackground(design.preview.image.background, imageFiles, combinedStyles['.sections .preview .image-container']);
@@ -360,14 +373,9 @@ export const createStylesheet = ({
   if (design.preview.image.mask) {
     handleMask(design.preview.image.mask, imageFiles, combinedStyles['.preview .image']);
   }
-  /*
-  if (design.preview.image.maskImage) {
-    handleMaskImage(design.preview.image.maskImage, imageFiles, combinedStyles['.preview .image']);
-  }*/
   if (previewImageFilters) {
     combinedStyles['.preview .image'].filter = previewImageFilters;
   }
-  console.log(combinedStyles);
 
   return createStyleString(combinedStyles);
 };

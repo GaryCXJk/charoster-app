@@ -8,7 +8,7 @@
   --btn-hover-bg-color: #{lighten($lightBackground, 5%)};
   --btn-press-bg-color: #{lighten($lightBackground, 10%)};
   --disabled-color: #{lighten($lightColor, 25%)};
-  --scrollbar-bg-color: #{darken($lightBackground, 25%)};
+  --scrollbar-bg-color: #{rgba(darken($lightBackground, 25%), 0.5)};
   --border-color: #{darken($lightBackground, 25%)};
   --border-active-color: #{$lightColor};
 }
@@ -22,8 +22,7 @@
     --btn-hover-bg-color: #{lighten($darkBackground, 5%)};
     --btn-press-bg-color: #{lighten($darkBackground, 10%)};
     --disabled-color: #{lighten($darkBackground, 10%)};
-    --scrollbar-bg-color: #{darken($darkColor, 2.5%)};
-    --scrollbar-btn-color: #{lighten($darkColor, 2.5%)};
+    --scrollbar-bg-color: #{rgba(darken($darkColor, 2.5%), 0.5)};
     --border-color: #{lighten($darkBackground, 12.5%)};
     --border-active-color: #{$darkColor};
   }
@@ -35,7 +34,7 @@
 
 ::-webkit-scrollbar {
   background-color: transparent;
-  width: 12px;
+  width: 16px;
 }
 
 ::-webkit-scrollbar-button {
@@ -43,8 +42,14 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-bg-color);
-  border-radius: 6px;
+  background-color: transparent;
+  border-radius: 8px;
+  border: 5px solid transparent;
+  box-shadow: 0 0 0 8px inset var(--scrollbar-bg-color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  border-width: 2px;
 }
 
 html {

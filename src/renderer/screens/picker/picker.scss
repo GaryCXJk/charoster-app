@@ -1,8 +1,7 @@
 #app.picker {
   .content {
     flex: 1 0 0;
-    overflow: auto;
-    scrollbar-gutter: stable both-edges;
+    overflow: overlay;
     padding: 0 1rem;
 
     .pack {
@@ -46,7 +45,7 @@
     height: 15rem;
     padding: 1rem;
     gap: 1rem;
-    overflow: auto;
+    overflow: overlay;
 
     .header {
       width: 100%;
