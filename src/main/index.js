@@ -64,7 +64,7 @@ app.on('ready', () => {
       minWidth: 250,
       maxWidth: 450,
       minHeight: 400,
-      parent: mainWindow.window,
+      parent: mainWindow,
       closable: false,
       minimizable: false,
       fullscreenable: false,

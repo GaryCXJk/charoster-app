@@ -96,6 +96,7 @@ export const getSize = async (type, sizeId, designId = null) => {
 export const getDesign = async (designId = null) => {
   let design = deepmerge({}, defaultDesign);
   if (designId) {
+    const defaultDesignCopy = design;
     const sizeSegments = designId.split('>');
     const designGroup = sizeSegments.splice(0, 2).join('>');
     sizeSegments.unshift(designGroup);
@@ -105,9 +106,13 @@ export const getDesign = async (designId = null) => {
       await waiting[designGroup];
       design = traverse(sizeSegments, designs);
     }
-    const originalLayout = design?.panels?.layout ?? [];
-    design = deepmerge(defaultDesign, design ?? {});
-    design.panels.layout = deepmerge([], originalLayout);
+    if (design) {
+      Object.keys(design).forEach((section) => {
+        defaultDesignCopy[section] = defaultDesignCopy[section] ?? {};
+        Object.assign(defaultDesignCopy[section], design[section]);
+      });
+    }
+    design = defaultDesignCopy;
   }
   return design;
 }
