@@ -241,7 +241,8 @@ const loadDefinitionEntity = async (definitionId, entityIdSegments, fromPack = n
         // We only want to stop processing if there's a JSON parsing error.
         if (e.name === 'SyntaxError') {
           showError(`There was an error loading ${searchFile}`);
-          waiter.reject(e);
+          waiting[fullEntityId] = null;
+          waiter.resolve();
           return null;
         }
       }
@@ -259,7 +260,11 @@ const runDefinitionQueue = async () => {
   queueIsRunning = createWaiter();
   while (definitionQueue.length) {
     const [definitionId, ...entityIdSegments] = definitionQueue.shift().split('>');
-    await loadDefinitionEntity(definitionId, entityIdSegments);
+    try {
+      await loadDefinitionEntity(definitionId, entityIdSegments);
+    } catch (_e) {
+      // Do nothing, this is just for formality.
+    }
   }
   queueIsRunning.resolve();
   queueIsRunning = null;

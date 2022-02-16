@@ -77,6 +77,8 @@ export const fetchPack = async (folder) => {
         }).catch(() => {
           // Do nothing
         });
+      } else {
+        packInfo.characters = false;
       }
     }
     if (packInfo.designs) {

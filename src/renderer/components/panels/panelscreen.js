@@ -1,14 +1,14 @@
 import Block from '@components/base/Block';
-import { createPanel, getImage } from './panel';
+import { createPanel } from './panel';
 import funcs from './funcs';
 import { createDesignQueue, createStylesheet } from './panelstyle';
-import { SVG } from '@svgdotjs/svg.js';
+import setSVG from './processing/layers/image/svg';
+import { convertImageDataArray } from './processing/image-helpers';
+import { getEntity, getEntityObject } from './processing/entities';
+import { getImage } from './processing/layers/image';
 
 let workspace = {};
-const entities = {
-  characters: {},
-  stages: {},
-};
+const entities = getEntityObject();
 
 let roster = [];
 const elements = {};
@@ -77,19 +77,6 @@ const setStyle = async () => {
   });
 };
 
-const getEntity = async (type, entityId) => {
-  entities[type] = entities[type] ?? {};
-
-  switch (type) {
-    case 'characters':
-      entities[type][entityId] = await window.characters.getCharacter(entityId);
-      break;
-    default:
-      break;
-  }
-  return entities[type][entityId];
-};
-
 const getImageId = (type, entity) => {
   let imageId = null;
   if (funcs[type] && funcs[type].getImageId) {
@@ -99,29 +86,9 @@ const getImageId = (type, entity) => {
   return imageId;
 };
 
-const convertImageDataArray = (imageData) => {
-  const obj = {};
-  imageData.forEach((img) => {
-    if (Array.isArray(img)) {
-      Object.assign(obj, convertImageDataArray(img));
-    } else {
-      obj[img.fullId] = img;
-    }
-  });
-  return obj;
-}
-
-const setSVGPreview = (content, layer) => {
-  const draw = SVG().svg(content);
-  if (layer.color) {
-    draw.fill(layer.color);
-  }
-  return `data:image/svg+xml;base64,${window.btoa(draw.svg())}`;
-}
-
 const createPreviewImageElement = (layer, monitorElements) => {
   const image = new Block({
-    className: 'image',
+    className: `image`,
   });
 
   image.setPreview = async (type, entity) => {
@@ -150,7 +117,7 @@ const createPreviewImageElement = (layer, monitorElements) => {
         let imgStr = null;
         switch (pickedImage.type) {
           case 'svg':
-            imgStr = setSVGPreview(pickedImage.content, layer);
+            imgStr = setSVG(pickedImage.content, layer);
             break;
           case 'default':
             break;
@@ -189,7 +156,7 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
   });
 
   if (data.layers) {
-    data.layers.forEach((layer) => {
+    data.layers.forEach((layer, idx) => {
       let element;
       switch (layer.type) {
         case 'image':
@@ -202,6 +169,7 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
         if (layer.className) {
           element.element.classList.add(...layer.className.split(' '));
         }
+        element.element.classList.add('layer', `layer-${idx}`);
         container.append(element);
       }
     });
@@ -227,14 +195,18 @@ const createPreviewLayoutElements = async (preview, monitorElements) => {
     },
   ];
 
-  layout.forEach((element) => {
+  layout.forEach((element, idx) => {
+    let container = null;
     switch (element.type) {
       case 'image':
-        const imageContainer = createPreviewImageContainerElement(element, monitorElements);
-        preview.append(imageContainer);
+        container = createPreviewImageContainerElement(element, monitorElements);
         break;
       default:
         break;
+    }
+    if (container) {
+      container.element.classList.add('element', `element-${idx}`)
+      preview.append(container);
     }
   });
 }
@@ -297,6 +269,7 @@ export const addPanel = (type, entity) => {
     type: type,
     designId: getDesignId(),
     design: getDesign(),
+    panelEntity: entity,
     ...entity,
     callbacks: {
       panel: {

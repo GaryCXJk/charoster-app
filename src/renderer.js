@@ -35,4 +35,5 @@ if (screens[screen]) {
   const app = document.getElementById('app');
   app.appendChild((screens[screen] ?? screens.main)())
   app.classList.add(screen);
+  document.body.classList.add(screen);
 }
