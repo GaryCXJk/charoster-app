@@ -31,10 +31,8 @@ import screens from './renderer/screens';
 import params from './helpers/params';
 
 let screen = params.screen ?? 'main';
-if (!screens[screen]) {
-  screen = 'main';
+if (screens[screen]) {
+  const app = document.getElementById('app');
+  app.appendChild((screens[screen] ?? screens.main)())
+  app.classList.add(screen);
 }
-
-const app = document.getElementById('app');
-app.appendChild((screens[screen] ?? screens.main)())
-app.classList.add(screen);

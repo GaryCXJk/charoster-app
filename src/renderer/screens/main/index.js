@@ -2,7 +2,7 @@ import titlebar from '@components/titlebar';
 import Block from '@components/base/Block';
 import './main.scss';
 import { icon } from '@fortawesome/fontawesome-svg-core';
-import { faCopy, faFolderOpen, faSave } from '@fortawesome/free-solid-svg-icons';
+import { faCopy, faFile, faFolderOpen, faImage, faSave } from '@fortawesome/free-solid-svg-icons';
 import createPanelScreen, {
   addPanel,
   getCurrentRoster,
@@ -192,6 +192,17 @@ export default () => {
     hasIcon: true,
     buttons: [
       {
+        content: icon(faFile).node,
+        on: {
+          click: async () => {
+            const newWorkspace = await window.workspace.create();
+            if (newWorkspace) {
+              setCurrentWorkspace(newWorkspace, true, true);
+            }
+          }
+        }
+      },
+      {
         content: icon(faSave).node,
         on: {
           click: () => {
@@ -215,6 +226,14 @@ export default () => {
             if (newWorkspace) {
               setCurrentWorkspace(newWorkspace, true, true);
             }
+          }
+        }
+      },
+      {
+        content: icon(faImage).node,
+        on: {
+          click: async () => {
+            await window.workspace.exportImage();
           }
         }
       },

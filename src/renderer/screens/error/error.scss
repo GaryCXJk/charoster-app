@@ -1,0 +1,46 @@
+$errorColor: #fff;
+$errorBgColor: #701;
+$errorSubBgColor: lighten($errorBgColor, 10%);
+$errorElemBgColor: lighten($errorSubBgColor, 5%);
+
+#app.error {
+  color: $errorColor;
+  background-color: $errorBgColor;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+
+  .sections {
+    height: auto;
+  }
+
+  .titlebar {
+    background-color: $errorSubBgColor;
+  }
+
+  button {
+    background-color: $errorElemBgColor;
+    color: $errorColor;
+    padding: 0.5rem;
+
+    &:disabled {
+      background-color: $errorBgColor;
+      color: darken($errorColor, 10%);
+    }
+  }
+
+  button {
+    &:hover {
+      background-color: $errorSubBgColor;
+    }
+
+    &:active {
+      background-color: lighten($errorElemBgColor, 5%);
+    }
+  }
+
+  .error-message {
+    text-align: center;
+    padding: 1rem;
+  }
+}

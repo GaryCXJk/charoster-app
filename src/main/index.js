@@ -5,6 +5,7 @@ import { executeOnConfigLoad, getConfig, setConfig } from './managers/config-man
 import { discoverPacks } from './managers/packs-manager';
 import './managers/workspace-manager';
 import './helpers/drag-helper';
+import { showError } from './managers/error-manager';
 
 let mainWindow;
 let pickerWindow;

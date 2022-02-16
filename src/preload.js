@@ -1,6 +1,7 @@
 import deepmerge from 'deepmerge';
 import { contextBridge, ipcRenderer } from 'electron';
 import params from './helpers/params';
+import * as error from './preload/error';
 import * as general from './preload/general';
 import * as main from './preload/main';
 import * as picker from './preload/picker';
@@ -8,6 +9,7 @@ import * as render from './preload/render';
 import * as setup from './preload/setup';
 
 const screens = {
+  error,
   main,
   picker,
   render,

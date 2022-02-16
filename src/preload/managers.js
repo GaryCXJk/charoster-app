@@ -14,4 +14,7 @@ export const contextBridgePaths = {
     getCharacter: (characterId) => ipcRenderer.invoke('characters:get-character', characterId),
     getImages: (imageId, filter = null) => ipcRenderer.invoke('characters:get-images', imageId, filter),
   },
+  definitions: {
+    getDefinitionValue: (definitionId, valueId, field) => ipcRenderer.invoke('definitions:get-definition-value', definitionId, valueId, field),
+  },
 };

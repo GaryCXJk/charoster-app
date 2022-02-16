@@ -2,6 +2,7 @@ import Block from '@components/base/Block';
 import { createPanel, getImage } from './panel';
 import funcs from './funcs';
 import { createDesignQueue, createStylesheet } from './panelstyle';
+import { SVG } from '@svgdotjs/svg.js';
 
 let workspace = {};
 const entities = {
@@ -41,6 +42,7 @@ export const setCurrentWorkspace = (newWorkspace, store = true, recreateRoster =
     const currentRoster = getCurrentRoster();
     roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
   }
+  elements.preview.resetPreview();
   resetRoster();
 }
 
@@ -97,50 +99,175 @@ const getImageId = (type, entity) => {
   return imageId;
 };
 
-const createPreviewImage = () => {
+const convertImageDataArray = (imageData) => {
+  const obj = {};
+  imageData.forEach((img) => {
+    if (Array.isArray(img)) {
+      Object.assign(obj, convertImageDataArray(img));
+    } else {
+      obj[img.fullId] = img;
+    }
+  });
+  return obj;
+}
+
+const setSVGPreview = (content, layer) => {
+  const draw = SVG().svg(content);
+  if (layer.color) {
+    draw.fill(layer.color);
+  }
+  return `data:image/svg+xml;base64,${window.btoa(draw.svg())}`;
+}
+
+const createPreviewImageElement = (layer, monitorElements) => {
+  const image = new Block({
+    className: 'image',
+  });
+
+  image.setPreview = async (type, entity) => {
+    if (layer.file) {
+      return;
+    }
+    const { entityId } = entity;
+    const entityInfo = await getEntity(type, entityId);
+
+    if (layer.from?.definition && layer.from?.field) {
+      const values = entityInfo[layer.from.definition];
+      if (values) {
+        const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field);
+        const imageMap = convertImageDataArray(imageData);
+        let imageId = null;
+        if (entity[layer.from.definition]?.[layer.from?.field]) {
+          imageId = entity[layer.from.definition][layer.from.field];
+        } else {
+          let imageEntry = imageData;
+          while (Array.isArray(imageEntry)) {
+            imageEntry = imageEntry[0];
+          }
+          imageId = imageEntry.fullId;
+        }
+        const pickedImage = imageMap[imageId];
+        let imgStr = null;
+        switch (pickedImage.type) {
+          case 'svg':
+            imgStr = setSVGPreview(pickedImage.content, layer);
+            break;
+          case 'default':
+            break;
+        }
+        if (imgStr) {
+          image.css({
+            backgroundImage: `url(${imgStr})`,
+          });
+        }
+      }
+    } else if (layer.size) {
+      const imageId = entity.imageId ?? getImageId(type, entityInfo);
+
+      const imageData = await getImage(type, imageId, getDesignId());
+
+      image.css({
+        backgroundImage: `url(${imageData.preview.data})`,
+      });
+    }
+  };
+
+  image.clearPreview = () => {
+    image.css({
+      backgroundImage: null,
+    });
+  }
+
+  monitorElements.push(image);
+
+  return image;
+}
+
+const createPreviewImageContainerElement = (data, monitorElements) => {
   const container = new Block({
     className: 'image-container',
   });
 
-  const image = new Block({
-    className: 'image',
-  });
-  container.append(image);
-
-  container.setImage = async (type, entity) => {
-    const { entityId } = entity;
-    const entityInfo = await getEntity(type, entityId);
-    const imageId = entity.imageId ?? getImageId(type, entityInfo);
-
-    const imageData = await getImage(type, imageId, getDesignId());
-
-    image.css({
-      backgroundImage: `url(${imageData.preview.data})`,
+  if (data.layers) {
+    data.layers.forEach((layer) => {
+      let element;
+      switch (layer.type) {
+        case 'image':
+          element = createPreviewImageElement(layer, monitorElements);
+          break;
+        default:
+          break;
+      }
+      if (element) {
+        if (layer.className) {
+          element.element.classList.add(...layer.className.split(' '));
+        }
+        container.append(element);
+      }
     });
-  };
-
-  container.clearImage = () => {
-    image.css({
-      backgroundImage: null,
-    });
-  };
+  }
 
   return container;
-};
+}
+
+const createPreviewLayoutElements = async (preview, monitorElements) => {
+  await setupPromise;
+  const design = await getDesign();
+  const layout = design.preview?.layout ?? [
+    {
+      type: "image",
+      layers: [
+        {
+          type: "image",
+          size: [
+            "preview"
+          ],
+        },
+      ],
+    },
+  ];
+
+  layout.forEach((element) => {
+    switch (element.type) {
+      case 'image':
+        const imageContainer = createPreviewImageContainerElement(element, monitorElements);
+        preview.append(imageContainer);
+        break;
+      default:
+        break;
+    }
+  });
+}
 
 const createPreviewElements = (preview) => {
-  const image = createPreviewImage();
-  preview.append(image);
+  let monitorElements = [];
+  preview.setPreview = (type, entity) => {
+    monitorElements.forEach((elem) => {
+      elem.setPreview(type, entity);
+    });
+  };
 
-  preview.image = image;
+  preview.clearPreview = () => {
+    monitorElements.forEach((elem) => {
+      elem.clearPreview();
+    });
+  }
+
+  preview.resetPreview = () => {
+    preview.empty();
+    monitorElements = [];
+    createPreviewLayoutElements(preview, monitorElements);
+  }
+
+  createPreviewLayoutElements(preview, monitorElements);
 };
 
 const clearPreview = () => {
-  elements.preview.image.clearImage();
+  elements.preview.clearPreview();
 }
 
 const setPreview = (type, entity) => {
-  elements.preview.image.setImage(type, entity);
+  elements.preview.setPreview(type, entity);
 }
 
 const clearSelection = () => {
