@@ -3,6 +3,7 @@ import * as path from 'path';
 import deepmerge from 'deepmerge';
 import createWaiter from '@@helpers/create-waiter';
 import { getConfig } from './config-manager';
+import { showError } from './error-manager';
 
 /**
  *
@@ -54,25 +55,36 @@ export const loadEntity = async (entityType, entityWaiting, entities, fullEntity
     const entityPath = path.join(workFolder, 'packs', folder, entityType);
     const entityInfoPath = path.join(entityPath, `${entityId}.json`);
 
+    let entityInfoStr;
+    let entityInfo;
     try {
-      const entityInfoStr = await readFile(entityInfoPath, {
+      entityInfoStr = await readFile(entityInfoPath, {
         encoding: 'utf-8',
       });
+    } catch (_e) {
+      waiter.resolve();
+      showError(`The file ${entityInfoPath} could not be found`);
 
-      const entityInfo = JSON.parse(entityInfoStr);
-
-      if (callbacks.processEntity) {
-        return callbacks.processEntity(entityInfo);
-      }
-
-      entities[fullEntityId] = entityInfo;
-
-      entityWaiting[fullEntityId].resolve(entityInfo);
-      return deepmerge({}, entityInfo);
-    } catch(e) {
-      waiter.reject(e);
       return null;
     }
+
+    try {
+      entityInfo = JSON.parse(entityInfoStr);
+    } catch(e) {
+      waiter.resolve();
+      showError(`There was an error loading ${entityInfoPath}`);
+
+      return null;
+    }
+
+    if (callbacks.processEntity) {
+      return callbacks.processEntity(entityInfo);
+    }
+
+    entities[fullEntityId] = entityInfo;
+
+    entityWaiting[fullEntityId].resolve(entityInfo);
+    return deepmerge({}, entityInfo);
   } else {
     if (callbacks.onProgressEntity) {
       return callbacks.onProgressEntity();

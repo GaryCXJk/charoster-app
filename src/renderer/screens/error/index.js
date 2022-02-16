@@ -1,4 +1,5 @@
 import Block from '../../components/base/Block';
+import Button from '../../components/base/Button';
 import titlebar from '../../components/titlebar';
 import './error.scss';
 
@@ -17,7 +18,25 @@ export default () => {
   });
   container.append(textContent);
 
-  window.errors.getError().then((message) => {
+  const footer = new Block({
+    className: 'footer',
+  });
+  container.append(footer);
+
+  const okBtn = new Button({
+    textContent: 'OK',
+    on: {
+      click: () => {
+        window.curWin.close();
+      },
+    },
+  });
+  footer.append(okBtn);
+
+  window.errors.getError().then(async (message) => {
+    await document.fonts.ready;
+    return message;
+  }).then((message) => {
     textContent.append(message);
     const style = getComputedStyle(container.element);
     const windowHeight = Math.ceil(+style.height.replace(/px$/, ''));

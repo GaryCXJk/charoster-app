@@ -1,64 +1,17 @@
-import createWaiter from '@@helpers/create-waiter';
 import deepmerge from 'deepmerge';
 import Block from "../base/Block";
+import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 
-const imageQueue = [];
-const waiters = {
-  images: {},
-};
 const renderedLabels = {};
-const imageCache = {};
-
-let queueRunning = false;
-
-const imageFilters = {
-  characters: ['panel', 'preview'],
-  stages: ['preview'],
-};
-
-const runImageQueue = async () => {
-  if (queueRunning) {
-    return;
-  }
-  queueRunning = true;
-
-  while (imageQueue.length) {
-    const [designId, type, imageId] = imageQueue.shift();
-
-    const imageData = await window.packs.getImages(type, imageId, imageFilters[type]);
-    waiters.images[designId][type][imageId].resolve(imageData);
-    imageQueue[`${designId},${type}:${imageId}`] = imageData;
-  }
-
-  queueRunning = false;
-};
-
-const queueImage = (type, imageId, designId = '') => {
-  imageQueue.push([designId, type, imageId]);
-  runImageQueue();
-};
-
-export const getImage = async (type, imageId, designId = '') => {
-  const cacheStr = `${designId},${type}:${imageId}`;
-  if (imageCache[cacheStr]) {
-    return imageCache[cacheStr];
-  }
-  waiters.images[designId] = waiters.images[designId] ?? {};
-  waiters.images[designId][type] = waiters.images[designId][type] ?? {};
-  waiters.images[designId][type][imageId] = waiters.images[designId][type][imageId] ?? createWaiter();
-  const waiter = waiters.images[designId][type][imageId];
-
-  queueImage(type, imageId, designId);
-
-  return await waiter;
-}
 
 const imageContent = async (block, layerInfo, {
   type,
+  entityId,
   imageId = null,
   entity,
   callbacks,
   designId = '',
+  panelEntity = null,
 }) => {
   let panelImageId = imageId;
 
@@ -71,11 +24,17 @@ const imageContent = async (block, layerInfo, {
   if (panelImageId) {
     let usedSizes = ['raw'];
     let imageData = null;
-    if (layerInfo.file) {
+    let imageStr = null;
+    if (layerInfo.from?.definition && layerInfo.from?.field) {
+      imageStr = await processImageDefinitionLayer(layerInfo, type, panelEntity ?? {
+        entityId,
+        imageId,
+      });
+    } else if (layerInfo.file) {
       imageData = await getImage('designs', `${designId}>${layerInfo.file}`, designId);
     } else {
       imageData = await getImage(type, panelImageId, designId);
-      usedSizes = layerInfo.size;
+      usedSizes = layerInfo.size ?? usedSizes;
     }
 
     if (imageData) {
@@ -88,8 +47,11 @@ const imageContent = async (block, layerInfo, {
         }
       }
       if (imageSize) {
-        block.element.style.backgroundImage = `url(${imageSize.data})`;
+        imageStr = imageSize.data;
       }
+    }
+    if (imageStr) {
+      block.element.style.backgroundImage = `url(${imageStr})`;
     }
   }
   return block;
@@ -215,7 +177,7 @@ const setPanelContent = async ({
 
     if (contentInfo.shown) {
       const block = new Block({
-        className: contentInfo.className,
+        className: `layer layer-${idx} ${contentInfo.className}`,
       });
       panel.append(block);
       if (contentFuncs[layer.type]) {

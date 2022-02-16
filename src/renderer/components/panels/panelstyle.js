@@ -40,9 +40,37 @@ export const createDesignQueue = (design) => {
       if (style.background?.image) {
         checkFileImages(style.background.image, queue);
       }
+      if (style.mask?.image) {
+        checkFileImages(style.mask.image, queue);
+      }
       if (style.maskImage) {
         checkFileImages(style.maskImage, queue);
       }
+    });
+  }
+  const locations = [];
+  if (design.panels.layers) {
+    locations.push(design.panels.layers);
+  }
+  if (design.preview?.layout) {
+    design.preview.layout.forEach((layout) => {
+      if (layout.layers) {
+        locations.push(layout.layers);
+      }
+    });
+  }
+  if (locations.length) {
+    locations.forEach((location) => {
+      location.forEach((layer) => {
+        if (layer.style) {
+          if (layer.style.background?.image) {
+            checkFileImages(layer.style.background?.image, queue);
+          }
+          if (layer.style.mask?.image) {
+            checkFileImages(layer.style.mask?.image, queue);
+          }
+        }
+      });
     });
   }
   return queue;
@@ -75,6 +103,9 @@ const getStyleProperties = (currentRoster, roster) => {
 const processCSSFilters = (filters) => {
   if (!filters) {
     return null;
+  }
+  if (filters === 'none') {
+    return filters;
   }
   const processedFilters = [];
 
@@ -158,6 +189,31 @@ const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage'
   return null;
 };
 
+const handleStyle = (style, imageFiles, styleObject = null, styleMap = {}) => {
+  if (typeof style !== 'object') {
+    return null;
+  }
+  const styleProps = {};
+
+  Object.keys(styleMap).forEach((prop) => {
+    const mapTo = styleMap[prop];
+    const val = style[prop];
+    if (val) {
+      if (typeof mapTo === 'function') {
+        mapTo(styleProps, val, imageFiles);
+      } else {
+        styleProps[mapTo] = val;
+      }
+    }
+  });
+
+  if (styleObject) {
+    Object.assign(styleObject, styleProps);
+  }
+
+  return styleProps;
+}
+
 const handleBackground = (background, imageFiles, styleObject = null, bgMap = {
   color: 'backgroundColor',
   size: 'backgroundSize',
@@ -167,25 +223,7 @@ const handleBackground = (background, imageFiles, styleObject = null, bgMap = {
 }) => {
 
   if (typeof background === 'object') {
-    const styleProps = {};
-
-    Object.keys(bgMap).forEach((prop) => {
-      const mapTo = bgMap[prop];
-      const val = background[prop];
-      if (val) {
-        if (typeof mapTo === 'function') {
-          mapTo(styleProps, val, imageFiles);
-        } else {
-          styleProps[mapTo] = val;
-        }
-      }
-    });
-
-    if (styleObject) {
-      Object.assign(styleObject, styleProps);
-    }
-
-    return styleProps;
+    return handleStyle(background, imageFiles, styleObject, bgMap);
   } else if (typeof background === 'string') {
     const styleProps = {
       background,
@@ -246,36 +284,39 @@ const handleBorders = (border, imageFiles, styleObject = null, prefix = null) =>
 }
 
 const handleMask = (mask, imageFiles, styleObject = null) => {
-  const background = handleBackground(mask, imageFiles, styleObject, {
+  const returnObject = handleBackground(mask, imageFiles, styleObject, {
     size: 'maskSize',
     position: 'maskPosition',
     repeat: 'maskRepeat',
     image: (props, val, imageFiles) => handleBackgroundImages(props, val, imageFiles, 'maskImage'),
   });
-  if (!background) {
+  if (!returnObject) {
     return null;
   }
   const webkitStyles = {};
-  Object.keys(background).forEach((prop) => {
+  Object.keys(returnObject).forEach((prop) => {
     const newProp = `webkit${prop.slice(0, 1).toUpperCase()}${prop.slice(1)}`;
-    webkitStyles[newProp] = background[prop];
+    webkitStyles[newProp] = returnObject[prop];
   });
-  Object.assign(background, webkitStyles);
+  Object.assign(returnObject, webkitStyles);
   if (styleObject) {
     Object.assign(styleObject, webkitStyles);
   }
-  return background;
+  return returnObject;
 };
 
-const handleCSSFilters = (filters, styleObject = null) => {
-  const cssFilters = processCSSFilters(filters);
-  if (cssFilters) {
-    if (styleObject) {
-      styleObject.filter = cssFilters;
-    }
-    return cssFilters;
-  }
-  return '';
+const setCSSStyle = (style, imageFiles, styleObject = null) => {
+  return handleStyle(style, imageFiles, styleObject, {
+    background: (_props, val) => handleBackground(val, imageFiles, styleObject),
+    border: (_props, val) => handleBorders(val, imageFiles, styleObject),
+    mask: (_props, val) => handleMask(val, imageFiles, styleObject),
+    filter: (_props, val) => {
+      const ret = processCSSFilters(val);
+      if (ret) {
+        styleObject.filter = ret;
+      }
+    },
+  });
 }
 
 export const createStylesheet = ({
@@ -316,6 +357,15 @@ export const createStylesheet = ({
   combinedStyles['.sections .content .panels .panel'] = {};
   if (design.panels.border) {
     handleBorders(design.panels.border, imageFiles, combinedStyles['.sections .content .panels .panel']);
+  }
+  if (design.panels.layers) {
+    design.panels.layers.forEach((layer, idx) => {
+      if (layer.style) {
+        const className = `.sections .content .panels .panel .layer.layer-${idx}`;
+        combinedStyles[className] = combinedStyles[className] ?? {};
+        setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+      }
+    });
   }
   if (panelImageFilters) {
     combinedStyles['.panels .panel .image'] = {
@@ -375,6 +425,21 @@ export const createStylesheet = ({
   }
   if (previewImageFilters) {
     combinedStyles['.preview .image'].filter = previewImageFilters;
+  }
+
+  if (design.preview.layout) {
+    design.preview.layout.forEach((layout, elementIdx) => {
+      const baseClassName = `.sections .preview .element.element-${elementIdx}`;
+      if (layout.layers) {
+        layout.layers.forEach((layer, layerIdx) => {
+          if (layer.style) {
+            const className = `${baseClassName} .layer.layer-${layerIdx}`;
+            combinedStyles[className] = combinedStyles[className] ?? {};
+            setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+          }
+        });
+      }
+    });
   }
 
   return createStyleString(combinedStyles);

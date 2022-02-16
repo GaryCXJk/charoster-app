@@ -1,16 +1,19 @@
 import { ipcMain } from "electron";
+import createWaiter from "../../helpers/create-waiter";
 import { createWindow, getWindow } from "./window-manager"
 
 let errorMessages = 1;
 const messages = {};
+const canShow = {};
 
 export const showError = (message, id = 'main') => {
   const window = getWindow(id);
 
   const errorId = `error${errorMessages}`;
   errorMessages += 1;
+  canShow[errorId] = createWaiter();
 
-  createWindow(errorId, {
+  const error = createWindow(errorId, {
     width: 400,
     height: 300,
     screen: 'error',
@@ -22,10 +25,14 @@ export const showError = (message, id = 'main') => {
   });
 
   messages[errorId] = message;
+
+  window.emitter.once('ready', () => {
+    canShow[errorId].resolve();
+  });
 }
 
-ipcMain.handle('errors:get-error', (_event, errorId) => {
-  return messages[errorId];
+ipcMain.handle('errors:get-error', async (_event, errorId) => {
+  return canShow[errorId].then(() => messages[errorId]);
 });
 
 ipcMain.handle('errors:show-error', (_event, errorId, height) => {

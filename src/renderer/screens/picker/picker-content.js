@@ -165,11 +165,13 @@ const createPackBlock = (packId) => {
   });
   block.append(panels);
 
-  pack.characters.forEach((charId) => {
-    const panel = createPanel(charId);
+  if (Array.isArray(pack.characters)) {
+    pack.characters.forEach((charId) => {
+      const panel = createPanel(charId);
 
-    panels.append(panel);
-  });
+      panels.append(panel);
+    });
+  }
 
   blocks[packId] = block;
 
@@ -186,7 +188,7 @@ const addPackBlocks = () => {
 
     elements.off.append(block);
 
-    if (block.pack.characters.length) {
+    if (Array.isArray(block.pack.characters) && block.pack.characters.length) {
       pickerContent.append(block);
     }
   });
@@ -197,6 +199,7 @@ const initPickerContent = async () => {
 
   const fetchPacks = await window.packs.getPackList();
   const fetchCharacters = await window.characters.getCharacterList();
+  console.log(fetchPacks, fetchCharacters);
 
   Object.assign(packs, fetchPacks);
   Object.assign(characters, fetchCharacters);
