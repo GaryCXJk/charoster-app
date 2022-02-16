@@ -1,5 +1,5 @@
 import deepmerge from 'deepmerge';
-import { BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { EventEmitter } from 'events';
 import { IS_DEVELOPMENT } from '../../global/constants';
 
@@ -137,5 +137,8 @@ ipcMain.handle('curwin:close', (_event, id) => {
   if (window) {
     window.window.setClosable(true);
     window.window.close();
+    if (id === 'main') {
+      app.quit();
+    }
   }
 });

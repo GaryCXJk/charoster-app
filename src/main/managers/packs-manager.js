@@ -2,12 +2,18 @@ import deepmerge from 'deepmerge';
 import { ipcMain } from 'electron';
 import { promises as fsPromises } from 'fs';
 import * as path from 'path';
+import createWaiter from '../../helpers/create-waiter';
 import { awaitCharacterQueue, fetchCharacters, getCostumeImages, queueCharacter } from './characters-manager';
 import { getConfig, waitForWorkFolder } from './config-manager';
+import { addDefinition } from './definitions-manager';
 import { fetchDesigns, getDesignImage, queueDesign } from './designs-manager';
 import { notifyWindow } from './window-manager';
 
 const { readdir, readFile, stat } = fsPromises;
+
+const packDiscoveryPromise = createWaiter();
+
+export const awaitPackDiscovery = async () => await packDiscoveryPromise;
 
 const imageReaders = {
   characters: getCostumeImages,
@@ -15,6 +21,14 @@ const imageReaders = {
 };
 
 const packs = {};
+
+const setPackDefinitions = (pack) => {
+  if (pack.definitions) {
+    pack.definitions.forEach((definition) => {
+      addDefinition(pack.id, definition);
+    });
+  }
+}
 
 export const fetchPack = async (folder) => {
   const workFolder = getConfig('workFolder');
@@ -76,6 +90,7 @@ export const fetchPack = async (folder) => {
         packInfo.designs = designs;
       }
     }
+    setPackDefinitions(packInfo);
 
     packInfo.status = 'ready';
 
@@ -115,6 +130,7 @@ export const discoverPacks = async () => {
     const packCopy = pack ? deepmerge({}, pack) : null;
     notifyWindow('pack-ready', packCopy);
   }
+  packDiscoveryPromise.resolve();
 }
 
 export const getPackList = () => {

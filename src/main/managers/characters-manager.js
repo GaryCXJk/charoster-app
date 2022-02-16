@@ -3,12 +3,13 @@ import deepmerge from 'deepmerge';
 import Sharp from 'sharp';
 import createWaiter from '@@helpers/create-waiter';
 import { fetchEntities, loadEntity, queueEntity } from './file-manager';
-import { queueFranchise } from './franchises-manager';
+// import { queueFranchise } from './franchises-manager';
 import { notifyWindow } from './window-manager';
 import { ipcMain } from 'electron';
 import { getConfig } from './config-manager';
 import { getSize, getSizeKeys } from './designs-manager';
 import { getWorkspace } from './workspace-manager';
+import { checkArrayables } from './definitions-manager';
 
 const characters = {};
 const costumes = {};
@@ -24,9 +25,10 @@ export const fetchCharacters = async (packFolder) => {
 
 const prepareCharacterData = (charInfo, id) => {
   charInfo.fullId = id;
-  if (charInfo.franchise) {
-    queueFranchise(charInfo.franchise);
-  }
+  // Removed, will be replaced with franchise definition
+  // if (charInfo.franchise) {
+  //   queueFranchise(charInfo.franchise);
+  // }
   if (charInfo.costumes) {
     const { costumes: costumeList } = charInfo;
     charInfo.costumeMap = {};
@@ -37,31 +39,60 @@ const prepareCharacterData = (charInfo, id) => {
       return costume;
     });
   }
+  const arrayables = checkArrayables(charInfo);
+
+  arrayables.forEach((key) => {
+    if (charInfo[key] && !Array.isArray(charInfo[key])) {
+      charInfo[key] = [charInfo[key]];
+    }
+  });
 };
 
-const loadCostume = async (costumeInfo) => {
-  const parentId = costumeInfo.parent;
+const loadIntoParent = async (characterInfo, callback) => {
+  const parentId = characterInfo.parent;
   await loadCharacter(parentId);
   if (waiting[parentId].status === 'rejected') {
     return null;
   }
+
   const parentInfo = characters[parentId];
-  parentInfo.costumes.push(...costumeInfo.costumes);
-  Object.assign(parentInfo.costumeMap, costumeInfo.costumeMap);
+  await callback(parentInfo);
 
   return parentInfo;
+}
+
+const loadAddon = async (characterInfo) => {
+  return await loadIntoParent(characterInfo, async (parentInfo) => {
+    if (characterInfo.costumes) {
+      parentInfo.costumes.push(...characterInfo.costumes);
+      Object.assign(parentInfo.costumeMap, characterInfo.costumeMap);
+    }
+
+    if (characterInfo.meta) {
+      Object.assign(parentInfo.meta, characterInfo.meta);
+    }
+
+    const props = checkArrayables(characterInfo);
+    props.forEach((prop) => {
+      if (!characterInfo[prop]) {
+        return;
+      }
+      parentInfo[prop].push(...characterInfo[prop]);
+    });
+  });
+}
+
+const loadCostume = async (costumeInfo) => {
+  return await loadIntoParent(costumeInfo, async (parentInfo) => {
+    parentInfo.costumes.push(...costumeInfo.costumes);
+    Object.assign(parentInfo.costumeMap, costumeInfo.costumeMap);
+  });
 };
 
 const loadMeta = async (metaInfo) => {
-  const parentId = metaInfo.parent;
-  await loadCharacter(parentId);
-  if (waiting[parentId].status === 'rejected') {
-    return null;
-  }
-  const parentInfo = characters[parentId];
-  Object.assign(parentInfo.meta, metaInfo.meta);
-
-  return parentInfo;
+  return await loadIntoParent(metaInfo, async (parentInfo) => {
+    Object.assign(parentInfo.meta, metaInfo.meta);
+  });
 };
 
 const notifyCharacterUpdated = (characterId) => {
@@ -80,6 +111,9 @@ const loadCharacter = async (characterId) => {
       let returnInfo = charInfo;
 
       switch (charInfo.type) {
+        case 'addon':
+          returnInfo = await loadAddon(charInfo);
+          break;
         case 'costume':
           returnInfo = await loadCostume(charInfo);
           break;
