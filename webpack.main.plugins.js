@@ -1,3 +1,8 @@
+/**
+ * A fix to the issue where sharp wouldn't work in production.
+ * @see https://github.com/pkerschbaum/file-explorer/commit/e2bf09cf6ef642491f67dc212b2fc7619e1493bf
+ * @see https://github.com/lovell/sharp/issues/1951#issuecomment-1001020823
+ */
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
