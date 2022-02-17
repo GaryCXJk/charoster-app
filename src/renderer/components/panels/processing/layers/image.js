@@ -1,4 +1,6 @@
 import createWaiter from "@@helpers/create-waiter";
+import { globalAppReset } from "../../../../../helpers/global-on";
+import { clearObject } from "../../../../../helpers/object-helper";
 import { getEntity } from "../entities";
 import { convertImageDataArray } from "../image-helpers";
 import setSVG from './image/svg';
@@ -8,6 +10,12 @@ const imageWaiters = {};
 const imageQueue = [];
 
 let queueRunning = false;
+
+const applyEvents = globalAppReset(() => {
+  clearObject(imageCache);
+  clearObject(imageWaiters);
+  imageQueue.splice(0, imageQueue.length);
+});
 
 const imageFilters = {
   characters: ['panel', 'preview'],
@@ -37,6 +45,7 @@ const queueImage = (type, imageId, designId = '') => {
 };
 
 export const getImage = async (type, imageId, designId = '') => {
+  applyEvents();
   const cacheStr = `${designId},${type}:${imageId}`;
   if (imageCache[cacheStr]) {
     return imageCache[cacheStr];
@@ -52,6 +61,7 @@ export const getImage = async (type, imageId, designId = '') => {
 }
 
 export const processImageDefinitionLayer = async (layer, type, entity) => {
+  applyEvents();
   const { entityId } = entity;
   const entityInfo = await getEntity(type, entityId);
 

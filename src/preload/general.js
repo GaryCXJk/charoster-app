@@ -1,6 +1,10 @@
 import { ipcRenderer } from 'electron';
 import params from '@@helpers/params';
 
+export const ipcListeners = [
+  'reset-all',
+];
+
 export const contextBridgePaths = {
   curWin: {
     minimize: () => ipcRenderer.invoke('curwin:minimize', params.id),

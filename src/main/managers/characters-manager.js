@@ -3,13 +3,14 @@ import deepmerge from 'deepmerge';
 import Sharp from 'sharp';
 import createWaiter from '@@helpers/create-waiter';
 import { fetchEntities, loadEntity, queueEntity } from './file-manager';
-// import { queueFranchise } from './franchises-manager';
 import { notifyWindow } from './window-manager';
 import { ipcMain } from 'electron';
 import { getConfig } from './config-manager';
 import { getSize, getSizeKeys } from './designs-manager';
 import { getWorkspace } from './workspace-manager';
 import { checkArrayables } from './definitions-manager';
+import { onAppReset } from '../helpers/manager-helper';
+import { clearObject } from '../../helpers/object-helper';
 
 const characters = {};
 const costumes = {};
@@ -362,3 +363,12 @@ ipcMain.handle('characters:get-character', (_event, characterId) => {
 
 ipcMain.handle('characters:get-images', (_event, imageId, filter = null) => getCostumeImages(imageId, filter));
 ipcMain.handle('characters:get-image-info', (_event, imageId) => getCostumeImageInfo(imageId));
+
+onAppReset(() => {
+  queueIsRunning = null;
+  characterQueue.splice(0, characterQueue.length);
+  clearObject(characters);
+  clearObject(costumes);
+  clearObject(waiting);
+  clearObject(imageCache);
+});

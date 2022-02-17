@@ -1,8 +1,14 @@
 import deepmerge from 'deepmerge';
+import { globalAppReset } from '../../../helpers/global-on';
+import { clearObject } from '../../../helpers/object-helper';
 import Block from "../base/Block";
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 
 const renderedLabels = {};
+
+let applyEvents = globalAppReset(() => {
+  clearObject(renderedLabels);
+});
 
 const imageContent = async (block, layerInfo, {
   type,
@@ -208,6 +214,7 @@ export const createPanel = ({
   callbacks = {},
   ...options
 }) => {
+  applyEvents();
   const panel = new Block({
     className: 'panel',
     draggable: draggable,
