@@ -375,6 +375,14 @@
     cross-zip "^4.0.0"
     fs-extra "^10.0.0"
 
+"@electron-forge/plugin-auto-unpack-natives@^6.0.0-beta.63":
+  version "6.0.0-beta.63"
+  resolved "https://registry.yarnpkg.com/@electron-forge/plugin-auto-unpack-natives/-/plugin-auto-unpack-natives-6.0.0-beta.63.tgz#1e315c8f5a1f0c08b32a8e49b8cb910d990394ae"
+  integrity sha512-Or/C9lrQ2v5lR2M0r7DWP6KQU+ZvLoCv5uml7hgk3fqjvg9ejvbfbXpR7OxCj5NcsPElE1ppibWqSJxHce7F4g==
+  dependencies:
+    "@electron-forge/plugin-base" "6.0.0-beta.63"
+    "@electron-forge/shared-types" "6.0.0-beta.63"
+
 "@electron-forge/plugin-base@6.0.0-beta.63":
   version "6.0.0-beta.63"
   resolved "https://registry.npmjs.org/@electron-forge/plugin-base/-/plugin-base-6.0.0-beta.63.tgz"
@@ -525,9 +533,9 @@
     cross-spawn "^7.0.1"
 
 "@material-design-icons/svg@^0.10.6":
-  version "0.10.6"
-  resolved "https://registry.yarnpkg.com/@material-design-icons/svg/-/svg-0.10.6.tgz#aa5050c615ca8a13567df1f77195caf185b66573"
-  integrity sha512-WgK0itpIlAp6YIFwYAAagZ3AuRT/i7cLXSTNwQzUaYE+1UQFDHHVWqhJK4ZyiQAk6F38SB2gU9Z44F7xuq1jDA==
+  version "0.10.7"
+  resolved "https://registry.npmjs.org/@material-design-icons/svg/-/svg-0.10.7.tgz"
+  integrity sha512-ixqQhVDlj5pfVUEqmeb+fNg3xx/QV71ZK8Q2AM0LL+D7pXxHlUyRcKgRl5X3RTHZO0nOI8WxIdpma4xaaglAVA==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
@@ -5972,7 +5980,7 @@ supports-preserve-symlinks-flag@^1.0.0:
 
 svg-loader@^0.0.2:
   version "0.0.2"
-  resolved "https://registry.yarnpkg.com/svg-loader/-/svg-loader-0.0.2.tgz#601ab2fdaa1dadae3ca9975b550de92a07e1d92b"
+  resolved "https://registry.npmjs.org/svg-loader/-/svg-loader-0.0.2.tgz"
   integrity sha1-YBqy/aodra48qZdbVQ3pKgfh2Ss=
 
 tapable@^2.0.0, tapable@^2.1.1, tapable@^2.2.0:
