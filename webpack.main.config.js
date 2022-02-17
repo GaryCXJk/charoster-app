@@ -15,7 +15,4 @@ module.exports = {
       '@@helpers': path.resolve(__dirname, 'src/helpers'),
     }
   },
-  externals: {
-    sharp: "commonjs sharp",
-  },
 };
