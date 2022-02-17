@@ -1,8 +1,9 @@
-import { icon } from '@fortawesome/fontawesome-svg-core';
-import { faClose, faWindowMinimize } from '@fortawesome/free-solid-svg-icons';
 import Block from './base/Block';
 import Button from './base/Button';
 import './titlebar.scss';
+import mdiMinimize from '@material-design-icons/svg/two-tone/minimize.svg';
+import mdiClose from '@material-design-icons/svg/two-tone/close.svg';
+import mdi from '../../helpers/mdi';
 
 export default (options = {}) => {
   const {
@@ -64,7 +65,7 @@ export default (options = {}) => {
         },
       }
     });
-    minBtn.append(icon(faWindowMinimize).node);
+    minBtn.append(mdi(mdiMinimize));
     titlebar.append(minBtn);
   }
 
@@ -76,7 +77,7 @@ export default (options = {}) => {
         },
       },
     });
-    closeBtn.append(icon(faClose).node);
+    closeBtn.append(mdi(mdiClose));
     titlebar.append(closeBtn);
   }
 

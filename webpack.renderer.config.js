@@ -13,6 +13,11 @@ rules.push({
   use: [{ loader: 'style-loader' }, { loader: 'css-loader' }, { loader: 'sass-loader' }],
 });
 
+rules.push({
+  test: /\.svg$/,
+  use: [{ loader: 'svg-loader' }],
+});
+
 module.exports = {
   // Put your normal webpack config below here
   module: {
