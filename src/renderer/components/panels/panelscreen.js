@@ -346,7 +346,12 @@ export const storeWorkspace = async () => {
 }
 
 const applyEvents = globalAppReset(() => {
-  setTimeout(resetRoster, 10);
+  setupPromise = setupWorkspace();
+  elements.preview.empty();
+  createPreviewElements(elements.preview);
+  const currentRoster = getCurrentRoster();
+  roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
+  resetRoster();
 });
 
 export default ({
