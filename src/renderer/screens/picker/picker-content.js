@@ -1,5 +1,6 @@
 import Block from "@components/base/Block";
 import { createPanel as createPanelBase } from '@components/panels/panel';
+import createWaiter from "../../../helpers/create-waiter";
 import { globalAppReset } from "../../../helpers/global-on";
 import { clearObject } from "../../../helpers/object-helper";
 
@@ -9,6 +10,7 @@ const packs = {};
 const blocks = {};
 const characters = {};
 const waiters = {};
+const packWaiters = {};
 let activePanel = null;
 
 let query = '';
@@ -28,16 +30,24 @@ const setHandlers = () => {
   window.globalEventHandler.on('pack-ready', (pack) => {
     const packId = pack.id;
     packs[packId] = pack;
+    if (packWaiters[packId]) {
+      packWaiters[packId].resolve();
+      delete packWaiters[packId];
+    }
     pack.characters = [];
     elements.off.append(createPackBlock(packId));
     addPackBlocks();
   });
 
-  window.globalEventHandler.on('pack-character-list-ready', (data) => {
+  window.globalEventHandler.on('pack-character-list-ready', async (data) => {
     const {
       packId,
       characters,
     } = data;
+    if (!packs[packId]) {
+      packWaiters[packId] = createWaiter();
+      await packWaiters[packId];
+    }
     packs[packId].characters.push(...characters);
     characters.forEach((charId) => {
       const panel = createPanel(charId);
