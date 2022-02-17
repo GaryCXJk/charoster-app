@@ -5,7 +5,7 @@ import { createDesignQueue, createStylesheet } from './panelstyle';
 import setSVG from './processing/layers/image/svg';
 import { convertImageDataArray } from './processing/image-helpers';
 import { getEntity, getEntityObject } from './processing/entities';
-import { getImage } from './processing/layers/image';
+import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 
 let workspace = {};
 const entities = getEntityObject();
@@ -101,6 +101,7 @@ const createPreviewImageElement = (layer, monitorElements) => {
     if (layer.from?.definition && layer.from?.field) {
       const values = entityInfo[layer.from.definition];
       if (values) {
+        /*
         const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field);
         const imageMap = convertImageDataArray(imageData);
         let imageId = null;
@@ -122,6 +123,8 @@ const createPreviewImageElement = (layer, monitorElements) => {
           case 'default':
             break;
         }
+        */
+        const imgStr = await processImageDefinitionLayer(layer, type, entity);
         if (imgStr) {
           image.css({
             backgroundImage: `url(${imgStr})`,

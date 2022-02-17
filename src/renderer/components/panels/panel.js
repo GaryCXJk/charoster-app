@@ -58,12 +58,21 @@ const imageContent = async (block, layerInfo, {
 };
 
 const labelContent = async (block, layerInfo, {
+  type,
   entity,
+  imageId,
   showLabel = true,
   label = null,
 }) => {
   if (showLabel) {
-    const displayLabel = label ?? entity.allCapsDisplayName ?? (entity.displayName ? entity.displayName.toUpperCase() : null) ?? entity.allCapsName ?? (entity.name ?? entity.id).toUpperCase();
+    let displayLabel = label;
+    if (!displayLabel) {
+      if (imageId) {
+        const imageInfo = await window.packs.getImageInfo(type, imageId);
+        displayLabel = displayLabel ?? imageInfo.allCapsDisplayName ?? (imageInfo.displayName ? imageInfo.displayName.toUpperCase() : null);
+      }
+      displayLabel = displayLabel ?? entity.allCapsDisplayName ?? (entity.displayName ? entity.displayName.toUpperCase() : null) ?? entity.allCapsName ?? (entity.name ?? entity.id).toUpperCase();
+    }
 
     block.prop('textContent', displayLabel);
     if (layerInfo.display === 'image') {

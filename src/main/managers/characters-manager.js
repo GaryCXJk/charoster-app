@@ -24,11 +24,9 @@ export const fetchCharacters = async (packFolder) => {
 }
 
 const prepareCharacterData = (charInfo, id) => {
+  const [folder] = id.split('>');
   charInfo.fullId = id;
-  // Removed, will be replaced with franchise definition
-  // if (charInfo.franchise) {
-  //   queueFranchise(charInfo.franchise);
-  // }
+  charInfo.pack = folder;
   if (charInfo.costumes) {
     const { costumes: costumeList } = charInfo;
     charInfo.costumeMap = {};
@@ -193,6 +191,20 @@ export const getCharacterList = async (filterCharacter = null) => {
   return deepmerge({}, characters);
 }
 
+export const getCostumeImageInfo = async (imageId) => {
+  const [folder, characterId, costumeId, index] = imageId.split('>');
+  const fullCostumeId = `${folder}>${characterId}>${costumeId}`;
+  if (!costumes[fullCostumeId]) {
+    await loadCharacter(`${folder}>${characterId}`);
+  }
+  const costume = costumes[fullCostumeId];
+  if (!costume) {
+    return null;
+  }
+
+  return costume.images[index];
+}
+
 export const getCostumeImages = async (imageId, filterSizes = null) => {
   const workspace = getWorkspace();
   const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? null;
@@ -235,7 +247,7 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
     return null;
   }
 
-  const image = (typeof imageInfo === 'string' ? imageInfo : imageInfo.image);
+  const image = (typeof imageInfo === 'string' ? imageInfo : imageInfo.image ?? imageInfo.file);
 
   const workFolder = getConfig('workFolder');
   const costumePath = path.join(workFolder, 'packs', folder, 'characters', characterId, costumeId, image);
@@ -254,9 +266,11 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
     const sharpImage = new Sharp(costumePath);
     const sharpMeta = await sharpImage.metadata();
     let sizeData = costume.sizes && costume.sizes[size];
+    if (imageInfo.sizes && imageInfo.sizes[size]) {
+      sizeData = imageInfo.sizes[size];
+    }
 
     if (!sizeData) {
-      // TODO: Auto-crop to the largest possible size for the current image,
       sizeData = {
         x: 0,
         y: 0,
@@ -267,11 +281,9 @@ export const getCostumeImages = async (imageId, filterSizes = null) => {
         sizeData.width = Math.round(sharpMeta.height * heightRatio);
         sizeData.height = sharpMeta.height;
         sizeData.x = Math.floor((sharpMeta.width - sizeData.width) / 2);
-      } else {
-        sizeData.y = Math.floor((sharpMeta.height - sizeData.height) / 2);
       }
     } else {
-      sizeData = deepmerge({}, costume.sizes[size]);
+      sizeData = deepmerge({}, sizeData);
     }
     if (heightRatio) {
       sizeData.height = Math.round(sizeData.width / heightRatio);
@@ -349,3 +361,4 @@ ipcMain.handle('characters:get-character', (_event, characterId) => {
 });
 
 ipcMain.handle('characters:get-images', (_event, imageId, filter = null) => getCostumeImages(imageId, filter));
+ipcMain.handle('characters:get-image-info', (_event, imageId) => getCostumeImageInfo(imageId));

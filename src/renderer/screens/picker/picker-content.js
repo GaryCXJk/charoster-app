@@ -199,7 +199,6 @@ const initPickerContent = async () => {
 
   const fetchPacks = await window.packs.getPackList();
   const fetchCharacters = await window.characters.getCharacterList();
-  console.log(fetchPacks, fetchCharacters);
 
   Object.assign(packs, fetchPacks);
   Object.assign(characters, fetchCharacters);

@@ -116,7 +116,7 @@ const processEntity = async (type, value, definition) => {
 export const getDefinitionEntityValue = async (definitionId, entityIdSegments, field, fromPack = null) => {
   const definition = definitions[definitionId];
   const entity = await loadDefinitionEntity(definitionId, entityIdSegments, fromPack);
-  if (!entity[field] && !entity.meta?.[field]) {
+  if (!entity?.[field] && !entity?.meta?.[field]) {
     return null;
   }
   let type = 'string';
@@ -310,8 +310,23 @@ export const addDefinition = (packId, definition) => {
     packs: [],
   };
   const packs = definitions[id].packs;
+  let def = definitions[id].default ?? null;
+  let defPriority = definitions[id].defaultPriority ?? 0;
   definitions[id] = deepmerge(definitions[id], definition);
+  const setDefault = () => {
+    def = definitions[id].default;
+    defPriority = definitions[id].defaultPriority;
+  };
   packs.push(packId);
+  if (definitions[id].default) {
+    if ((definitions[id].defaultPriority ?? 0) > defPriority) {
+      setDefault();
+    } else if (definitions[id].default.localeCompare(def) > 0) {
+      setDefault();
+    }
+  }
+  definitions[id].default = def;
+  definitions[id].defaultPriority = defPriority;
   definitions[id].packs = packs;
   definitionNotifier[id] = definitionNotifier[id] ?? createWaiter();
   definitionNotifier[id].resolve();
@@ -331,14 +346,14 @@ export const getDefinition = async (id) => {
   return definitions[id];
 }
 
-ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field) => {
+ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field, fromPack = null) => {
   const values = !Array.isArray(valueIds) ? [valueIds] : valueIds;
 
   const ret = [];
 
   for (let idx = 0; idx < values.length; idx += 1) {
     const val = values[idx];
-    const outVal = await getDefinitionEntityValue(definitionId, val.split('>'), field);
+    const outVal = await getDefinitionEntityValue(definitionId, val.split('>'), field, fromPack);
     ret.push(outVal);
   }
   const definition = definitions[definitionId];
