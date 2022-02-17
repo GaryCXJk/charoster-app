@@ -1,8 +1,11 @@
 import titlebar from '@components/titlebar';
 import Block from '@components/base/Block';
 import './main.scss';
-import { icon } from '@fortawesome/fontawesome-svg-core';
-import { faCopy, faFile, faFolderOpen, faImage, faSave } from '@fortawesome/free-solid-svg-icons';
+import mdiFileOpen from '@material-design-icons/svg/two-tone/file_open.svg';
+import mdiInsertPhoto from '@material-design-icons/svg/two-tone/insert_photo.svg';
+import mdiNoteAdd from '@material-design-icons/svg/two-tone/note_add.svg';
+import mdiSave from '@material-design-icons/svg/two-tone/save.svg';
+import mdiSaveAs from '@material-design-icons/svg/two-tone/save_as.svg';
 import createPanelScreen, {
   addPanel,
   getCurrentRoster,
@@ -14,6 +17,7 @@ import createPanelScreen, {
   storeWorkspace,
   awaitSetup,
 } from '../../components/panels/panelscreen';
+import mdi from '../../../helpers/mdi';
 
 let dragInfo = null;
 let isDragEnter = false;
@@ -192,7 +196,7 @@ export default () => {
     hasIcon: true,
     buttons: [
       {
-        content: icon(faFile).node,
+        content: mdi(mdiNoteAdd),
         on: {
           click: async () => {
             const newWorkspace = await window.workspace.create();
@@ -203,7 +207,7 @@ export default () => {
         }
       },
       {
-        content: icon(faSave).node,
+        content: mdi(mdiSave),
         on: {
           click: () => {
             window.workspace.save();
@@ -211,7 +215,7 @@ export default () => {
         }
       },
       {
-        content: icon(faCopy).node,
+        content: mdi(mdiSaveAs),
         on: {
           click: () => {
             window.workspace.save(true);
@@ -219,7 +223,7 @@ export default () => {
         }
       },
       {
-        content: icon(faFolderOpen).node,
+        content: mdi(mdiFileOpen),
         on: {
           click: async () => {
             const newWorkspace = await window.workspace.load();
@@ -230,7 +234,7 @@ export default () => {
         }
       },
       {
-        content: icon(faImage).node,
+        content: mdi(mdiInsertPhoto),
         on: {
           click: async () => {
             await window.workspace.exportImage();
