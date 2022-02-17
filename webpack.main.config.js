@@ -1,4 +1,5 @@
 const path = require('path');
+const plugins = require('./webpack.main.plugins');
 
 module.exports = {
   /**
@@ -10,9 +11,13 @@ module.exports = {
   module: {
     rules: require('./webpack.rules'),
   },
+  plugins,
   resolve: {
     alias: {
       '@@helpers': path.resolve(__dirname, 'src/helpers'),
     }
+  },
+  externals: {
+    sharp: 'commonjs sharp',
   },
 };
