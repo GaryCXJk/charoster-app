@@ -26,7 +26,7 @@
     "@electron-forge/maker-zip": "^6.0.0-beta.63",
     "@electron-forge/plugin-auto-unpack-natives": "^6.0.0-beta.63",
     "@electron-forge/plugin-webpack": "6.0.0-beta.63",
-    "@vercel/webpack-asset-relocator-loader": "1.7.0",
+    "@timfish/webpack-asset-relocator-loader": "^0.1.0",
     "babel-loader": "^8.2.3",
     "copy-webpack-plugin": "^10.2.4",
     "css-loader": "^6.0.0",
