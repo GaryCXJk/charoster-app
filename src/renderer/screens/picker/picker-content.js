@@ -1,5 +1,7 @@
 import Block from "@components/base/Block";
 import { createPanel as createPanelBase } from '@components/panels/panel';
+import { globalAppReset } from "../../../helpers/global-on";
+import { clearObject } from "../../../helpers/object-helper";
 
 let pickerContent;
 let costumePicker;
@@ -195,8 +197,6 @@ const addPackBlocks = () => {
 }
 
 const initPickerContent = async () => {
-  setHandlers();
-
   const fetchPacks = await window.packs.getPackList();
   const fetchCharacters = await window.characters.getCharacterList();
 
@@ -210,13 +210,27 @@ const initPickerContent = async () => {
   addPackBlocks();
 }
 
+let applyEvents = globalAppReset(() => {
+  clearObject(packs);
+  clearObject(blocks);
+  clearObject(characters);
+  clearObject(waiters);
+  activePanel = null;
+  elements.off.empty();
+  pickerContent.empty();
+  costumePicker.empty();
+  initPickerContent();
+});
+
 export default (costumePickerElement) => {
+  applyEvents();
   pickerContent = new Block({
     className: 'content',
   });
 
   costumePicker = costumePickerElement;
 
+  setHandlers();
   initPickerContent();
 
   return pickerContent;

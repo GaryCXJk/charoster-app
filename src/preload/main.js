@@ -19,4 +19,7 @@ export const contextBridgePaths = deepmerge(managers.contextBridgePaths, {
   designs: {
     get: (designId = null) => ipcRenderer.invoke('designs:get', designId),
   },
+  app: {
+    reset: () => ipcRenderer.invoke('app:reset'),
+  }
 });

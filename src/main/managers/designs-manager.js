@@ -6,6 +6,8 @@ import createWaiter from "../../helpers/create-waiter";
 import traverse from "../../helpers/traverse";
 import { getConfig } from "./config-manager";
 import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
+import { onAppReset } from '../helpers/manager-helper';
+import { clearObject } from '../../helpers/object-helper';
 
 const designs = {};
 const designQueue = [];
@@ -176,3 +178,10 @@ export const getDesignImage = async (imageId) => {
 }
 
 ipcMain.handle('designs:get', (_event, designId = null) => getDesign(designId));
+
+onAppReset(() => {
+  clearObject(designs);
+  clearObject(waiting);
+  clearObject(images);
+  designQueue.splice(0, designQueue.length);
+});

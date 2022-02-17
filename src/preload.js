@@ -25,9 +25,10 @@ if (screens[params.screen] && screens[params.screen].ipcListeners) {
   const eventTarget = new EventTarget();
 
   const { ipcListeners } = screens[params.screen];
+  ipcListeners.unshift(...general.ipcListeners);
 
   ipcListeners.forEach((event) => {
-    ipcRenderer.on(event, (_event, detail) => {
+    ipcRenderer.on(event, (_event, detail = null) => {
       const customEvent = new CustomEvent(event, {
         detail,
       });

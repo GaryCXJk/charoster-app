@@ -8,6 +8,8 @@ import { readdir, readFile, stat } from "fs/promises";
 import { showError } from "./error-manager";
 import { awaitPackDiscovery } from "./packs-manager";
 import { ipcMain } from "electron";
+import { onAppReset } from "../helpers/manager-helper";
+import { clearObject } from "../../helpers/object-helper";
 
 const images = {};
 const definitions = {};
@@ -361,4 +363,15 @@ ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, 
     return ret;
   }
   return ret[0];
+});
+
+onAppReset(() => {
+  clearObject(images);
+  clearObject(definitions);
+  clearObject(definitionNotifier);
+  clearObject(definitionEntities);
+  clearObject(definitionFiles);
+  clearObject(waiting);
+  definitionQueue.splice(0, definitionQueue.length);
+  arrayables.splice(0, arrayables.length);
 });

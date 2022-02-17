@@ -2,10 +2,9 @@ import Block from '@components/base/Block';
 import { createPanel } from './panel';
 import funcs from './funcs';
 import { createDesignQueue, createStylesheet } from './panelstyle';
-import setSVG from './processing/layers/image/svg';
-import { convertImageDataArray } from './processing/image-helpers';
 import { getEntity, getEntityObject } from './processing/entities';
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
+import { globalAppReset } from '../../../helpers/global-on';
 
 let workspace = {};
 const entities = getEntityObject();
@@ -346,10 +345,15 @@ export const storeWorkspace = async () => {
   await window.workspace.update(workspace);
 }
 
+const applyEvents = globalAppReset(() => {
+  setTimeout(resetRoster, 10);
+});
+
 export default ({
   panels: panelsOptions = {},
   onAddPanel = null,
 } = {}) => {
+  applyEvents();
   addPanelCallbacks = onAddPanel;
   setupPromise = setupWorkspace();
 

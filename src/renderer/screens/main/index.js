@@ -4,6 +4,7 @@ import './main.scss';
 import mdiFileOpen from '@material-design-icons/svg/two-tone/file_open.svg';
 import mdiInsertPhoto from '@material-design-icons/svg/two-tone/insert_photo.svg';
 import mdiNoteAdd from '@material-design-icons/svg/two-tone/note_add.svg';
+import mdiRefresh from '@material-design-icons/svg/two-tone/refresh.svg';
 import mdiSave from '@material-design-icons/svg/two-tone/save.svg';
 import mdiSaveAs from '@material-design-icons/svg/two-tone/save_as.svg';
 import createPanelScreen, {
@@ -233,11 +234,20 @@ export default () => {
           }
         }
       },
+      'divider',
       {
         content: mdi(mdiInsertPhoto),
         on: {
           click: async () => {
             await window.workspace.exportImage();
+          }
+        }
+      },
+      {
+        content: mdi(mdiRefresh),
+        on: {
+          click: () => {
+            window.app.reset();
           }
         }
       },

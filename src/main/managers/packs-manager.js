@@ -3,6 +3,7 @@ import { ipcMain } from 'electron';
 import { promises as fsPromises } from 'fs';
 import * as path from 'path';
 import createWaiter from '../../helpers/create-waiter';
+import { onAppReset } from '../helpers/manager-helper';
 import { awaitCharacterQueue, fetchCharacters, getCostumeImageInfo, getCostumeImages, queueCharacter } from './characters-manager';
 import { getConfig, waitForWorkFolder } from './config-manager';
 import { addDefinition } from './definitions-manager';
@@ -11,7 +12,7 @@ import { notifyWindow } from './window-manager';
 
 const { readdir, readFile, stat } = fsPromises;
 
-const packDiscoveryPromise = createWaiter();
+let packDiscoveryPromise = createWaiter();
 
 export const awaitPackDiscovery = async () => await packDiscoveryPromise;
 
@@ -158,4 +159,12 @@ ipcMain.handle('packs:get-image-info', (_event, type, imageId) => {
   }
 
   return imageInfoReaders[type](imageId);
+});
+
+onAppReset(() => {
+  packDiscoveryPromise = createWaiter();
+  Object.keys(packs).forEach((packId) => {
+    delete packs[packId];
+  });
+  discoverPacks();
 });

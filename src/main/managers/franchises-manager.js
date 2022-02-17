@@ -33,12 +33,3 @@ export const queueFranchise = (franchiseId) => {
 
   runFranchiseQueue();
 }
-
-export const awaitFranchiseQueue = async (franchiseList = null) => {
-  if (franchiseList) {
-    return Promise.allSettled(franchiseList.filter((item) => waiting[item]).map((item) => waiting[item]));
-  }
-  if (queueIsRunning) {
-    await queueIsRunning;
-  }
-}
