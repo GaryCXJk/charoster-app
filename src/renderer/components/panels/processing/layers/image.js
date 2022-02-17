@@ -57,7 +57,7 @@ export const processImageDefinitionLayer = async (layer, type, entity) => {
 
   const values = entityInfo[layer.from.definition];
   if (values) {
-    const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field);
+    const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field, entityInfo.pack ?? null);
     const imageMap = convertImageDataArray(imageData);
     let imageId = null;
     if (entity[layer.from.definition]?.[layer.from?.field]) {
@@ -67,9 +67,14 @@ export const processImageDefinitionLayer = async (layer, type, entity) => {
       while (Array.isArray(imageEntry)) {
         imageEntry = imageEntry[0];
       }
-      imageId = imageEntry.fullId;
+      if (imageEntry) {
+        imageId = imageEntry.fullId;
+      }
     }
     const pickedImage = imageMap[imageId];
+    if (!pickedImage) {
+      return null;
+    }
     let imgStr = null;
     switch (pickedImage.type) {
       case 'svg':

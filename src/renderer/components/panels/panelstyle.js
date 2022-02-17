@@ -305,6 +305,42 @@ const handleMask = (mask, imageFiles, styleObject = null) => {
   return returnObject;
 };
 
+const handleElement = (style, styleObject = null) => {
+  const {
+    width = null,
+    height = null,
+    left = null,
+    right = null,
+    top = null,
+    bottom = null
+  } = style;
+
+  const newStyle = {};
+
+  if (width !== null || height !== null) {
+    newStyle.width = width;
+    newStyle.height = height;
+    newStyle.left = 'auto';
+    newStyle.right = 'auto';
+    newStyle.top = 'auto';
+    newStyle.bottom = 'auto';
+  }
+  if (left !== null || right !== null) {
+    newStyle.left = left ?? newStyle.left ?? 'auto';
+    newStyle.right = right ?? newStyle.right ?? 'auto';
+  }
+  if (top !== null || bottom !== null) {
+    newStyle.top = top ?? newStyle.top ?? 'auto';
+    newStyle.bottom = bottom ?? newStyle.bottom ?? 'auto';
+  }
+
+  if (styleObject) {
+    Object.assign(styleObject, newStyle);
+  }
+
+  return newStyle;
+}
+
 const setCSSStyle = (style, imageFiles, styleObject = null) => {
   return handleStyle(style, imageFiles, styleObject, {
     background: (_props, val) => handleBackground(val, imageFiles, styleObject),
@@ -316,6 +352,7 @@ const setCSSStyle = (style, imageFiles, styleObject = null) => {
         styleObject.filter = ret;
       }
     },
+    element: (_props, val) => handleElement(val, styleObject),
   });
 }
 

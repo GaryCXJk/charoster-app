@@ -3,7 +3,7 @@ import { ipcMain } from 'electron';
 import { promises as fsPromises } from 'fs';
 import * as path from 'path';
 import createWaiter from '../../helpers/create-waiter';
-import { awaitCharacterQueue, fetchCharacters, getCostumeImages, queueCharacter } from './characters-manager';
+import { awaitCharacterQueue, fetchCharacters, getCostumeImageInfo, getCostumeImages, queueCharacter } from './characters-manager';
 import { getConfig, waitForWorkFolder } from './config-manager';
 import { addDefinition } from './definitions-manager';
 import { fetchDesigns, getDesignImage, queueDesign } from './designs-manager';
@@ -18,6 +18,9 @@ export const awaitPackDiscovery = async () => await packDiscoveryPromise;
 const imageReaders = {
   characters: getCostumeImages,
   designs: getDesignImage,
+};
+const imageInfoReaders = {
+  characters: getCostumeImageInfo,
 };
 
 const packs = {};
@@ -147,4 +150,12 @@ ipcMain.handle('packs:get-images', (_event, type, imageId, filter = null) => {
   }
 
   return imageReaders[type](imageId, filter);
+});
+
+ipcMain.handle('packs:get-image-info', (_event, type, imageId) => {
+  if (!imageInfoReaders[type]) {
+    return null;
+  }
+
+  return imageInfoReaders[type](imageId);
 });
