@@ -85,6 +85,10 @@ const loadCostume = async (costumeInfo) => {
   return await loadIntoParent(costumeInfo, async (parentInfo) => {
     parentInfo.costumes.push(...costumeInfo.costumes);
     Object.assign(parentInfo.costumeMap, costumeInfo.costumeMap);
+    if (costumeInfo.groups) {
+      parentInfo.groups = parentInfo.groups ?? {};
+      Object.assign(parentInfo.groups, costumeInfo.groups);
+    }
   });
 };
 
