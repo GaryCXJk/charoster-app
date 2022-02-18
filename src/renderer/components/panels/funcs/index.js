@@ -1,4 +1,4 @@
-import * as characters from './characters';
+import * as characters from './image-id';
 
 export default {
   characters,
