@@ -37,15 +37,10 @@
   }
 
   .costumes {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: start;
-    align-content: flex-start;
     clear: both;
     background-color: var(--sub-bg-color);
     height: 15rem;
     padding: 1rem;
-    gap: 1rem;
     overflow: overlay;
 
     .header {
@@ -57,6 +52,14 @@
       &:first-child {
         margin-top: 0;
       }
+    }
+
+    .costume-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: start;
+      align-content: flex-start;
+      gap: 1rem;
     }
 
     .panel {

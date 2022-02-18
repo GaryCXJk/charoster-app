@@ -93,6 +93,12 @@ input, button {
   }
 }
 
+svg.icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
 button {
   &:hover {
     background-color: var(--btn-hover-bg-color);
@@ -101,12 +107,12 @@ button {
   &:active {
     background-color: var(--btn-press-bg-color);
   }
-}
 
-svg.icon {
-  width: 1em;
-  height: 1em;
-  fill: currentColor;
+  svg.icon {
+    width: 1.5em;
+    height: 1.5em;
+    margin: -0.5em;
+  }
 }
 
 @import "./sass/panels";

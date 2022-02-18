@@ -29,6 +29,21 @@ let placeholderRoster = null;
 
 let activePanel = null;
 
+const actions = {
+  create: async () => {
+    const newWorkspace = await window.workspace.create();
+    if (newWorkspace) {
+      setCurrentWorkspace(newWorkspace, true, true);
+    }
+  },
+  open: async () => {
+    const newWorkspace = await window.workspace.load();
+    if (newWorkspace) {
+      setCurrentWorkspace(newWorkspace, true, true);
+    }
+  },
+};
+
 const setHandlers = () => {
   window.globalEventHandler.on('drag-helper-info', (detail) => {
     dragInfo = detail;
@@ -40,6 +55,28 @@ const setHandlers = () => {
       dragInfo = null;
       placeholder = null;
       placeholderRoster = null;
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey) {
+      switch (e.key) {
+        case 'n':
+          e.preventDefault();
+          actions.create();
+          break;
+        case 'o':
+          e.preventDefault();
+          actions.open();
+          break;
+        case 's':
+        case 'S':
+          e.preventDefault();
+          window.workspace.save(e.key === 'S');
+          break;
+        default:
+          break;
+      }
     }
   });
 }
@@ -198,17 +235,14 @@ export default () => {
     buttons: [
       {
         content: mdi(mdiNoteAdd),
+        title: 'New workspace',
         on: {
-          click: async () => {
-            const newWorkspace = await window.workspace.create();
-            if (newWorkspace) {
-              setCurrentWorkspace(newWorkspace, true, true);
-            }
-          }
-        }
+          click: actions.create,
+        },
       },
       {
         content: mdi(mdiSave),
+        title: 'Save workspace',
         on: {
           click: () => {
             window.workspace.save();
@@ -217,6 +251,7 @@ export default () => {
       },
       {
         content: mdi(mdiSaveAs),
+        title: 'Save workspace as...',
         on: {
           click: () => {
             window.workspace.save(true);
@@ -225,13 +260,9 @@ export default () => {
       },
       {
         content: mdi(mdiFileOpen),
+        title: 'Open workspace',
         on: {
-          click: async () => {
-            const newWorkspace = await window.workspace.load();
-            if (newWorkspace) {
-              setCurrentWorkspace(newWorkspace, true, true);
-            }
-          }
+          click: actions.open,
         }
       },
       'divider',

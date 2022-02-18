@@ -3,6 +3,7 @@ import { createPanel as createPanelBase } from '@components/panels/panel';
 import createWaiter from "../../../helpers/create-waiter";
 import { globalAppReset } from "../../../helpers/global-on";
 import { clearObject } from "../../../helpers/object-helper";
+import { getEntity } from "../../components/panels/processing/entities";
 
 let pickerContent;
 let costumePicker;
@@ -69,6 +70,12 @@ const getCostumeList = (charId) => {
           name: costume.name ?? null,
           images: [],
         }
+        if (costume.group) {
+          costumeInfo.group = costume.group;
+          if (character.groups?.[costume.group]) {
+            costumeInfo.label = character.groups[costume.group];
+          }
+        }
         for (let idx = 0; idx < costume.images.length; idx += 1) {
           costumeInfo.images.push(`${costume.fullId}>${idx}`);
         }
@@ -108,15 +115,32 @@ const createPanel = (charId, imageId = null) => {
                 }
                 activePanel = panel;
 
+                const costumeGroups = {};
+
                 getCostumeList(charId).forEach((costumeInfo) => {
-                  const costumeHeader = new Block({
-                    className: 'header',
-                    textContent: costumeInfo.name ?? '',
-                  });
-                  costumePicker.append(costumeHeader);
+                  let costumeLabel = costumeInfo.label ?? costumeInfo.name ?? '';
+                  let costumeContainer = null;
+                  if (costumeInfo.group) {
+                    const costumeGroup = costumeInfo.group;
+                    costumeContainer = costumeGroups[costumeGroup] ?? null;
+                  }
+                  if (!costumeContainer) {
+                    const costumeHeader = new Block({
+                      className: 'header',
+                      textContent: costumeLabel,
+                    });
+                    costumePicker.append(costumeHeader);
+                    costumeContainer = new Block({
+                      className: 'costume-group',
+                    });
+                    costumePicker.append(costumeContainer);
+                    if (costumeInfo.group) {
+                      costumeGroups[costumeInfo.group] = costumeContainer;
+                    }
+                  }
                   costumeInfo.images.forEach((costumeId) => {
                     const costumePanel = createPanel(charId, costumeId);
-                    costumePicker.append(costumePanel);
+                    costumeContainer.append(costumePanel);
                   });
                 });
               } else {

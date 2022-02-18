@@ -18,6 +18,10 @@
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
+
+    &.image-characters, &.image-stages {
+      clip-path: inset(0 0 0 0);
+    }
   }
 
   .label {
