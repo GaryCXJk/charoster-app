@@ -6,7 +6,7 @@ import { clearObject } from "../../../helpers/object-helper";
 import { getEntity } from "../../components/panels/processing/entities";
 
 let pickerContent;
-let costumePicker;
+let altPicker;
 const packs = {};
 const blocks = {};
 const characters = {};
@@ -59,31 +59,31 @@ const setHandlers = () => {
   });
 }
 
-const getCostumeList = (charId) => {
-  const costumes = [];
+const getImageList = (charId) => {
+  const alts = [];
   const character = characters[charId];
 
-  if (character.costumes) {
-    character.costumes.forEach((costume) => {
-      if (costume.images) {
-        const costumeInfo = {
-          name: costume.name ?? null,
+  if (character.images) {
+    character.images.forEach((alt) => {
+      if (alt.images) {
+        const altInfo = {
+          name: alt.name ?? null,
           images: [],
         }
-        if (costume.group) {
-          costumeInfo.group = costume.group;
-          if (character.groups?.[costume.group]) {
-            costumeInfo.label = character.groups[costume.group];
+        if (alt.group) {
+          altInfo.group = alt.group;
+          if (character.groups?.[alt.group]) {
+            altInfo.label = character.groups[alt.group];
           }
         }
-        for (let idx = 0; idx < costume.images.length; idx += 1) {
-          costumeInfo.images.push(`${costume.fullId}>${idx}`);
+        for (let idx = 0; idx < alt.images.length; idx += 1) {
+          altInfo.images.push(`${alt.fullId}>${idx}`);
         }
-        costumes.push(costumeInfo);
+        alts.push(altInfo);
       }
     });
   }
-  return costumes;
+  return alts;
 }
 
 const createPanel = (charId, imageId = null) => {
@@ -107,7 +107,7 @@ const createPanel = (charId, imageId = null) => {
             click: () => {
               panel.element.classList.toggle('active');
               const isActive = panel.element.classList.contains('active');
-              costumePicker.element.innerHTML = '';
+              altPicker.element.innerHTML = '';
 
               if (isActive) {
                 if (activePanel) {
@@ -117,7 +117,7 @@ const createPanel = (charId, imageId = null) => {
 
                 const costumeGroups = {};
 
-                getCostumeList(charId).forEach((costumeInfo) => {
+                getImageList(charId).forEach((costumeInfo) => {
                   let costumeLabel = costumeInfo.label ?? costumeInfo.name ?? '';
                   let costumeContainer = null;
                   if (costumeInfo.group) {
@@ -129,11 +129,11 @@ const createPanel = (charId, imageId = null) => {
                       className: 'header',
                       textContent: costumeLabel,
                     });
-                    costumePicker.append(costumeHeader);
+                    altPicker.append(costumeHeader);
                     costumeContainer = new Block({
-                      className: 'costume-group',
+                      className: 'alt-group',
                     });
-                    costumePicker.append(costumeContainer);
+                    altPicker.append(costumeContainer);
                     if (costumeInfo.group) {
                       costumeGroups[costumeInfo.group] = costumeContainer;
                     }
@@ -164,18 +164,18 @@ const createPanel = (charId, imageId = null) => {
         setImage: ({
           entity: character,
         }) => {
-          let costumeId = character.defaultCostume;
+          let altId = character.defaultImage;
 
-          if (!costumeId && character.costumes && character.costumes) {
-            character.costumes.every((costume) => {
-              if (costume.images && costume.images.length) {
-                costumeId = `${costume.fullId}>0`;
+          if (!altId && character.images) {
+            character.images.every((alt) => {
+              if (alt.images && alt.images.length) {
+                altId = `${alt.fullId}>0`;
                 return false;
               }
               return true;
             });
           }
-          return costumeId;
+          return altId;
         }
       }
     },
@@ -252,17 +252,17 @@ let applyEvents = globalAppReset(() => {
   activePanel = null;
   elements.off.empty();
   pickerContent.empty();
-  costumePicker.empty();
+  altPicker.empty();
   initPickerContent();
 });
 
-export default (costumePickerElement) => {
+export default (altPickerElement) => {
   applyEvents();
   pickerContent = new Block({
     className: 'content',
   });
 
-  costumePicker = costumePickerElement;
+  altPicker = altPickerElement;
 
   setHandlers();
   initPickerContent();
