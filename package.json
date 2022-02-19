@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "description": "An extendible roster maker for any purpose.",
   "main": ".webpack/main",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GaryCXJk/charoster-app.git"
+  },
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
