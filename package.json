@@ -1,8 +1,8 @@
 {
   "name": "charoster-app",
   "productName": "charoster-app",
-  "version": "1.0.0",
-  "description": "My Electron application description",
+  "version": "0.1.0",
+  "description": "An extendible roster maker for any purpose.",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
@@ -12,7 +12,7 @@
     "lint": "echo \"No linting configured\""
   },
   "keywords": [],
-  "author": "garyc",
+  "author": "GaryCXJk",
   "license": "MIT",
   "config": {
     "forge": "./forge.config.js"
