@@ -93,8 +93,12 @@ export const getWorkspace = () => workspace;
 
 createWorkspace();
 
-const exportImage = async (screen) => {
+const exportImage = async (screen, options = {}) => {
   const window = getWindow('render');
+  const [width, height] = window.window.getSize();
+  if (options.size) {
+    window.window.setSize(options.size.width ?? width, options.size.height ?? height);
+  }
   const image = await window.window.webContents.capturePage();
   const status = await dialog.showSaveDialog(getWindow(screen).window, {
     defaultPath: getWorkFolder(),
@@ -106,6 +110,7 @@ const exportImage = async (screen) => {
     ],
     properties: [],
   });
+  window.window.setSize(width, height);
   if (status.canceled) {
     return null;
   }
@@ -117,4 +122,4 @@ ipcMain.handle('workspace:load', (_event, screen) => loadWorkspace(screen));
 ipcMain.handle('workspace:save', (_event, screen, saveAs = false) => saveWorkspace(screen, saveAs));
 ipcMain.handle('workspace:retrieve', getWorkspace);
 ipcMain.handle('workspace:update', (_event, workspaceData) => updateWorkspace(workspaceData));
-ipcMain.handle('workspace:export-image', (_event, screen) => exportImage(screen));
+ipcMain.handle('workspace:export-image', (_event, screen, options = {}) => exportImage(screen, options));

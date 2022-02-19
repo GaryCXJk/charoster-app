@@ -10,6 +10,7 @@ import { awaitPackDiscovery } from "./packs-manager";
 import { ipcMain } from "electron";
 import { onAppReset } from "../helpers/manager-helper";
 import { clearObject } from "../../helpers/object-helper";
+import * as defDefinitions from '../../global/definitions';
 
 const images = {};
 const definitions = {};
@@ -17,6 +18,7 @@ const definitionNotifier = {};
 const definitionEntities = {};
 const definitionFiles = {};
 const definitionQueue = [];
+const definitionDiscovery = {};
 const waiting = {};
 const arrayables = [];
 
@@ -319,7 +321,9 @@ export const addDefinition = (packId, definition) => {
     def = definitions[id].default;
     defPriority = definitions[id].defaultPriority;
   };
-  packs.push(packId);
+  if (packId) {
+    packs.push(packId);
+  }
   if (definitions[id].default) {
     if ((definitions[id].defaultPriority ?? 0) > defPriority) {
       setDefault();
@@ -335,17 +339,42 @@ export const addDefinition = (packId, definition) => {
   if (definitions[id].list && !arrayables.includes(id)) {
     arrayables.push(id);
   }
-  discoverDefinitionEntities(packId, id).then(async () => {
-    if (queueIsRunning) {
-      await queueIsRunning;
-    }
-  });
+  if (definitions[id].discover) {
+    const discoveryProperty = definitions[id].discover === true ? definitions[id].id : definitions[id].discover;
+    definitionDiscovery[discoveryProperty] = id;
+  }
+  if (packId) {
+    discoverDefinitionEntities(packId, id);
+  }
+  return id;
 }
 
 export const getDefinition = async (id) => {
   definitionNotifier[id] = definitionNotifier[id] ?? createWaiter();
   await definitionNotifier[id];
   return definitions[id];
+}
+
+export const autoDiscoverDefinitions = (packId, pack, ignore = []) => {
+  Object.keys(definitionDiscovery).forEach((prop) => {
+    const id = definitionDiscovery[prop];
+    if (ignore.includes(id)) {
+      return;
+    }
+    if (pack[prop]) {
+      definitions[id].packs.push(packId);
+      discoverDefinitionEntities(packId, id);
+    }
+  });
+}
+
+const setDefDefinitions = () => {
+  Object.keys(defDefinitions).forEach((key) => {
+    addDefinition(null, {
+      ...defDefinitions[key],
+      namespace: false,
+    });
+  });
 }
 
 ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field, fromPack = null) => {
@@ -374,4 +403,7 @@ onAppReset(() => {
   clearObject(waiting);
   definitionQueue.splice(0, definitionQueue.length);
   arrayables.splice(0, arrayables.length);
+  setDefDefinitions();
 });
+
+setDefDefinitions();

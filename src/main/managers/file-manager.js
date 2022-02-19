@@ -42,55 +42,60 @@ export const fetchEntities = async (type, packFolder) => {
 }
 
 export const loadEntity = async (entityType, entityWaiting, entities, fullEntityId, callbacks = {}) => {
-  if (!entityWaiting[fullEntityId]) {
-    entityWaiting[fullEntityId] = createWaiter();
+  try {
+    if (!entityWaiting[fullEntityId]) {
+      entityWaiting[fullEntityId] = createWaiter();
+    }
+    if (entityWaiting[fullEntityId].state === 'init') {
+      entityWaiting[fullEntityId].setState('running');
+      const waiter = entityWaiting[fullEntityId];
+      const [folder, entityId] = fullEntityId.split('>');
+
+      const workFolder = getConfig('workFolder');
+
+      const entityPath = path.join(workFolder, 'packs', folder, entityType);
+      const entityInfoPath = path.join(entityPath, `${entityId}.json`);
+
+      let entityInfoStr;
+      let entityInfo;
+      try {
+        entityInfoStr = await readFile(entityInfoPath, {
+          encoding: 'utf-8',
+        });
+      } catch (_e) {
+        waiter.resolve();
+        showError(`The file ${entityInfoPath} could not be found`);
+
+        return null;
+      }
+
+      try {
+        entityInfo = JSON.parse(entityInfoStr);
+      } catch(e) {
+        waiter.resolve();
+        showError(`There was an error loading ${entityInfoPath}`);
+
+        return null;
+      }
+
+      if (callbacks.processEntity) {
+        return callbacks.processEntity(entityInfo);
+      }
+
+      entities[fullEntityId] = entityInfo;
+
+      entityWaiting[fullEntityId].resolve(entityInfo);
+      return deepmerge({}, entityInfo);
+    } else {
+      if (callbacks.onProgressEntity) {
+        return callbacks.onProgressEntity();
+      }
+      return entities[fullEntityId];
+    }
+  } catch (e) {
+    console.log(e);
   }
-  if (entityWaiting[fullEntityId].state === 'init') {
-    entityWaiting[fullEntityId].setState('running');
-    const waiter = entityWaiting[fullEntityId];
-    const [folder, entityId] = fullEntityId.split('>');
-
-    const workFolder = getConfig('workFolder');
-
-    const entityPath = path.join(workFolder, 'packs', folder, entityType);
-    const entityInfoPath = path.join(entityPath, `${entityId}.json`);
-
-    let entityInfoStr;
-    let entityInfo;
-    try {
-      entityInfoStr = await readFile(entityInfoPath, {
-        encoding: 'utf-8',
-      });
-    } catch (_e) {
-      waiter.resolve();
-      showError(`The file ${entityInfoPath} could not be found`);
-
-      return null;
-    }
-
-    try {
-      entityInfo = JSON.parse(entityInfoStr);
-    } catch(e) {
-      waiter.resolve();
-      showError(`There was an error loading ${entityInfoPath}`);
-
-      return null;
-    }
-
-    if (callbacks.processEntity) {
-      return callbacks.processEntity(entityInfo);
-    }
-
-    entities[fullEntityId] = entityInfo;
-
-    entityWaiting[fullEntityId].resolve(entityInfo);
-    return deepmerge({}, entityInfo);
-  } else {
-    if (callbacks.onProgressEntity) {
-      return callbacks.onProgressEntity();
-    }
-    return entities[fullEntityId];
-  }
+  return null;
 }
 
 /**

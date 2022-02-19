@@ -6,7 +6,7 @@ import createWaiter from '../../helpers/create-waiter';
 import { onAppReset } from '../helpers/manager-helper';
 import { awaitCharacterQueue, fetchCharacters, getCostumeImageInfo, getCostumeImages, queueCharacter } from './characters-manager';
 import { getConfig, waitForWorkFolder } from './config-manager';
-import { addDefinition } from './definitions-manager';
+import { addDefinition, autoDiscoverDefinitions } from './definitions-manager';
 import { fetchDesigns, getDesignImage, queueDesign } from './designs-manager';
 import { notifyWindow } from './window-manager';
 
@@ -27,11 +27,13 @@ const imageInfoReaders = {
 const packs = {};
 
 const setPackDefinitions = (pack) => {
+  const defUpdates = [];
   if (pack.definitions) {
     pack.definitions.forEach((definition) => {
-      addDefinition(pack.id, definition);
+      defUpdates.push(addDefinition(pack.id, definition));
     });
   }
+  return defUpdates;
 }
 
 export const fetchPack = async (folder) => {
@@ -96,16 +98,17 @@ export const fetchPack = async (folder) => {
         packInfo.designs = designs;
       }
     }
-    setPackDefinitions(packInfo);
+    const ignore = setPackDefinitions(packInfo);
+    autoDiscoverDefinitions(packInfo.id ?? folder, packInfo, ignore);
 
     packInfo.status = 'ready';
 
     return packInfo;
   } catch (_e) {
-    console.log(_e);
+    // console.log(_e);
     // Do nothing
   }
-  return false;
+  return null;
 }
 
 export const discoverPacks = async () => {
@@ -133,8 +136,10 @@ export const discoverPacks = async () => {
   for (let idx = 0; idx < files.length; idx+= 1) {
     const file = files[idx];
     const pack = await fetchPack(file);
-    const packCopy = pack ? deepmerge({}, pack) : null;
-    notifyWindow('pack-ready', packCopy);
+    if (pack) {
+      const packCopy = deepmerge({}, pack);
+      notifyWindow('pack-ready', packCopy);
+    }
   }
   packDiscoveryPromise.resolve();
 }
