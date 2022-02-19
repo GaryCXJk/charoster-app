@@ -29,5 +29,6 @@ On startup, you are prompted to set the work folder. This folder will be used to
 To add new packs, just add the folder of the pack to the work folder. The structure should look something like this:
 
 * \<Work folder>
-    * \<Pack folder>
-        * info.json
+    * packs
+        * \<Pack folder>
+            * info.json
