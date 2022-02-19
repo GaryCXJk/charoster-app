@@ -1,9 +1,11 @@
-import { mkdir } from 'fs';
+import { mkdir, mkdtempSync, rmSync } from 'fs';
+import { rm } from 'fs/promises';
 import createWaiter from '../../helpers/create-waiter';
+import { onAppReset } from '../helpers/manager-helper';
 
 const { app, ipcMain, nativeTheme, dialog } = require('electron');
 const path = require('path');
-const { access, constants, readFile, writeFile, fstat, existsSync } = require('fs');
+const { access, constants, readFile, writeFile, existsSync } = require('fs');
 const deepmerge = require('deepmerge');
 
 const workFolderWaiter = createWaiter();
@@ -22,6 +24,78 @@ const config = {
 };
 
 const configFile = path.join(app.getPath('userData'), 'config.json');
+
+let tempFolder = app.getPath('temp');
+let tempClear = false;
+let tempFiles = [];
+
+const createTempFolder = () => {
+  tempFolder = app.getPath('temp');
+  tempClear = false;
+  tempFiles = [];
+  try {
+    const tFolder = mkdtempSync(path.join(tempFolder, app.name));
+    tempFolder = tFolder;
+    tempClear = true;
+  } catch (_e) {
+
+  }
+}
+createTempFolder();
+
+export const getTempPath = () => tempFolder;
+export const addTempFile = (file) => {
+  tempFiles.push(file);
+}
+export const setTempFile = (file) => {
+  if (!tempClear) {
+    tempFiles.push(file);
+  }
+}
+export const removeTempFilesSync = () => {
+  if (tempClear) {
+    try {
+      rmSync(tempFolder, {
+        recursive: true,
+      });
+    } catch (_e) {
+
+    }
+  } else {
+    try {
+      for (let idx = 0; idx < tempFiles.length; idx++) {
+        const filePath = path.join(tempFolder, tempFiles[idx]);
+        rmSync(filePath);
+      }
+    } catch (_e) {
+
+    }
+  }
+}
+
+export const removeTempFiles = async (remakeTmpFolder = false) => {
+  if (tempClear) {
+    try {
+      await rm(tempFolder, {
+        recursive: true,
+      });
+      if (remakeTmpFolder) {
+        createTempFolder();
+      }
+    } catch (_e) {
+
+    }
+  } else {
+    try {
+      while (tempFiles.length) {
+        const filePath = path.join(tempFolder, tempFiles.shift());
+        await rm(filePath);
+      }
+    } catch (_e) {
+
+    }
+  }
+}
 
 const saveConfig = () => {
   writeFile(configFile, JSON.stringify(config, null, 2), (err) => {
@@ -157,4 +231,8 @@ ipcMain.handle('config:set-workfolder', async (_event, data) => {
 
   workFolderWaiter.resolve();
   saveConfig();
+});
+
+onAppReset(() => {
+  removeTempFiles(true);
 });

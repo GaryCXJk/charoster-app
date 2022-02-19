@@ -136,7 +136,7 @@ const createPreviewImageElement = (layer, monitorElements) => {
       const imageData = await getImage(type, imageId, getDesignId());
 
       image.css({
-        backgroundImage: `url(${imageData.preview.data})`,
+        backgroundImage: `url(${imageData.preview.file ?? imageData.preview.data})`,
       });
     }
   };
