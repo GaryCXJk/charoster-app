@@ -1,7 +1,8 @@
-import { app, screen } from 'electron';
+import { app, protocol, screen } from 'electron';
+import * as path from 'path';
 import { debounce } from 'throttle-debounce';
 import { hasWindow, createWindow } from './managers/window-manager';
-import { executeOnConfigLoad, getConfig, setConfig } from './managers/config-manager';
+import { executeOnConfigLoad, getConfig, getTempPath, removeTempFilesSync, setConfig } from './managers/config-manager';
 import { discoverPacks } from './managers/packs-manager';
 import './managers/workspace-manager';
 import './helpers/drag-helper';
@@ -10,6 +11,13 @@ let mainWindow;
 let pickerWindow;
 let propertiesWindow;
 let renderWindow;
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'blob', privileges: { bypassCSP: true } },
+  { scheme: app.name, privileges: { bypassCSP: true }},
+]);
+
+app.commandLine.appendSwitch ("disable-http-cache");
 
 const disableF4 = (window) => {
   window.webContents.on('before-input-event', (event, input) => {
@@ -23,6 +31,7 @@ const disableF4 = (window) => {
 app.on('window-all-closed', () => {
   // on macOS it is common for applications to stay open until the user explicitly quits
   if (process.platform !== 'darwin') {
+    removeTempFilesSync();
     app.quit()
   }
 });
@@ -36,6 +45,10 @@ app.on('activate', () => {
 
 // create main BrowserWindow when electron is ready
 app.on('ready', () => {
+  protocol.interceptFileProtocol(app.name, (request, callback) => {
+    const url = request.url.slice(app.name.length + 3);
+    callback({ path: path.join(getTempPath(), url)});
+  });
   executeOnConfigLoad(() => {
     discoverPacks();
     const { width, height, fullscreen } = getConfig('windowSize');

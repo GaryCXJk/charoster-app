@@ -3,6 +3,7 @@ import { globalAppReset } from '../../../helpers/global-on';
 import { clearObject } from '../../../helpers/object-helper';
 import Block from "../base/Block";
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
+import createWaiter from '../../../helpers/create-waiter';
 
 const renderedLabels = {};
 
@@ -53,7 +54,7 @@ const imageContent = async (block, layerInfo, {
         }
       }
       if (imageSize) {
-        imageStr = imageSize.data;
+        imageStr = `${imageSize.file ?? imageSize.data}`;
       }
     }
     if (imageStr) {

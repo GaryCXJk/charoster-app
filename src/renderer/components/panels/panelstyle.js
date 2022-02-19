@@ -169,7 +169,8 @@ const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage'
         if (!val.file || !imageFiles[val.file]) {
           return null;
         }
-        props[prop] = `url(${imageFiles[val.file].raw.data})`;
+        const fileInfo = imageFiles[val.file].raw;
+        props[prop] = `url(${fileInfo.file ?? fileInfo.data})`;
         break;
       case 'gradient':
         const validGradients = ['linear-gradient', 'repeating-linear-gradient', 'radial-gradient', 'repeating-radial-gradient', 'conic-gradient'];
@@ -183,7 +184,8 @@ const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage'
     }
     return props;
   } else if (typeof val === 'string' && val && imageFiles[val]) {
-    props[prop] = `url(${imageFiles[val].raw.data})`;
+    const fileInfo = imageFiles[val].raw;
+    props[prop] = `url(${fileInfo.file ?? fileInfo.data})`;
     return props;
   }
   return null;

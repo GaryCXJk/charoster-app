@@ -1,9 +1,9 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import * as path from 'path';
 import deepmerge from 'deepmerge';
 import Sharp from 'sharp';
 import { onAppReset } from '../helpers/manager-helper';
-import { getConfig } from './config-manager';
+import { getConfig, getTempPath, setTempFile } from './config-manager';
 import { checkArrayables } from './definitions-manager';
 import * as fm from './file-manager';
 import { getWorkspace } from './workspace-manager';
@@ -11,6 +11,7 @@ import { notifyWindow } from './window-manager';
 import { getSize, getSizeKeys } from './designs-manager';
 import { clearObject } from '../../helpers/object-helper';
 import createWaiter from '../../helpers/create-waiter';
+import { pathToFileURL } from 'url';
 
 const createEntityData = () => {
   return {
@@ -343,16 +344,27 @@ export const getAltImages = async (type, imageId, filterSizes = null) => {
         top: sizeData.y,
         width: sizeData.width,
         height: sizeData.height,
-      });
+      })
+      .png();
+    try {
+      const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${(new Date()).getTime()}.png`;
+      const writePath = path.join(getTempPath(), outFile);
+      const info = await sharpImage.toFile(writePath);
+      const fileUrl = `${app.name}://${outFile}`;
+      foundImages[size] = {
+        file: fileUrl,
+        ...info,
+      };
+      setTempFile(outFile);
+    } catch (_e) {
+      const buffer = await sharpImage
+        .toBuffer();
 
-    const buffer = await sharpImage
-      .png()
-      .toBuffer();
-
-    foundImages[size] = {
-      buffer,
-      data: `data:image/png;base64,${buffer.toString('base64')}`,
-    };
+      foundImages[size] = {
+        buffer,
+        data: `data:image/png;base64,${buffer.toString('base64')}`,
+      };
+    }
   }
   imageCache[designKey][imageId] = foundImages;
   if (filterSizes) {
