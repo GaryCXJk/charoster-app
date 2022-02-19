@@ -1,14 +1,14 @@
-import { app } from 'electron';
+import { app, screen } from 'electron';
 import { debounce } from 'throttle-debounce';
 import { hasWindow, createWindow } from './managers/window-manager';
 import { executeOnConfigLoad, getConfig, setConfig } from './managers/config-manager';
 import { discoverPacks } from './managers/packs-manager';
 import './managers/workspace-manager';
 import './helpers/drag-helper';
-import { showError } from './managers/error-manager';
 
 let mainWindow;
 let pickerWindow;
+let propertiesWindow;
 let renderWindow;
 
 const disableF4 = (window) => {
@@ -58,6 +58,9 @@ app.on('ready', () => {
     });
 
     const mainPosition = mainWindow.window.getPosition();
+    const mainSize = mainWindow.window.getSize();
+    const bounds = mainWindow.window.getBounds();
+    const display = screen.getDisplayNearestPoint({x: bounds.x + bounds.width, y: bounds.y});
 
     pickerWindow = createWindow('picker', {
       width: 320,
@@ -73,7 +76,22 @@ app.on('ready', () => {
       y: mainPosition[1],
     });
 
+    propertiesWindow = createWindow('properties', {
+      width: 320,
+      height: 640,
+      minWidth: 250,
+      maxWidth: 450,
+      minHeight: 400,
+      parent: mainWindow,
+      closable: false,
+      minimizable: false,
+      fullscreenable: false,
+      x: Math.min(display.size.width - 320, mainPosition[0] + mainSize[0]),
+      y: mainPosition[1],
+    });
+
     disableF4(pickerWindow.window);
+    disableF4(propertiesWindow.window);
 
     const storeResize = debounce(250, () => {
       const size = mainWindow.window.getSize();

@@ -16,12 +16,6 @@ export const getEntity = async (type, entityId) => {
   applyEvents();
   entities[type] = entities[type] ?? {};
 
-  switch (type) {
-    case 'characters':
-      entities[type][entityId] = await window.characters.getCharacter(entityId);
-      break;
-    default:
-      break;
-  }
+  entities[type][entityId] = await window.entities.getEntity(type, entityId);
   return entities[type][entityId];
 };

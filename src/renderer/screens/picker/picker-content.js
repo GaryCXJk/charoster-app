@@ -29,15 +29,17 @@ const setHandlers = () => {
   });
 
   window.globalEventHandler.on('pack-ready', (pack) => {
-    const packId = pack.id;
-    packs[packId] = pack;
-    if (packWaiters[packId]) {
-      packWaiters[packId].resolve();
-      delete packWaiters[packId];
+    if (pack) {
+      const packId = pack.id;
+      packs[packId] = pack;
+      if (packWaiters[packId]) {
+        packWaiters[packId].resolve();
+        delete packWaiters[packId];
+      }
+      pack.characters = [];
+      elements.off.append(createPackBlock(packId));
+      addPackBlocks();
     }
-    pack.characters = [];
-    elements.off.append(createPackBlock(packId));
-    addPackBlocks();
   });
 
   window.globalEventHandler.on('pack-character-list-ready', async (data) => {

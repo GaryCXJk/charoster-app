@@ -63,6 +63,9 @@ export const getImage = async (type, imageId, designId = '') => {
 export const processImageDefinitionLayer = async (layer, type, entity) => {
   applyEvents();
   const { entityId } = entity;
+  if (!entityId) {
+    return null;
+  }
   const entityInfo = await getEntity(type, entityId);
 
   const values = entityInfo[layer.from.definition];

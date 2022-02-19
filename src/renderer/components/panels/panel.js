@@ -149,6 +149,22 @@ const setPanelContent = async ({
       type: 'label',
       display: 'image',
     },
+    {
+      type: "image",
+      from: {
+        definition: 'franchise',
+        field: 'symbols',
+      },
+      color: '#fff',
+      style: {
+        element: {
+          width: '2em',
+          height: '2em',
+          right: '-0.75em',
+          bottom: '-0.75em',
+        },
+      },
+    },
   ];
 
   let entity = null;
