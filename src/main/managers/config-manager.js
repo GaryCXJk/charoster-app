@@ -23,9 +23,7 @@ const defaultConfig = {
   }
 };
 
-const config = {
-  ...defaultConfig,
-};
+const config = deepmerge({}, defaultConfig);
 
 const configFile = path.join(app.getPath('userData'), 'config.json');
 
@@ -127,7 +125,12 @@ const fileLoad = new Promise((resolve) => {
         if (err) {
           console.log(err);
         } else {
-          const fileConfig = JSON.parse(data);
+          let fileConfig;
+          try {
+            fileConfig = JSON.parse(data);
+          } catch (_e) {
+            fileConfig = deepmerge({}, defaultConfig);
+          }
           Object.assign(config, deepmerge(config, fileConfig));
 
           setDarkMode(null, false);

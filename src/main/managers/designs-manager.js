@@ -24,32 +24,6 @@ const baseDesign = {
 
 const defaultDesign = {
   panels: {
-    layers: [
-      {
-        type: 'image',
-        size: ['panel', 'preview'],
-      },
-      {
-        type: 'label',
-        display: 'image',
-      },
-      {
-        type: "image",
-        from: {
-          definition: 'franchise',
-          field: 'symbols',
-        },
-        color: '#fff',
-        style: {
-          element: {
-            width: '2em',
-            height: '2em',
-            right: '-0.75em',
-            bottom: '-0.75em',
-          },
-        },
-      },
-    ],
     border: {
       width: '0.1em',
     },

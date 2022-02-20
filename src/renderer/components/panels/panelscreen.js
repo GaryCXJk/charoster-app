@@ -194,6 +194,18 @@ const createPreviewLayoutElements = async (preview, monitorElements) => {
         },
       ],
     },
+    {
+      type: "credits",
+      layers: [
+        {
+          type: "header",
+          label: "Credits"
+        },
+        {
+          type: "content"
+        }
+      ]
+    }
   ];
 
   layout.forEach((element, idx) => {

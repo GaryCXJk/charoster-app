@@ -1,5 +1,6 @@
 import params from '../../../helpers/params';
 import traverse from '../../../helpers/traverse';
+import { getDefaultPanelLayout } from './panel';
 import dynamicStyle from './panelstyle/dynamic';
 
 const stylePropTransforms = {
@@ -49,9 +50,7 @@ export const createDesignQueue = (design) => {
     });
   }
   const locations = [];
-  if (design.panels.layers) {
-    locations.push(design.panels.layers);
-  }
+  locations.push(design.panels.layers ?? getDefaultPanelLayout());
   if (design.preview?.layout) {
     design.preview.layout.forEach((layout) => {
       if (layout.layers) {
@@ -397,15 +396,13 @@ export const createStylesheet = ({
   if (design.panels.border) {
     handleBorders(design.panels.border, imageFiles, combinedStyles['.sections .content .panels .panel']);
   }
-  if (design.panels.layers) {
-    design.panels.layers.forEach((layer, idx) => {
-      if (layer.style) {
-        const className = `.sections .content .panels .panel .layer.layer-${idx}`;
-        combinedStyles[className] = combinedStyles[className] ?? {};
-        setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-      }
-    });
-  }
+  (design.panels.layers ?? getDefaultPanelLayout()).forEach((layer, idx) => {
+    if (layer.style) {
+      const className = `.sections .content .panels .panel .layer.layer-${idx}`;
+      combinedStyles[className] = combinedStyles[className] ?? {};
+      setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+    }
+  });
   if (panelImageFilters) {
     combinedStyles['.panels .panel .image'] = {
       filter: panelImageFilters,
