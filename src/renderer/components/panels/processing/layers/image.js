@@ -39,12 +39,12 @@ const runImageQueue = async () => {
   queueRunning = false;
 };
 
-const queueImage = (type, imageId, designId = '') => {
-  imageQueue.push([designId, type, imageId]);
+const queueImage = (type, imageId, designId = '', prioritize = false) => {
+  imageQueue[prioritize ? 'unshift' : 'push']([designId, type, imageId]);
   runImageQueue();
 };
 
-export const getImage = async (type, imageId, designId = '') => {
+export const getImage = async (type, imageId, designId = '', prioritize = false) => {
   applyEvents();
   const cacheStr = `${designId},${type}:${imageId}`;
   if (imageCache[cacheStr]) {
@@ -55,7 +55,7 @@ export const getImage = async (type, imageId, designId = '') => {
   imageWaiters[designId][type][imageId] = imageWaiters[designId][type][imageId] ?? createWaiter();
   const waiter = imageWaiters[designId][type][imageId];
 
-  queueImage(type, imageId, designId);
+  queueImage(type, imageId, designId, prioritize);
 
   return await waiter;
 }
