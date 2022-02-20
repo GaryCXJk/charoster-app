@@ -17,6 +17,10 @@ const defaultConfig = {
     height: 600,
   },
   workFolder: null,
+  maxRenderWidth: {
+    characters: 128,
+    stages: 256
+  }
 };
 
 const config = {

@@ -150,12 +150,12 @@ export const getPackList = () => {
 
 ipcMain.handle('packs:get-pack-list', getPackList);
 
-ipcMain.handle('packs:get-images', (_event, type, imageId, filter = null) => {
+ipcMain.handle('packs:get-images', (_event, type, imageId, filter = null, renderer = false) => {
   if (!imageReaders[type]) {
     return null;
   }
 
-  return imageReaders[type](imageId, filter);
+  return imageReaders[type](imageId, filter, renderer);
 });
 
 ipcMain.handle('packs:get-image-info', (_event, type, imageId) => {

@@ -6,6 +6,7 @@ import { executeOnConfigLoad, getConfig, getTempPath, removeTempFilesSync, setCo
 import { discoverPacks } from './managers/packs-manager';
 import './managers/workspace-manager';
 import './helpers/drag-helper';
+import { getAltImages } from './managers/entity-manager';
 
 let mainWindow;
 let pickerWindow;
@@ -15,6 +16,7 @@ let renderWindow;
 protocol.registerSchemesAsPrivileged([
   { scheme: 'blob', privileges: { bypassCSP: true } },
   { scheme: app.name, privileges: { bypassCSP: true }},
+  { scheme: `${app.name}-renderer`, privileges: { bypassCSP: true }},
 ]);
 
 app.commandLine.appendSwitch ("disable-http-cache");
@@ -46,8 +48,25 @@ app.on('activate', () => {
 // create main BrowserWindow when electron is ready
 app.on('ready', () => {
   protocol.interceptFileProtocol(app.name, (request, callback) => {
-    const url = request.url.slice(app.name.length + 3);
-    callback({ path: path.join(getTempPath(), url)});
+    const url = request.url.slice(app.name.length + 3).replace(/\//g, '--');
+    callback({ path: path.join(getTempPath(), url) });
+  });
+  protocol.interceptBufferProtocol(`${app.name}-renderer`, async (request, callback) => {
+    const url = request.url.slice(app.name.length + 12);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\.png$/);
+    if (!match) {
+      callback({ error: 404 });
+    }
+    let buffer;
+    try {
+      buffer = await getAltImages(match[1], match[2].replace(/\//g, '>'), null, match[3]);
+    } catch (e) {
+      console.log(e);
+    }
+    if (!buffer) {
+      callback({ error: 404 });
+    }
+    callback({ mimeType: 'image/png', data: buffer });
   });
   executeOnConfigLoad(() => {
     discoverPacks();

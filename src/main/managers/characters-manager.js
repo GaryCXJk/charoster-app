@@ -25,8 +25,8 @@ export const getCostumeImageInfo = async (imageId) => {
   return await getAltImageInfo('characters', imageId);
 }
 
-export const getCostumeImages = async (imageId, filterSizes = null) => {
-  return await getAltImages('characters', imageId, filterSizes);
+export const getCostumeImages = async (imageId, filterSizes = null, renderer = false) => {
+  return await getAltImages('characters', imageId, filterSizes, renderer);
 }
 
 ipcMain.handle('characters:get-character-list', (_event, filterCharacter) => getCharacterList(filterCharacter));
@@ -36,5 +36,5 @@ ipcMain.handle('characters:get-character', (_event, characterId) => {
   return loadCharacter(characterId);
 });
 
-ipcMain.handle('characters:get-images', (_event, imageId, filter = null) => getCostumeImages(imageId, filter));
+ipcMain.handle('characters:get-images', (_event, imageId, filter = null, renderer = false) => getCostumeImages(imageId, filter, renderer));
 ipcMain.handle('characters:get-image-info', (_event, imageId) => getCostumeImageInfo(imageId));

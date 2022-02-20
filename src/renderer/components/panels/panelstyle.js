@@ -184,7 +184,7 @@ const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage'
     }
     return props;
   } else if (typeof val === 'string' && val && imageFiles[val]) {
-    const fileInfo = imageFiles[val].raw;
+    const fileInfo = imageFiles[val];
     props[prop] = `url(${fileInfo.file ?? fileInfo.data})`;
     return props;
   }

@@ -1,10 +1,10 @@
 import * as path from 'path';
 import deepmerge from "deepmerge";
 import Sharp from 'sharp';
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
 import createWaiter from "../../helpers/create-waiter";
 import traverse from "../../helpers/traverse";
-import { getConfig } from "./config-manager";
+import { getConfig, getTempPath, setTempFile } from "./config-manager";
 import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
 import { onAppReset } from '../helpers/manager-helper';
 import { clearObject } from '../../helpers/object-helper';
@@ -199,6 +199,7 @@ export const getDesignImage = async (imageId) => {
     };
     setTempFile(outFile);
   } catch (_e) {
+    console.log(_e);
     const buffer = await sharpImage
       .toBuffer();
 

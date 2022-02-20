@@ -215,30 +215,34 @@ export const getAltImageInfo = async (type, imageId, fullData = false) => {
   return alt.images[index];
 }
 
-export const getAltImages = async (type, imageId, filterSizes = null) => {
+export const getAltImages = async (type, imageId, filterSizes = null, renderer = false) => {
   const entityData = getEntityData(type);
   const workspace = getWorkspace();
   const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? null;
   const designKey = designId ?? '';
   const imageCache = entityData.images;
-  let currentImageCache = imageCache[designKey]?.[imageId];
-  if (currentImageCache) {
-    if (currentImageCache instanceof Promise) {
-      await currentImageCache;
-      currentImageCache = imageCache[designKey]?.[imageId] ?? null;
+  if (!renderer) {
+    let currentImageCache = imageCache[designKey]?.[imageId];
+    if (currentImageCache) {
+      if (currentImageCache instanceof Promise) {
+        await currentImageCache;
+        currentImageCache = imageCache[designKey]?.[imageId] ?? null;
+      }
+      if (currentImageCache && filterSizes) {
+        const filteredImages = {};
+        filterSizes.forEach((filterSize) => {
+          filteredImages[filterSize] = currentImageCache[filterSize] ?? currentImageCache.raw;
+        })
+        return filteredImages;
+      }
+      return currentImageCache;
     }
-    if (currentImageCache && filterSizes) {
-      const filteredImages = {};
-      filterSizes.forEach((filterSize) => {
-        filteredImages[filterSize] = currentImageCache[filterSize] ?? currentImageCache.raw;
-      })
-      return filteredImages;
-    }
-    return currentImageCache;
   }
   const waiter = createWaiter();
-  imageCache[designKey] = imageCache[designKey] ?? {};
-  imageCache[designKey][imageId] = waiter;
+  if (!renderer) {
+    imageCache[designKey] = imageCache[designKey] ?? {};
+    imageCache[designKey][imageId] = waiter;
+  }
 
   const [folder, entityId, altId, index] = imageId.split('>');
   const alt = await getAltImageInfo(type, imageId, true);
@@ -272,6 +276,20 @@ export const getAltImages = async (type, imageId, filterSizes = null) => {
 
     if (!heightRatio && size !== 'raw') {
       continue;
+    }
+
+    if (renderer) {
+      if (renderer === true) {
+        const outFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}.png`;
+        const fileUrl = `${app.name}-renderer://${outFile}`;
+        foundImages[size] = {
+          file: fileUrl,
+        };
+        continue;
+      }
+      if (renderer !== size) {
+        continue;
+      }
     }
 
     const sharpImage = new Sharp(altPath);
@@ -346,25 +364,46 @@ export const getAltImages = async (type, imageId, filterSizes = null) => {
         height: sizeData.height,
       })
       .png();
+
+    const finalPass = new Sharp(await sharpImage.toBuffer());
+    const fpMeta = await finalPass.metadata();
+
+    const maxRenderWidth = getConfig('maxRenderWidth');
+    if (!renderer && maxRenderWidth[type] && fpMeta.width > maxRenderWidth[type]) {
+      await finalPass.resize({
+        width: maxRenderWidth[type],
+      });
+    }
+    await finalPass.png();
+
+    if (renderer) {
+      return await finalPass.toBuffer();
+    }
+
     try {
-      const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${(new Date()).getTime()}.png`;
+      const time = (new Date()).getTime();
+      const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${maxRenderWidth[type]}--${time}.png`;
       const writePath = path.join(getTempPath(), outFile);
-      const info = await sharpImage.toFile(writePath);
-      const fileUrl = `${app.name}://${outFile}`;
+      const info = await finalPass.toFile(writePath);
+      const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth[type]}/${time}.png`;
+      const fileUrl = `${app.name}://${fakeFile}`;
       foundImages[size] = {
         file: fileUrl,
         ...info,
       };
       setTempFile(outFile);
     } catch (_e) {
-      const buffer = await sharpImage
-        .toBuffer();
+      const buffer = await finalPass.toBuffer();
 
       foundImages[size] = {
         buffer,
         data: `data:image/png;base64,${buffer.toString('base64')}`,
       };
     }
+  }
+  if (renderer) {
+    waiter.resolve();
+    return renderer === true ? foundImages : null;
   }
   imageCache[designKey][imageId] = foundImages;
   if (filterSizes) {
@@ -383,7 +422,7 @@ ipcMain.handle('entities:get-entity', (_event, type, entityId) => {
   return loadEntity(type, entityId);
 });
 
-ipcMain.handle('entities:get-images', (_event, type, imageId, filter = null) => getAltImages(type, imageId, filter));
+ipcMain.handle('entities:get-images', (_event, type, imageId, filter = null, renderer = false) => getAltImages(type, imageId, filter, renderer));
 ipcMain.handle('entities:get-image-info', (_event, type, imageId) => getAltImageInfo(type, imageId));
 
 onAppReset(() => {
