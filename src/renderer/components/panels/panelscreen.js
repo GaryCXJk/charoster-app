@@ -65,7 +65,7 @@ export const setStyle = async (placeholderRoster = null) => {
   for (var idx = 0; idx < designQueue.length; idx += 1) {
     const file = designQueue[idx];
     const imageId = `${designId}>${file}`;
-    imageFiles[file] = await getImage('designs', imageId, designId);
+    imageFiles[file] = await getImage('designs', imageId, designId, true);
   }
   elements.style.innerHTML = createStylesheet({
     design,
