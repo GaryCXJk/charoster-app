@@ -11,7 +11,6 @@ const entities = getEntityObject();
 
 let roster = [];
 const elements = {};
-let placeholderRoster = null;
 
 let activePanel = null;
 let addPanelCallbacks = null;
@@ -58,7 +57,7 @@ export const getDesign = async () => {
 
 export const getCurrentRoster = () => workspace.rosters[workspace.displayRoster];
 
-const setStyle = async () => {
+export const setStyle = async (placeholderRoster = null) => {
   const design = await getDesign();
   const designId = getDesignId();
   const designQueue = createDesignQueue(design, designId);
@@ -317,7 +316,7 @@ export const renderRoster = (displayRoster = null) => {
   useRoster.forEach((panel) => {
     elements.panels.append(panel);
   });
-  setStyle();
+  setStyle(displayRoster);
 }
 
 const prepareRoster = () => {
@@ -353,6 +352,10 @@ const applyEvents = globalAppReset(() => {
   roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
   resetRoster();
 });
+
+export const getScreenElement = (elementType) => {
+  return elements[elementType] ?? null;
+}
 
 export default ({
   panels: panelsOptions = {},

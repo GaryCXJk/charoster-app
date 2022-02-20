@@ -54,6 +54,24 @@ export default class Block {
     }
   }
 
+  insertBefore(block) {
+    if (block instanceof HTMLCollection) {
+      Array.from(block).forEach((node) => {
+        this.insertBefore(node);
+      });
+      return;
+    }
+
+    let element = block;
+    if (typeof block === 'string') {
+      element = document.createTextNode(block);
+    } else if (block instanceof Block) {
+      element = block.element;
+    }
+
+    this.#container.parentNode.insertBefore(element, this.#container);
+  }
+
   detach() {
     if (this.#container.parentNode) {
       this.#container.parentNode.removeChild(this.#container);
