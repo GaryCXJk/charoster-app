@@ -149,7 +149,7 @@ app.on('ready', () => {
           width: 640,
           height: 480,
           resizable: false,
-          parent: mainWindow.window,
+          parent: mainWindow,
           modal: true,
           closable: false,
           minimizable: false,
