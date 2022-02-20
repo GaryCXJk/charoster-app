@@ -17,6 +17,8 @@ import createPanelScreen, {
   setRoster,
   storeWorkspace,
   awaitSetup,
+  setStyle,
+  getScreenElement,
 } from '../../components/panels/panelscreen';
 import mdi from '../../../helpers/mdi';
 
@@ -151,7 +153,8 @@ export default () => {
                 placeholderRoster = [...getRoster()];
               }
               placeholderRoster.push(placeholder);
-              renderRoster(placeholderRoster);
+              elements.panels.append(placeholder);
+              setStyle(placeholderRoster);
             }
             isDragEnter = true;
           }
@@ -164,10 +167,8 @@ export default () => {
             if (dragInfo) {
               if (placeholderRoster) {
                 placeholderRoster = [...getRoster()];
-                renderRoster(placeholderRoster);
-              } else {
-                placeholder.detach();
               }
+              placeholder.detach();
             }
           }
         },
@@ -220,7 +221,14 @@ export default () => {
             placeholder,
             ...getRoster().slice(currentIndex),
           ];
-          renderRoster(placeholderRoster);
+          const currentBlock = getRoster()[currentIndex];
+          if (currentBlock) {
+            currentBlock.insertBefore(placeholder);
+          } else {
+            elements.panels.append(placeholder);
+          }
+          setStyle(placeholderRoster);
+          // renderRoster(placeholderRoster);
         }
       });
     },
