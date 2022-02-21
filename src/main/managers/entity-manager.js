@@ -282,10 +282,6 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
 
   const heightRatio = await getSize(type, size, designId);
 
-  if (!heightRatio && size !== 'raw') {
-    continue;
-  }
-
   const sharpImage = new Sharp(altPath);
   const sharpMeta = await sharpImage.metadata();
   let sizeData = alt.sizes && alt.sizes[size];

@@ -6,7 +6,7 @@ import { executeOnConfigLoad, getConfig, getTempPath, removeTempFilesSync, setCo
 import { discoverPacks } from './managers/packs-manager';
 import './managers/workspace-manager';
 import './helpers/drag-helper';
-import { getAltImages } from './managers/entity-manager';
+import { getAltImage } from './managers/entity-manager';
 
 let mainWindow;
 let pickerWindow;
@@ -59,7 +59,7 @@ app.on('ready', () => {
     }
     let buffer;
     try {
-      buffer = await getAltImages(match[1], match[2].replace(/\//g, '>'), null, match[3]);
+      buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3], true);
     } catch (e) {
       console.log(e);
     }
