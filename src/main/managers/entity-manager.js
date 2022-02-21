@@ -26,6 +26,7 @@ const createEntityData = () => {
 }
 
 const entities = {};
+const imageMap = {};
 
 export const fetchEntities = async (type, packFolder) => {
   return await fm.fetchEntities(type, packFolder);
@@ -217,19 +218,30 @@ export const getAltImageInfo = async (type, imageId, fullData = false) => {
 }
 
 export const getAltImageUrls = (type, imageId, filterSizes = null, renderer = false) => {
-  const sizes = array_values(array_intersect(['raw', ...getSizeKeys(type)], filterSizes));
-
+  let sizes = ['raw', ...getSizeKeys(type)];
+  if (filterSizes) {
+    sizes = sizes.filter((size) => filterSizes.includes(size));
+  }
   const maxRenderWidth = renderer ? 'max' : (getConfig('maxRenderWidth') ?? {})[type] ?? 'max';
 
   const foundImages = {};
   for (let idx = 0; idx < sizes.length; idx += 1) {
     const size = sizes[idx];
-    const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.png`;
-    const fileUrl = `${app.name}${renderer ? '-renderer' : ''}://${fakeFile}`;
+    const fileKey = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}`;
+    if (!imageMap[fileKey]) {
+      const time = (new Date()).getTime();
+      const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.png`;
+      imageMap[fileKey] = {
+        file: fakeFile,
+        time,
+      };
+    }
+    const fileUrl = `${app.name}${renderer ? '-renderer' : ''}://${imageMap[fileKey].file}`;
     foundImages[size] = {
       file: fileUrl,
     };
   }
+
   return foundImages;
 }
 
@@ -374,8 +386,16 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
   }
 
   try {
-    const time = (new Date()).getTime();
-    const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${maxRenderWidth[type]}--${time}.png`;
+    const fileKey = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}`;
+    if (!imageMap[fileKey]) {
+      const time = (new Date()).getTime();
+      const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.png`;
+      imageMap[fileKey] = {
+        file: fakeFile,
+        time,
+      };
+    }
+    const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${maxRenderWidth[type]}--${imageMap[fileKey].time}.png`;
     const writePath = path.join(getTempPath(), outFile);
     await writeFile(writePath, imageBuffer);
     setTempFile(outFile);
@@ -600,4 +620,5 @@ ipcMain.handle('entities:get-image-info', (_event, type, imageId) => getAltImage
 
 onAppReset(() => {
   clearObject(entities);
+  clearObject(imageMap);
 });

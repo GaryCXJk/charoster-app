@@ -7,6 +7,7 @@ import { discoverPacks } from './managers/packs-manager';
 import './managers/workspace-manager';
 import './helpers/drag-helper';
 import { getAltImage } from './managers/entity-manager';
+import { getFileBuffer } from './managers/file-manager';
 
 let mainWindow;
 let pickerWindow;
@@ -47,9 +48,28 @@ app.on('activate', () => {
 
 // create main BrowserWindow when electron is ready
 app.on('ready', () => {
-  protocol.interceptFileProtocol(app.name, (request, callback) => {
-    const url = request.url.slice(app.name.length + 3).replace(/\//g, '--');
-    callback({ path: path.join(getTempPath(), url) });
+  protocol.interceptBufferProtocol(app.name, async (request, callback) => {
+    const url = request.url.slice(app.name.length + 3);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\.png$/);
+    if (!match) {
+      const file = path.join(getTempPath(), url.replace(/\//g, '--'));
+      const buffer = getFileBuffer(file);
+      if (!buffer) {
+        callback({ error: 404 });
+      }
+      callback({ mimeType: 'image/png', data: buffer });
+    }
+
+    let buffer;
+    try {
+      buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3], true);
+    } catch (e) {
+      console.log(e);
+    }
+    if (!buffer) {
+      callback({ error: 404 });
+    }
+    callback({ mimeType: 'image/png', data: buffer });
   });
   protocol.interceptBufferProtocol(`${app.name}-renderer`, async (request, callback) => {
     const url = request.url.slice(app.name.length + 12);
