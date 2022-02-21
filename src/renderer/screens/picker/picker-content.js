@@ -52,11 +52,7 @@ const setHandlers = () => {
       await packWaiters[packId];
     }
     packs[packId].characters.push(...characters);
-    characters.forEach((charId) => {
-      const panel = createPanel(charId);
-
-      blocks[packId].panels.append(panel);
-    });
+    characters.forEach(blocks[packId].createPanel);
     addPackBlocks();
   });
 
@@ -207,21 +203,23 @@ const createPackBlock = (packId) => {
   });
   block.append(panels);
 
-  const panelMap = {};
+  block.panelMap = {};
 
   block.visible = [];
-  if (Array.isArray(pack.characters)) {
-    pack.characters.forEach((charId) => {
-      const panel = createPanel(charId);
-      panelMap[charId] = panel;
-      panel.entityId = charId;
-      block.visible.push(charId);
-      getEntity('characters', charId).then((entity) => {
-        panel.entity = entity;
-      });
 
-      panels.append(panel);
+  block.createPanel = (elementId) => {
+    const panel = createPanel(elementId);
+    block.panelMap[elementId] = panel;
+    panel.entityId = elementId;
+    block.visible.push(elementId);
+    getEntity('characters', elementId).then((entity) => {
+      panel.entity = entity;
     });
+
+    panels.append(panel);
+  };
+  if (Array.isArray(pack.characters)) {
+    pack.characters.forEach(block.createPanel);
   }
 
   blocks[packId] = block;
@@ -235,7 +233,7 @@ const createPackBlock = (packId) => {
     }
     block.visible.splice(0, block.visible.length);
     pack.characters.forEach((entityId) => {
-      const panel = panelMap[entityId];
+      const panel = block.panelMap[entityId];
       if (!queryInput.value) {
         block.visible.push(entityId);
         panels.append(panel);
@@ -289,6 +287,7 @@ let applyEvents = globalAppReset(() => {
   elements.off.empty();
   pickerContent.empty();
   altPicker.empty();
+  queryInput.value = '';
   initPickerContent();
 });
 
