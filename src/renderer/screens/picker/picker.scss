@@ -1,4 +1,13 @@
 #app.picker {
+  .query-container {
+    background-color: var(--sub-bg-color);
+    padding: 0.5rem;
+
+    .query {
+      width: 100%;
+    }
+  }
+
   .content {
     flex: 1 0 0;
     overflow: overlay;

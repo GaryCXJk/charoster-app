@@ -14,11 +14,20 @@ export default () => {
     minimizable: false,
   }));
 
+  const queryInputContainer = new Block({
+    className: 'query-container',
+  });
+  container.append(queryInputContainer);
+
+  const queryInput = document.createElement('input');
+  queryInput.className = 'query';
+  queryInputContainer.append(queryInput);
+
   const altPicker = new Block({
     className: 'alts',
   });
 
-  const pickerContent = setPickerContent(altPicker);
+  const pickerContent = setPickerContent(queryInput, altPicker);
   container.append(pickerContent);
 
   container.append(altPicker);

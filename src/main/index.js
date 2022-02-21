@@ -50,24 +50,27 @@ app.on('activate', () => {
 app.on('ready', () => {
   protocol.interceptBufferProtocol(app.name, async (request, callback) => {
     const url = request.url.slice(app.name.length + 3);
-    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\.png$/);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+)\/(\d+)\.png$/);
     if (!match) {
       const file = path.join(getTempPath(), url.replace(/\//g, '--'));
-      const buffer = getFileBuffer(file);
+      const buffer = await getFileBuffer(file);
       if (!buffer) {
         callback({ error: 404 });
+      } else {
+        callback({ mimeType: 'image/png', data: buffer });
       }
-      callback({ mimeType: 'image/png', data: buffer });
+      return;
     }
 
     let buffer;
     try {
-      buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3], true);
+      buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3]);
     } catch (e) {
       console.log(e);
     }
     if (!buffer) {
       callback({ error: 404 });
+      return;
     }
     callback({ mimeType: 'image/png', data: buffer });
   });
@@ -76,6 +79,7 @@ app.on('ready', () => {
     const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\.png$/);
     if (!match) {
       callback({ error: 404 });
+      return;
     }
     let buffer;
     try {
@@ -85,6 +89,7 @@ app.on('ready', () => {
     }
     if (!buffer) {
       callback({ error: 404 });
+      return;
     }
     callback({ mimeType: 'image/png', data: buffer });
   });
