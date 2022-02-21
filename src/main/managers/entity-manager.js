@@ -12,6 +12,7 @@ import { getSize, getSizeKeys } from './designs-manager';
 import { clearObject } from '../../helpers/object-helper';
 import createWaiter from '../../helpers/create-waiter';
 import { pathToFileURL } from 'url';
+import { readFile, writeFile } from 'fs/promises';
 
 const createEntityData = () => {
   return {
@@ -213,6 +214,182 @@ export const getAltImageInfo = async (type, imageId, fullData = false) => {
   }
 
   return alt.images[index];
+}
+
+export const getAltImageUrls = (type, imageId, filterSizes = null, renderer = false) => {
+  const sizes = array_values(array_intersect(['raw', ...getSizeKeys(type)], filterSizes));
+
+  const maxRenderWidth = renderer ? 'max' : (getConfig('maxRenderWidth') ?? {})[type] ?? 'max';
+
+  const foundImages = {};
+  for (let idx = 0; idx < sizes.length; idx += 1) {
+    const size = sizes[idx];
+    const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.png`;
+    const fileUrl = `${app.name}${renderer ? '-renderer' : ''}://${fakeFile}`;
+    foundImages[size] = {
+      file: fileUrl,
+    };
+  }
+  return foundImages;
+}
+
+export const getAltImage = async (type, imageId, size, renderer = false) => {
+  const entityData = getEntityData(type);
+  const workspace = getWorkspace();
+  const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? null;
+  const designKey = designId ?? '';
+  const imageCache = entityData.images;
+  if (!renderer) {
+    let currentImageCache = imageCache[designKey]?.[imageId]?.[size];
+    if (currentImageCache) {
+      if (currentImageCache instanceof Promise) {
+        await currentImageCache;
+        currentImageCache = imageCache[designKey]?.[imageId]?.[size] ?? null;
+      }
+      if (typeof currentImageCache === 'string') {
+        currentImageCache = await readFile(currentImageCache);
+      }
+      return currentImageCache;
+    }
+  }
+  const waiter = createWaiter();
+  if (!renderer) {
+    imageCache[designKey] = imageCache[designKey] ?? {};
+    imageCache[designKey][imageId] = imageCache[designKey][imageId] ?? {};
+    imageCache[designKey][imageId][size] = waiter;
+  }
+  const [folder, entityId, altId, index] = imageId.split('>');
+  const alt = await getAltImageInfo(type, imageId, true);
+
+  if (!alt) {
+    imageCache[designKey][imageId][size] = null;
+    waiter.resolve();
+    return null;
+  }
+
+  const imageInfo = alt.images[index];
+
+  if (!imageInfo) {
+    imageCache[designKey][imageId][size] = null;
+    waiter.resolve();
+    return null;
+  }
+
+  const image = (typeof imageInfo === 'string' ? imageInfo : imageInfo.image ?? imageInfo.file);
+
+  const workFolder = getConfig('workFolder');
+  const altPath = path.join(workFolder, 'packs', folder, type, entityId, altId, image);
+
+  const heightRatio = await getSize(type, size, designId);
+
+  if (!heightRatio && size !== 'raw') {
+    continue;
+  }
+
+  const sharpImage = new Sharp(altPath);
+  const sharpMeta = await sharpImage.metadata();
+  let sizeData = alt.sizes && alt.sizes[size];
+  if (imageInfo.sizes && imageInfo.sizes[size]) {
+    sizeData = imageInfo.sizes[size];
+  }
+
+  if (!sizeData) {
+    sizeData = {
+      x: 0,
+      y: 0,
+      width: sharpMeta.width,
+      height: heightRatio ? Math.round(sharpMeta.width / heightRatio) : sharpMeta.height,
+    };
+    if (sizeData.height > sharpMeta.height) {
+      sizeData.width = Math.round(sharpMeta.height * heightRatio);
+      sizeData.height = sharpMeta.height;
+      sizeData.x = Math.floor((sharpMeta.width - sizeData.width) / 2);
+    }
+  } else {
+    sizeData = deepmerge({}, sizeData);
+  }
+
+  if (heightRatio) {
+    sizeData.height = Math.round(sizeData.width / heightRatio);
+
+    if (sizeData.x < 0 || sizeData.y < 0 || sizeData.x + sizeData.width > sharpMeta.width || sizeData.y + sizeData.height > sharpMeta.height) {
+      const newSize = {
+        width: sharpMeta.width,
+        height: sharpMeta.height,
+      };
+
+      const extendData = {
+        background: {
+          r: 0,
+          g: 0,
+          b: 0,
+          alpha: 0,
+        },
+      };
+
+      if (sizeData.x < 0) {
+        extendData.left = Math.abs(sizeData.x);
+        sizeData.width -= extendData.left;
+        sizeData.x = 0;
+      }
+      if (sizeData.y < 0) {
+        extendData.top = Math.abs(sizeData.y);
+        sizeData.height -= extendData.top;
+        sizeData.y = 0;
+      }
+      if (sizeData.x + sizeData.width > newSize.width) {
+        extendData.right = sizeData.x + sizeData.width - newSize.width;
+        sizeData.width -= extendData.right;
+      }
+      if (sizeData.y + sizeData.height > newSize.height) {
+        extendData.bottom = sizeData.y + sizeData.height - newSize.height;
+        sizeData.height -= extendData.bottom;
+      }
+
+      await sharpImage.extend(extendData);
+    }
+  }
+
+  await sharpImage
+    .extract({
+      left: sizeData.x,
+      top: sizeData.y,
+      width: sizeData.width,
+      height: sizeData.height,
+    })
+    .png();
+
+  const finalPass = new Sharp(await sharpImage.toBuffer());
+  const fpMeta = await finalPass.metadata();
+
+  const maxRenderWidth = getConfig('maxRenderWidth');
+  if (!renderer && maxRenderWidth[type] && fpMeta.width > maxRenderWidth[type]) {
+    await finalPass.resize({
+      width: maxRenderWidth[type],
+    });
+  }
+  await finalPass.png();
+
+  const imageBuffer = await finalPass.toBuffer();
+
+  if (renderer) {
+    waiter.resolve();
+    return imageBuffer;
+  }
+
+  try {
+    const time = (new Date()).getTime();
+    const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${maxRenderWidth[type]}--${time}.png`;
+    const writePath = path.join(getTempPath(), outFile);
+    await writeFile(writePath, imageBuffer);
+    setTempFile(outFile);
+    imageCache[designKey][imageId][size] = writePath;
+  } catch (_e) {
+    imageCache[designKey][imageId][size] = imageBuffer;
+  }
+
+  waiter.resolve();
+  return imageBuffer;
 }
 
 export const getAltImages = async (type, imageId, filterSizes = null, renderer = false) => {
