@@ -1,5 +1,6 @@
 export default (currentRoster, roster, returnStyle) => {
-  let { width, height, meta = {} } = currentRoster;
+  const { width: baseWidth, height: baseHeight, meta = {} } = currentRoster;
+  let [ width, height ] = [ baseWidth, baseHeight ];
 
   let rowColRatio = [height, width];
   if (meta.rowColRatio && Array.isArray(meta.rowColRatio)) {
@@ -23,5 +24,6 @@ export default (currentRoster, roster, returnStyle) => {
   returnStyle.panels = {
     width: `${100 / width}%`,
     height: `${100 / height}%`,
+    fontMod: baseWidth / width,
   };
 }

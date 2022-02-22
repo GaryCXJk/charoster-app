@@ -31,6 +31,7 @@
         flex-wrap: nowrap;
         background-color: var(--sub-bg-color);
         padding: 1em;
+        gap: 2em;
 
         .image-container {
           position: relative;
@@ -48,6 +49,63 @@
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
+          }
+        }
+
+        .credits-container {
+          display: flex;
+          flex: 1 0 0;
+          justify-content: stretch;
+          align-content: stretch;
+          gap: 2em;
+
+          .credits-content-container {
+            flex: 1 0 0;
+            position: relative;
+          }
+
+          .credits-content {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            max-height: 100%;
+            overflow: overlay;
+          }
+
+          .credits-block {
+            margin: 1em 0;
+
+            &:first-child {
+              margin-top: 0;
+            }
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+
+          .credits-label {
+            font-family: 'Montserrat';
+            font-weight: 700;
+          }
+          .credits-link {
+            display: block;
+            padding: 0 0.5em;
+
+            img {
+              height: 2em;
+              vertical-align: middle;
+              margin-right: 1em;
+            }
+
+            svg.icon {
+              width: 2em;
+              height: 2em;
+              margin-right: 1em;
+              vertical-align: middle;
+            }
           }
         }
       }

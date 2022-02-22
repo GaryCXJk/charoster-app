@@ -50,7 +50,7 @@ app.on('activate', () => {
 app.on('ready', () => {
   protocol.interceptBufferProtocol(app.name, async (request, callback) => {
     const url = request.url.slice(app.name.length + 3);
-    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+)\/(\d+)\.png$/);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.png$/);
     if (!match) {
       const file = path.join(getTempPath(), url.replace(/\//g, '--'));
       const buffer = await getFileBuffer(file);
@@ -76,7 +76,7 @@ app.on('ready', () => {
   });
   protocol.interceptBufferProtocol(`${app.name}-renderer`, async (request, callback) => {
     const url = request.url.slice(app.name.length + 12);
-    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\.png$/);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.png$/);
     if (!match) {
       callback({ error: 404 });
       return;
