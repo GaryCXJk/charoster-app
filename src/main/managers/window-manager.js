@@ -1,5 +1,5 @@
 import deepmerge from 'deepmerge';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { EventEmitter } from 'events';
 import { IS_DEVELOPMENT } from '../../global/constants';
 
@@ -81,6 +81,11 @@ export const createWindow = (id, options = {}) => {
     setImmediate(() => {
       window.focus()
     })
+  });
+
+  window.webContents.on('new-window', (event, url) => {
+    event.preventDefault();
+    shell.openExternal(url);
   });
 
   windowInstances[id] = {

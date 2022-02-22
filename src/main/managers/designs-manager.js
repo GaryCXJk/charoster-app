@@ -41,6 +41,9 @@ const defaultDesign = {
           },
         }
       ],
+      font: {
+        size: '0.6em'
+      }
     },
   },
   preview: {

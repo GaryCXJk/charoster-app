@@ -31,6 +31,7 @@ let workspaceFile = null;
 
 export const createWorkspace = () => {
   workspace = deepmerge({}, defaultWorkspace);
+  workspaceFile = null;
   return workspace;
 }
 
