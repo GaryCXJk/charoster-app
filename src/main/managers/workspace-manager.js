@@ -3,7 +3,7 @@ import deepmerge from "deepmerge";
 import * as path from "path";
 import { readFile, writeFile } from "fs/promises";
 import { getWorkFolder } from "./config-manager";
-import { getWindow, notifyWindow } from "./window-manager";
+import { getWindow, notifyWindow, notifyWindowWithReply } from "./window-manager";
 
 const defaultWorkspace = {
   title: 'Untitled',
@@ -100,6 +100,14 @@ const exportImage = async (screen, options = {}) => {
   if (options.size) {
     window.window.setSize(options.size.width ?? width, options.size.height ?? height);
   }
+  const reply = await notifyWindowWithReply('request-credits-size', {}, 'render');
+  const [ addedHeight ] = reply;
+
+  if (addedHeight) {
+    const [currentWidth, currentHeight] = window.window.getSize();
+    window.window.setSize(currentWidth, currentHeight + addedHeight);
+  }
+
   const image = await window.window.webContents.capturePage();
   const status = await dialog.showSaveDialog(getWindow(screen).window, {
     defaultPath: getWorkFolder(),
@@ -112,6 +120,7 @@ const exportImage = async (screen, options = {}) => {
     properties: [],
   });
   window.window.setSize(width, height);
+  notifyWindow('cleanup-credits', {}, 'render');
   if (status.canceled) {
     return null;
   }

@@ -2,6 +2,7 @@ import deepmerge from 'deepmerge';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { EventEmitter } from 'events';
 import { IS_DEVELOPMENT } from '../../global/constants';
+import createWaiter from '../../helpers/create-waiter';
 
 const windowInstances = {};
 
@@ -118,6 +119,15 @@ export const notifyWindow = (message, payload = {}, id = null) => {
       window.window.webContents.send(message, payload);
     }
   }
+}
+
+export const notifyWindowWithReply = async (message, payload = {}, id) => {
+  const waiter = createWaiter();
+  ipcMain.once(`${message}-reply`, (_event, ...reply) => {
+    waiter.resolve(reply);
+  });
+  notifyWindow(message, payload, id);
+  return await waiter;
 }
 
 ipcMain.handle('curwin:minimize', (_event, id) => {

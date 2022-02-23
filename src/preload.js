@@ -1,5 +1,6 @@
 import deepmerge from 'deepmerge';
 import { contextBridge, ipcRenderer } from 'electron';
+import createWaiter from './helpers/create-waiter';
 import params from './helpers/params';
 import * as error from './preload/error';
 import * as general from './preload/general';
@@ -28,18 +29,24 @@ if (screens[params.screen] && screens[params.screen].ipcListeners) {
   ipcListeners.unshift(...general.ipcListeners);
 
   ipcListeners.forEach((event) => {
-    ipcRenderer.on(event, (_event, detail = null) => {
+    ipcRenderer.on(event, async (evt, detail = null) => {
+      const waiter = createWaiter();
       const customEvent = new CustomEvent(event, {
-        detail,
+        detail: {
+          detail,
+          waiter,
+        }
       });
       eventTarget.dispatchEvent(customEvent);
+      const resolved = await waiter;
+      evt.sender.send(`${event}-reply`, resolved);
     });
   });
   contextBridgePaths = deepmerge(contextBridgePaths, {
     globalEventHandler: {
       on: (event, callback) => {
         eventTarget.addEventListener(event, (e) => {
-          callback(e.detail);
+          e.detail.waiter.resolve(callback(e.detail.detail));
         });
       },
     },
