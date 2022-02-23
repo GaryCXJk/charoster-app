@@ -3,7 +3,7 @@ import deepmerge from "deepmerge";
 import * as path from "path";
 import { readFile, writeFile } from "fs/promises";
 import { getWorkFolder } from "./config-manager";
-import { getWindow, notifyWindow } from "./window-manager";
+import { getWindow, notifyWindow, notifyWindowWithReply } from "./window-manager";
 
 const defaultWorkspace = {
   title: 'Untitled',
@@ -31,12 +31,19 @@ let workspaceFile = null;
 
 export const createWorkspace = () => {
   workspace = deepmerge({}, defaultWorkspace);
+  workspaceFile = null;
   return workspace;
 }
 
 export const loadWorkspace = async (screen) => {
   const status = await dialog.showOpenDialog(getWindow(screen).window, {
     defaultPath: getWorkFolder(),
+    filters: [
+      {
+        name: 'JSON',
+        extensions: ['json'],
+      }
+    ],
     properties: ['openFile'],
   });
   if (status.cancelled) {
@@ -63,6 +70,12 @@ export const saveWorkspace = async (screen, saveAs = false) => {
   if (!workspaceFile || saveAs) {
     const status = await dialog.showSaveDialog(getWindow(screen).window, {
       defaultPath: path.join(getWorkFolder(), `${workspace.title}.json`),
+      filters: [
+        {
+          name: 'JSON',
+          extensions: ['json'],
+        },
+      ],
     });
     if (status.canceled) {
       return workspace;
@@ -99,6 +112,17 @@ const exportImage = async (screen, options = {}) => {
   if (options.size) {
     window.window.setSize(options.size.width ?? width, options.size.height ?? height);
   }
+
+  if (options.includeCredits) {
+    const reply = await notifyWindowWithReply('request-credits-size', {}, 'render');
+    const [ addedHeight ] = reply;
+
+    if (addedHeight) {
+      const [currentWidth, currentHeight] = window.window.getSize();
+      window.window.setSize(currentWidth, currentHeight + addedHeight);
+    }
+  }
+
   const image = await window.window.webContents.capturePage();
   const status = await dialog.showSaveDialog(getWindow(screen).window, {
     defaultPath: getWorkFolder(),
@@ -111,6 +135,10 @@ const exportImage = async (screen, options = {}) => {
     properties: [],
   });
   window.window.setSize(width, height);
+
+  if (options.includeCredits) {
+    notifyWindow('cleanup-credits', {}, 'render');
+  }
   if (status.canceled) {
     return null;
   }

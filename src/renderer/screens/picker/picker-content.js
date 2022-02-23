@@ -1,5 +1,6 @@
 import Block from "@components/base/Block";
 import { createPanel as createPanelBase } from '@components/panels/panel';
+import { debounce } from "throttle-debounce";
 import createWaiter from "../../../helpers/create-waiter";
 import { globalAppReset } from "../../../helpers/global-on";
 import { clearObject } from "../../../helpers/object-helper";
@@ -7,14 +8,13 @@ import { getEntity } from "../../components/panels/processing/entities";
 
 let pickerContent;
 let altPicker;
+let queryInput;
 const packs = {};
 const blocks = {};
 const characters = {};
 const waiters = {};
 const packWaiters = {};
 let activePanel = null;
-
-let query = '';
 
 const elements = {
   off: new Block(),
@@ -52,13 +52,13 @@ const setHandlers = () => {
       await packWaiters[packId];
     }
     packs[packId].characters.push(...characters);
-    characters.forEach((charId) => {
-      const panel = createPanel(charId);
-
-      blocks[packId].panels.append(panel);
-    });
+    characters.forEach(blocks[packId].createPanel);
     addPackBlocks();
   });
+
+  queryInput.addEventListener('input', debounce(250, () => {
+    addPackBlocks();
+  }));
 }
 
 const getImageList = (charId) => {
@@ -203,12 +203,23 @@ const createPackBlock = (packId) => {
   });
   block.append(panels);
 
-  if (Array.isArray(pack.characters)) {
-    pack.characters.forEach((charId) => {
-      const panel = createPanel(charId);
+  block.panelMap = {};
 
-      panels.append(panel);
+  block.visible = [];
+
+  block.createPanel = (elementId) => {
+    const panel = createPanel(elementId);
+    block.panelMap[elementId] = panel;
+    panel.entityId = elementId;
+    block.visible.push(elementId);
+    getEntity('characters', elementId).then((entity) => {
+      panel.entity = entity;
     });
+
+    panels.append(panel);
+  };
+  if (Array.isArray(pack.characters)) {
+    pack.characters.forEach(block.createPanel);
   }
 
   blocks[packId] = block;
@@ -216,6 +227,25 @@ const createPackBlock = (packId) => {
   block.pack = pack;
   block.off = new Block();
   block.panels = panels;
+  block.setVisibility = () => {
+    if (!pack.characters) {
+      return;
+    }
+    block.visible.splice(0, block.visible.length);
+    pack.characters.forEach((entityId) => {
+      const panel = block.panelMap[entityId];
+      if (!queryInput.value) {
+        block.visible.push(entityId);
+        panels.append(panel);
+        return;
+      }
+      const isVisible = (panel.entity?.name ?? panel.entityId).toLowerCase().indexOf(queryInput.value.toLowerCase()) > -1;
+      block[isVisible ? 'panels' : 'off'].append(panel);
+      if (isVisible) {
+        block.visible.push(entityId);
+      }
+    });
+  };
 
   return block;
 }
@@ -226,7 +256,9 @@ const addPackBlocks = () => {
 
     elements.off.append(block);
 
-    if (Array.isArray(block.pack.characters) && block.pack.characters.length) {
+    block.setVisibility();
+
+    if (block.visible.length) {
       pickerContent.append(block);
     }
   });
@@ -255,15 +287,17 @@ let applyEvents = globalAppReset(() => {
   elements.off.empty();
   pickerContent.empty();
   altPicker.empty();
+  queryInput.value = '';
   initPickerContent();
 });
 
-export default (altPickerElement) => {
+export default (queryInputElement, altPickerElement) => {
   applyEvents();
   pickerContent = new Block({
     className: 'content',
   });
 
+  queryInput = queryInputElement;
   altPicker = altPickerElement;
 
   setHandlers();

@@ -1,5 +1,6 @@
 import params from '../../../helpers/params';
 import traverse from '../../../helpers/traverse';
+import { getDefaultPanelLayout } from './panel';
 import dynamicStyle from './panelstyle/dynamic';
 
 const stylePropTransforms = {
@@ -49,9 +50,7 @@ export const createDesignQueue = (design) => {
     });
   }
   const locations = [];
-  if (design.panels.layers) {
-    locations.push(design.panels.layers);
-  }
+  locations.push(design.panels.layers ?? getDefaultPanelLayout());
   if (design.preview?.layout) {
     design.preview.layout.forEach((layout) => {
       if (layout.layers) {
@@ -169,7 +168,8 @@ const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage'
         if (!val.file || !imageFiles[val.file]) {
           return null;
         }
-        props[prop] = `url(${imageFiles[val.file].raw.data})`;
+        const fileInfo = imageFiles[val.file].raw;
+        props[prop] = `url(${fileInfo.file ?? fileInfo.data})`;
         break;
       case 'gradient':
         const validGradients = ['linear-gradient', 'repeating-linear-gradient', 'radial-gradient', 'repeating-radial-gradient', 'conic-gradient'];
@@ -183,7 +183,8 @@ const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage'
     }
     return props;
   } else if (typeof val === 'string' && val && imageFiles[val]) {
-    props[prop] = `url(${imageFiles[val].raw.data})`;
+    const fileInfo = imageFiles[val];
+    props[prop] = `url(${fileInfo.file ?? fileInfo.data})`;
     return props;
   }
   return null;
@@ -305,6 +306,16 @@ const handleMask = (mask, imageFiles, styleObject = null) => {
   return returnObject;
 };
 
+const handleFont = (font, imageFiles, styleObject = null) => (
+  handleStyle(font, imageFiles, styleObject, {
+    size: 'fontSize',
+    family: 'fontFamily',
+    weight: 'fontWeight',
+    style: 'fontStyle',
+    decoration: 'textDecoration',
+  })
+);
+
 const handleElement = (style, styleObject = null) => {
   const {
     width = null,
@@ -364,8 +375,8 @@ export const createStylesheet = ({
 }) => {
   const rosterStyle = getStyleProperties(currentRoster, roster);
 
-  const panelImageFilters = processCSSFilters(design.panels.image.filters);
-  const previewImageFilters = processCSSFilters(design.preview.image.filters);
+  const panelImageFilters = processCSSFilters(design.panels.image?.filters);
+  const previewImageFilters = processCSSFilters(design.preview.image?.filters);
 
   const combinedStyles = {};
   if (design.page?.background) {
@@ -395,15 +406,27 @@ export const createStylesheet = ({
   if (design.panels.border) {
     handleBorders(design.panels.border, imageFiles, combinedStyles['.sections .content .panels .panel']);
   }
-  if (design.panels.layers) {
-    design.panels.layers.forEach((layer, idx) => {
-      if (layer.style) {
-        const className = `.sections .content .panels .panel .layer.layer-${idx}`;
-        combinedStyles[className] = combinedStyles[className] ?? {};
-        setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-      }
+  (design.panels.layers ?? getDefaultPanelLayout()).forEach((layer, idx) => {
+    if (layer.style) {
+      const className = `.sections .content .panels .panel .layer.layer-${idx}`;
+      combinedStyles[className] = combinedStyles[className] ?? {};
+      setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+    }
+  });
+
+  const imageFontData = design.panels.image?.font ?? {
+    size: '0.6em',
+  };
+  const imageFont = handleFont(imageFontData, imageFiles);
+  if (imageFontData.autoScale) {
+    const { fontMod } = rosterStyle.panels;
+    const fontModifier = 1 - (+imageFontData.autoScale * (1 - fontMod));
+    imageFont.fontSize = imageFont.fontSize.replace(/^(\d+(?:\.\d+))/, (match) => {
+      return +match * fontModifier;
     });
   }
+  combinedStyles['.sections .content .panels .panel .label'] = imageFont;
+
   if (panelImageFilters) {
     combinedStyles['.panels .panel .image'] = {
       filter: panelImageFilters,

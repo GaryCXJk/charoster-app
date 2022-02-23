@@ -3,6 +3,7 @@ import { globalAppReset } from '../../../helpers/global-on';
 import { clearObject } from '../../../helpers/object-helper';
 import Block from "../base/Block";
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
+import createWaiter from '../../../helpers/create-waiter';
 
 const renderedLabels = {};
 
@@ -53,7 +54,9 @@ const imageContent = async (block, layerInfo, {
         }
       }
       if (imageSize) {
-        imageStr = imageSize.data;
+        imageStr = imageSize.file ?? imageSize.data;
+      } else {
+        imageStr = imageData.file ?? imageSize.data ?? null;
       }
     }
     if (imageStr) {
@@ -123,6 +126,33 @@ const preContentFuncs = {
   }),
 };
 
+export const getDefaultPanelLayout = () => ([
+  {
+    type: 'image',
+    size: ['panel', 'preview'],
+  },
+  {
+    type: 'label',
+    display: 'image',
+  },
+  {
+    type: "image",
+    from: {
+      definition: 'franchise',
+      field: 'symbols',
+    },
+    color: '#fff',
+    style: {
+      element: {
+        width: '2em',
+        height: '2em',
+        right: '-0.75em',
+        bottom: '-0.75em',
+      },
+    },
+  },
+]);
+
 const contentFuncs = {
   image: imageContent,
   label: labelContent,
@@ -140,32 +170,7 @@ const setPanelContent = async ({
   if (designPromise) {
     design = await designPromise;
   }
-  const layers = design?.panels?.layers ?? [
-    {
-      type: 'image',
-      size: ['panel', 'preview'],
-    },
-    {
-      type: 'label',
-      display: 'image',
-    },
-    {
-      type: "image",
-      from: {
-        definition: 'franchise',
-        field: 'symbols',
-      },
-      color: '#fff',
-      style: {
-        element: {
-          width: '2em',
-          height: '2em',
-          right: '-0.75em',
-          bottom: '-0.75em',
-        },
-      },
-    },
-  ];
+  const layers = design?.panels?.layers ?? getDefaultPanelLayout();
 
   let entity = null;
 

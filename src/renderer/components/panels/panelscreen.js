@@ -5,13 +5,13 @@ import { createDesignQueue, createStylesheet } from './panelstyle';
 import { getEntity, getEntityObject } from './processing/entities';
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 import { globalAppReset } from '../../../helpers/global-on';
+import createPreviewCreditsContainerElement from './preview/credits';
 
 let workspace = {};
 const entities = getEntityObject();
 
 let roster = [];
 const elements = {};
-let placeholderRoster = null;
 
 let activePanel = null;
 let addPanelCallbacks = null;
@@ -58,7 +58,7 @@ export const getDesign = async () => {
 
 export const getCurrentRoster = () => workspace.rosters[workspace.displayRoster];
 
-const setStyle = async () => {
+export const setStyle = async (placeholderRoster = null) => {
   const design = await getDesign();
   const designId = getDesignId();
   const designQueue = createDesignQueue(design, designId);
@@ -66,7 +66,7 @@ const setStyle = async () => {
   for (var idx = 0; idx < designQueue.length; idx += 1) {
     const file = designQueue[idx];
     const imageId = `${designId}>${file}`;
-    imageFiles[file] = await getImage('designs', imageId, designId);
+    imageFiles[file] = await getImage('designs', imageId, designId, true);
   }
   elements.style.innerHTML = createStylesheet({
     design,
@@ -100,29 +100,6 @@ const createPreviewImageElement = (layer, monitorElements) => {
     if (layer.from?.definition && layer.from?.field) {
       const values = entityInfo[layer.from.definition];
       if (values) {
-        /*
-        const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field);
-        const imageMap = convertImageDataArray(imageData);
-        let imageId = null;
-        if (entity[layer.from.definition]?.[layer.from?.field]) {
-          imageId = entity[layer.from.definition][layer.from.field];
-        } else {
-          let imageEntry = imageData;
-          while (Array.isArray(imageEntry)) {
-            imageEntry = imageEntry[0];
-          }
-          imageId = imageEntry.fullId;
-        }
-        const pickedImage = imageMap[imageId];
-        let imgStr = null;
-        switch (pickedImage.type) {
-          case 'svg':
-            imgStr = setSVG(pickedImage.content, layer);
-            break;
-          case 'default':
-            break;
-        }
-        */
         const imgStr = await processImageDefinitionLayer(layer, type, entity);
         if (imgStr) {
           image.css({
@@ -136,7 +113,7 @@ const createPreviewImageElement = (layer, monitorElements) => {
       const imageData = await getImage(type, imageId, getDesignId());
 
       image.css({
-        backgroundImage: `url(${imageData.preview.data})`,
+        backgroundImage: `url(${imageData.preview.file ?? imageData.preview.data})`,
       });
     }
   };
@@ -195,6 +172,18 @@ const createPreviewLayoutElements = async (preview, monitorElements) => {
         },
       ],
     },
+    {
+      type: "credits",
+      layers: [
+        {
+          type: "header",
+          label: "Credits"
+        },
+        {
+          type: "content"
+        }
+      ]
+    }
   ];
 
   layout.forEach((element, idx) => {
@@ -203,6 +192,8 @@ const createPreviewLayoutElements = async (preview, monitorElements) => {
       case 'image':
         container = createPreviewImageContainerElement(element, monitorElements);
         break;
+      case 'credits':
+        container = createPreviewCreditsContainerElement(element, monitorElements);
       default:
         break;
     }
@@ -317,7 +308,7 @@ export const renderRoster = (displayRoster = null) => {
   useRoster.forEach((panel) => {
     elements.panels.append(panel);
   });
-  setStyle();
+  setStyle(displayRoster);
 }
 
 const prepareRoster = () => {
@@ -353,6 +344,10 @@ const applyEvents = globalAppReset(() => {
   roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
   resetRoster();
 });
+
+export const getScreenElement = (elementType) => {
+  return elements[elementType] ?? null;
+}
 
 export default ({
   panels: panelsOptions = {},

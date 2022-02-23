@@ -115,4 +115,12 @@ button {
   }
 }
 
+.hidden {
+  display: none;
+}
+
+a {
+  color: var(--main-color);
+}
+
 @import "./sass/panels";
