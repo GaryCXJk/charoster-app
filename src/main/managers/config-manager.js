@@ -1,9 +1,11 @@
-import { mkdir } from 'fs';
+import { mkdir, mkdtempSync, rmSync } from 'fs';
+import { rm } from 'fs/promises';
 import createWaiter from '../../helpers/create-waiter';
+import { onAppReset } from '../helpers/manager-helper';
 
 const { app, ipcMain, nativeTheme, dialog } = require('electron');
 const path = require('path');
-const { access, constants, readFile, writeFile, fstat, existsSync } = require('fs');
+const { access, constants, readFile, writeFile, existsSync } = require('fs');
 const deepmerge = require('deepmerge');
 
 const workFolderWaiter = createWaiter();
@@ -15,13 +17,87 @@ const defaultConfig = {
     height: 600,
   },
   workFolder: null,
+  maxRenderWidth: {
+    characters: 128,
+    stages: 256
+  }
 };
 
-const config = {
-  ...defaultConfig,
-};
+const config = deepmerge({}, defaultConfig);
 
 const configFile = path.join(app.getPath('userData'), 'config.json');
+
+let tempFolder = app.getPath('temp');
+let tempClear = false;
+let tempFiles = [];
+
+const createTempFolder = () => {
+  tempFolder = app.getPath('temp');
+  tempClear = false;
+  tempFiles = [];
+  try {
+    const tFolder = mkdtempSync(path.join(tempFolder, app.name));
+    tempFolder = tFolder;
+    tempClear = true;
+  } catch (_e) {
+
+  }
+}
+createTempFolder();
+
+export const getTempPath = () => tempFolder;
+export const addTempFile = (file) => {
+  tempFiles.push(file);
+}
+export const setTempFile = (file) => {
+  if (!tempClear) {
+    tempFiles.push(file);
+  }
+}
+export const removeTempFilesSync = () => {
+  if (tempClear) {
+    try {
+      rmSync(tempFolder, {
+        recursive: true,
+      });
+    } catch (_e) {
+
+    }
+  } else {
+    try {
+      for (let idx = 0; idx < tempFiles.length; idx++) {
+        const filePath = path.join(tempFolder, tempFiles[idx]);
+        rmSync(filePath);
+      }
+    } catch (_e) {
+
+    }
+  }
+}
+
+export const removeTempFiles = async (remakeTmpFolder = false) => {
+  if (tempClear) {
+    try {
+      await rm(tempFolder, {
+        recursive: true,
+      });
+      if (remakeTmpFolder) {
+        createTempFolder();
+      }
+    } catch (_e) {
+
+    }
+  } else {
+    try {
+      while (tempFiles.length) {
+        const filePath = path.join(tempFolder, tempFiles.shift());
+        await rm(filePath);
+      }
+    } catch (_e) {
+
+    }
+  }
+}
 
 const saveConfig = () => {
   writeFile(configFile, JSON.stringify(config, null, 2), (err) => {
@@ -49,7 +125,12 @@ const fileLoad = new Promise((resolve) => {
         if (err) {
           console.log(err);
         } else {
-          const fileConfig = JSON.parse(data);
+          let fileConfig;
+          try {
+            fileConfig = JSON.parse(data);
+          } catch (_e) {
+            fileConfig = deepmerge({}, defaultConfig);
+          }
           Object.assign(config, deepmerge(config, fileConfig));
 
           setDarkMode(null, false);
@@ -157,4 +238,8 @@ ipcMain.handle('config:set-workfolder', async (_event, data) => {
 
   workFolderWaiter.resolve();
   saveConfig();
+});
+
+onAppReset(() => {
+  removeTempFiles(true);
 });

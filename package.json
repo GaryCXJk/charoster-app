@@ -1,7 +1,7 @@
 {
   "name": "charoster-app",
   "productName": "charoster-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An extendible roster maker for any purpose.",
   "main": ".webpack/main",
   "repository": {
@@ -49,6 +49,7 @@
     "electron-squirrel-startup": "^1.0.0",
     "is-svg": "^4.3.2",
     "sharp": "^0.30.1",
+    "simple-icons": "^6.11.0",
     "throttle-debounce": "^3.0.1"
   }
 }

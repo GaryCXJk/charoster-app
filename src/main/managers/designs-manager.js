@@ -1,10 +1,10 @@
 import * as path from 'path';
 import deepmerge from "deepmerge";
 import Sharp from 'sharp';
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
 import createWaiter from "../../helpers/create-waiter";
 import traverse from "../../helpers/traverse";
-import { getConfig } from "./config-manager";
+import { getConfig, getTempPath, setTempFile } from "./config-manager";
 import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
 import { onAppReset } from '../helpers/manager-helper';
 import { clearObject } from '../../helpers/object-helper';
@@ -24,32 +24,6 @@ const baseDesign = {
 
 const defaultDesign = {
   panels: {
-    layers: [
-      {
-        type: 'image',
-        size: ['panel', 'preview'],
-      },
-      {
-        type: 'label',
-        display: 'image',
-      },
-      {
-        type: "image",
-        from: {
-          definition: 'franchise',
-          field: 'symbols',
-        },
-        color: '#fff',
-        style: {
-          element: {
-            width: '2em',
-            height: '2em',
-            right: '-0.75em',
-            bottom: '-0.75em',
-          },
-        },
-      },
-    ],
     border: {
       width: '0.1em',
     },
@@ -67,6 +41,9 @@ const defaultDesign = {
           },
         }
       ],
+      font: {
+        size: '0.6em'
+      }
     },
   },
   preview: {
@@ -185,16 +162,29 @@ export const getDesignImage = async (imageId) => {
 
   const sharpImage = new Sharp(designPath);
 
-  const buffer = await sharpImage
-    .png()
-    .toBuffer();
+  await sharpImage
+    .png();
 
-  images[imageId] = {
-    raw: {
+  try {
+    const outFile = `design--${imageId.replace(/\>/g, '--')}--raw--${(new Date()).getTime()}.png`;
+    const writePath = path.join(getTempPath(), outFile);
+    const info = await sharpImage.toFile(writePath);
+    const fileUrl = `${app.name}://${outFile}`;
+    images[imageId] = {
+      file: fileUrl,
+      ...info,
+    };
+    setTempFile(outFile);
+  } catch (_e) {
+    console.log(_e);
+    const buffer = await sharpImage
+      .toBuffer();
+
+    images[imageId] = {
       buffer,
       data: `data:image/png;base64,${buffer.toString('base64')}`,
-    },
-  };
+    };
+  }
   waiter.resolve();
   return images[imageId];
 }

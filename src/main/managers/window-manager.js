@@ -1,7 +1,8 @@
 import deepmerge from 'deepmerge';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { EventEmitter } from 'events';
 import { IS_DEVELOPMENT } from '../../global/constants';
+import createWaiter from '../../helpers/create-waiter';
 
 const windowInstances = {};
 
@@ -21,20 +22,22 @@ export const createWindow = (id, options = {}) => {
     ...browserWindowOptions
   } = options;
 
-  const window = new BrowserWindow(deepmerge({
+  const window = new BrowserWindow({
     title: 'ChaRoster',
     titleBarStyle: 'hidden',
     width: 800,
     height: 600,
     fullscreenable: false,
+    show: false,
+    parent: parent ? parent.window : null,
+    ...browserWindowOptions,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      ...(browserWindowOptions.webPreferences ?? {})
     },
-    show: false,
-    parent: parent ? parent.window : null,
-  }, browserWindowOptions));
+  });
 
   const emitter = new WindowEmitter();
 
@@ -54,7 +57,7 @@ export const createWindow = (id, options = {}) => {
   window.once('ready-to-show', async () => {
     emitter.emit('ready');
     if (showWindow) {
-      if (parent) {
+      if (parent && parent.window) {
         if (parent.window.isVisible()) {
           window.show();
           if (!window.getParentWindow()) {
@@ -79,6 +82,11 @@ export const createWindow = (id, options = {}) => {
     setImmediate(() => {
       window.focus()
     })
+  });
+
+  window.webContents.on('new-window', (event, url) => {
+    event.preventDefault();
+    shell.openExternal(url);
   });
 
   windowInstances[id] = {
@@ -111,6 +119,15 @@ export const notifyWindow = (message, payload = {}, id = null) => {
       window.window.webContents.send(message, payload);
     }
   }
+}
+
+export const notifyWindowWithReply = async (message, payload = {}, id) => {
+  const waiter = createWaiter();
+  ipcMain.once(`${message}-reply`, (_event, ...reply) => {
+    waiter.resolve(reply);
+  });
+  notifyWindow(message, payload, id);
+  return await waiter;
 }
 
 ipcMain.handle('curwin:minimize', (_event, id) => {

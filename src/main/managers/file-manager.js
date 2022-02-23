@@ -110,3 +110,11 @@ export const queueEntity = (entityQueue, entityWaiting, entityId) => {
   entityQueue.push(entityId);
   entityWaiting[entityId] = createWaiter();
 }
+
+export const getFileBuffer = async (filePath) => {
+  try {
+    return await readFile(filePath);
+  } catch (_e) {
+    return null;
+  }
+}
