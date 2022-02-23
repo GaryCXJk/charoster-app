@@ -32,16 +32,18 @@ export const resetRoster = () => {
   renderRoster();
 }
 
-export const setCurrentWorkspace = (newWorkspace, store = true, recreateRoster = false) => {
+export const setCurrentWorkspace = (newWorkspace, store = true, recreateRoster = false, updatePreview = true) => {
   workspace = newWorkspace;
   if (store) {
-    storeWorkspace();
+    storeWorkspace(null, store !== 'noUpdate');
   }
   if (recreateRoster) {
     const currentRoster = getCurrentRoster();
     roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
   }
-  elements.preview.resetPreview();
+  if (updatePreview, elements.preview) {
+    elements.preview.resetPreview();
+  }
   resetRoster();
 }
 
@@ -160,6 +162,7 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
 const createPreviewLayoutElements = async (preview, monitorElements) => {
   await setupPromise;
   const design = await getDesign();
+  preview.empty();
   const layout = design.preview?.layout ?? [
     {
       type: "image",
@@ -331,9 +334,14 @@ const setupWorkspace = async () => {
   workspace = await window.workspace.retrieve();
 }
 
-export const storeWorkspace = async () => {
+export const storeWorkspace = async (newWorkspace = null, update = true) => {
+  if (newWorkspace) {
+    workspace = newWorkspace;
+  }
   window.sessionStorage.setItem('currentWorkspace', JSON.stringify(workspace));
-  await window.workspace.update(workspace);
+  if (update) {
+    await window.workspace.update(workspace);
+  }
 }
 
 const applyEvents = globalAppReset(() => {

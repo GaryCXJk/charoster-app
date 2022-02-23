@@ -3,6 +3,7 @@ import params from '@@helpers/params';
 
 export const ipcListeners = [
   'reset-all',
+  'sync-workspace',
 ];
 
 export const contextBridgePaths = {
