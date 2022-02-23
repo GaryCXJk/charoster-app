@@ -100,12 +100,15 @@ const exportImage = async (screen, options = {}) => {
   if (options.size) {
     window.window.setSize(options.size.width ?? width, options.size.height ?? height);
   }
-  const reply = await notifyWindowWithReply('request-credits-size', {}, 'render');
-  const [ addedHeight ] = reply;
 
-  if (addedHeight) {
-    const [currentWidth, currentHeight] = window.window.getSize();
-    window.window.setSize(currentWidth, currentHeight + addedHeight);
+  if (options.includeCredits) {
+    const reply = await notifyWindowWithReply('request-credits-size', {}, 'render');
+    const [ addedHeight ] = reply;
+
+    if (addedHeight) {
+      const [currentWidth, currentHeight] = window.window.getSize();
+      window.window.setSize(currentWidth, currentHeight + addedHeight);
+    }
   }
 
   const image = await window.window.webContents.capturePage();
@@ -120,7 +123,10 @@ const exportImage = async (screen, options = {}) => {
     properties: [],
   });
   window.window.setSize(width, height);
-  notifyWindow('cleanup-credits', {}, 'render');
+
+  if (options.includeCredits) {
+    notifyWindow('cleanup-credits', {}, 'render');
+  }
   if (status.canceled) {
     return null;
   }
