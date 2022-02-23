@@ -1,10 +1,30 @@
 import Block from "../../base/Block"
 import { getImageId } from "../funcs/image-id";
-import { getDesignId } from "../panelscreen";
 import { getEntity } from "../processing/entities";
-import { getImage } from "../processing/layers/image";
-import { siDeviantart, siTwitter, siYoutube } from 'simple-icons/icons';
+import { siArtstation, siDeviantart, siImgur, siTwitter, siYoutube } from 'simple-icons/icons';
+import mdiPublic from '@material-design-icons/svg/two-tone/public.svg';
+import mdi from "../../../../helpers/mdi";
 import si from "../../../../helpers/si";
+
+const brandMapping = {
+  'artstation.com': siArtstation,
+  'deviantart.com': siDeviantart,
+  'imgur.com': siImgur,
+  'i.imgur.com': siImgur,
+  'twitter.com': siTwitter,
+  'youtu.be': siYoutube,
+  'youtube.com': siYoutube,
+};
+
+const labelMapping = {
+  'twitter.com': (url) => {
+    const match = url.match(/twitter\.com\/([\w\d]+)\/?$/);
+    if (match) {
+      return `@${match[1]}`;
+    }
+    return url;
+  }
+};
 
 const gatherCredits = (entity, imageId) => {
   const segments = imageId.split('>');
@@ -15,17 +35,39 @@ const gatherCredits = (entity, imageId) => {
   const imageUrls = [];
 
   const imagesData = entity.imageMap[fullId];
+  if (imagesData.imageBase) {
+    if (entity.imageMap[imagesData.imageBase]?.credits) {
+      const parentCredits = entity.imageMap[imagesData.imageBase]?.credits;
+      if (!Array.isArray(parentCredits)) {
+        creditsData.push(parentCredits);
+      } else {
+        creditsData.push(...parentCredits);
+      }
+    }
+  }
   if (imagesData) {
     const imageData = imagesData.images[index];
     if (imageData && typeof imageData === 'object' && imageData.credits) {
-      creditsData.push(...imageData.credits);
+      if (!Array.isArray(imageData.credits)) {
+        creditsData.push(imageData.credits);
+      } else {
+        creditsData.push(...imageData.credits);
+      }
     }
     if (imagesData.credits) {
-      creditsData.push(...imagesData.credits);
+      if (!Array.isArray(imagesData.credits)) {
+        creditsData.push(imagesData.credits);
+      } else {
+        creditsData.push(...imagesData.credits);
+      }
     }
   }
   if (entity.credits) {
-    creditsData.push(...entity.credits);
+    if (!Array.isArray(entity.credits)) {
+      creditsData.push(entity.credits);
+    } else {
+      creditsData.push(...entity.credits);
+    }
   }
 
   creditsData.forEach((credit) => {
@@ -50,17 +92,8 @@ const getLinkIcon = (href) => {
   if (match) {
     let elem = null;
     let src = null;
-    switch (match[1]) {
-      case 'youtube.com':
-      case 'youtu.be':
-        elem = si(siYoutube);
-        break;
-      case 'twitter.com':
-        elem = si(siTwitter);
-        break;
-      case 'deviantart.com':
-        elem = si(siDeviantart);
-        break;
+    if (brandMapping[match[1]]) {
+      elem = si(brandMapping[match[1]]);
     }
     if (!elem && src) {
       elem = new Block({
@@ -68,11 +101,13 @@ const getLinkIcon = (href) => {
         src: `/assets/images/${src}`,
       });
     }
+    if (!elem) {
+      elem = mdi(mdiPublic);
+    }
     if (elem) {
       return elem;
     }
   }
-  console.log(href, match);
   return null;
 }
 
@@ -129,6 +164,12 @@ const createCreditsBlock = (creditsLabel, links) => {
           a.append(icon);
         }
         if (content) {
+          const match = content.match(/^https?:\/\/(?:www\.)?(.+?)(?:\/.*?)?$/);
+          if (match) {
+            if (labelMapping[match[1]]) {
+              content = labelMapping[match[1]](content);
+            }
+          }
           a.append(content);
         }
 
@@ -155,6 +196,14 @@ export const createPreviewCredits = async (type, entity, container = null) => {
   const imageId = entity.imageId ?? getImageId(entityInfo);
   const creditsData = gatherCredits(entityInfo, imageId);
 
+  if (creditsData.imageUrls.length) {
+    const block = createCreditsBlock(`Image URL${creditsData.imageUrls.length === 1 ? '' : 's'}:`, creditsData.imageUrls);
+
+    if (block) {
+      content.append(block);
+    }
+  }
+
   creditsData.credits.forEach((credit) => {
     const block = createCreditsBlock(credit.artist ?? null, credit.artistUrls ?? []);
 
@@ -162,14 +211,6 @@ export const createPreviewCredits = async (type, entity, container = null) => {
       content.append(block);
     }
   });
-
-  if (creditsData.imageUrls.length) {
-    const block = createCreditsBlock('Image URLs:', creditsData.imageUrls);
-
-    if (block) {
-      content.append(block);
-    }
-  }
 
   return content;
 }
