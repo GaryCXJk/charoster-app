@@ -26,7 +26,7 @@ const labelMapping = {
   }
 };
 
-const gatherCredits = (entity, imageId) => {
+export const gatherCredits = (entity, imageId) => {
   const segments = imageId.split('>');
   const index = segments.pop();
   const fullId = segments.join('>');
