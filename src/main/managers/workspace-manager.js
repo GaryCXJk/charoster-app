@@ -38,6 +38,12 @@ export const createWorkspace = () => {
 export const loadWorkspace = async (screen) => {
   const status = await dialog.showOpenDialog(getWindow(screen).window, {
     defaultPath: getWorkFolder(),
+    filters: [
+      {
+        name: 'JSON',
+        extensions: ['json'],
+      }
+    ],
     properties: ['openFile'],
   });
   if (status.cancelled) {
@@ -64,6 +70,12 @@ export const saveWorkspace = async (screen, saveAs = false) => {
   if (!workspaceFile || saveAs) {
     const status = await dialog.showSaveDialog(getWindow(screen).window, {
       defaultPath: path.join(getWorkFolder(), `${workspace.title}.json`),
+      filters: [
+        {
+          name: 'JSON',
+          extensions: ['json'],
+        },
+      ],
     });
     if (status.canceled) {
       return workspace;
