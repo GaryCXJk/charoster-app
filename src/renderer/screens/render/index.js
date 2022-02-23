@@ -69,7 +69,7 @@ export default () => {
     return elementHeight;
   });
 
-  window.globalEventHandler.on('cleanup-credits', async () => {
+  window.globalEventHandler.on('cleanup-credits', () => {
     creditsContainer.empty();
     creditsContainer.detach();
     creditsContainer.element.classList.add('unbound');
