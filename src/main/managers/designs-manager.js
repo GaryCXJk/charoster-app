@@ -190,6 +190,23 @@ export const getDesignImage = async (imageId) => {
 }
 
 ipcMain.handle('designs:get', (_event, designId = null) => getDesign(designId));
+ipcMain.handle('designs:get-dropdown', async () => {
+  await Promise.all(Object.values(waiting));
+  const dropdown = [];
+  dropdown.push({
+    id: '',
+    label: 'Default',
+  });
+
+  Object.keys(designs).forEach((designId) => {
+    dropdown.push({
+      id: designId,
+      label: designs[designId].name ?? designId,
+    });
+  });
+
+  return dropdown;
+});
 
 onAppReset(() => {
   clearObject(designs);

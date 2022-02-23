@@ -19,6 +19,7 @@ import createPanelScreen, {
   awaitSetup,
   setStyle,
   getScreenElement,
+  getCurrentWorkspace,
 } from '../../components/panels/panelscreen';
 import mdi from '../../../helpers/mdi';
 
@@ -30,6 +31,10 @@ let placeholder = null;
 let placeholderRoster = null;
 
 let activePanel = null;
+
+const updateActions = {
+  theme: ['style'],
+};
 
 const actions = {
   create: async () => {
@@ -58,6 +63,22 @@ const setHandlers = () => {
       placeholder = null;
       placeholderRoster = null;
     }
+  });
+
+  window.globalEventHandler.on('sync-workspace', (newWorkspace) => {
+    const workspace = getCurrentWorkspace();
+
+    const needsUpdate = {};
+
+    Object.keys(updateActions).forEach((prop) => {
+      if (workspace[prop] !== newWorkspace[prop]) {
+        updateActions[prop].forEach((action) => {
+          needsUpdate[action] = true;
+        });
+      }
+    });
+
+    setCurrentWorkspace(newWorkspace, 'noUpdate', needsUpdate.style, false);
   });
 
   window.addEventListener('keydown', (e) => {

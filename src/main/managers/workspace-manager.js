@@ -97,7 +97,7 @@ export const saveWorkspace = async (screen, saveAs = false) => {
 export const updateWorkspace = (workspaceData) => {
   workspace = workspaceData;
 
-  notifyWindow('sync-workspace', workspace, 'render');
+  notifyWindow('sync-workspace', workspace);
 
   return workspace;
 }
