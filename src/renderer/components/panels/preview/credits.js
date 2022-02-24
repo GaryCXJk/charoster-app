@@ -10,7 +10,6 @@ const brandMapping = {
   'artstation.com': siArtstation,
   'deviantart.com': siDeviantart,
   'imgur.com': siImgur,
-  'i.imgur.com': siImgur,
   'twitter.com': siTwitter,
   'youtu.be': siYoutube,
   'youtube.com': siYoutube,
@@ -88,12 +87,13 @@ export const gatherCredits = (entity, imageId) => {
 }
 
 const getLinkIcon = (href) => {
-  const match = href.match(/^https?:\/\/(?:www\.)?(.+?)(?:\/.*?)?$/);
+  const regex = new RegExp(`^https?:\/\/(.+?\.)(${Object.keys(brandMapping).join('|').replace('.', '\\.')})(.+?)(?:\/.*?)?$`);
+  const match = href.match(regex);
+  let elem = null;
   if (match) {
-    let elem = null;
     let src = null;
-    if (brandMapping[match[1]]) {
-      elem = si(brandMapping[match[1]]);
+    if (brandMapping[match[2]]) {
+      elem = si(brandMapping[match[2]]);
     }
     if (!elem && src) {
       elem = new Block({
@@ -101,14 +101,13 @@ const getLinkIcon = (href) => {
         src: `/assets/images/${src}`,
       });
     }
-    if (!elem) {
-      elem = mdi(mdiPublic);
-    }
-    if (elem) {
-      return elem;
-    }
   }
-  return null;
+  if (!elem) {
+    elem = mdi(mdiPublic);
+  }
+  if (elem) {
+    return elem;
+  }
 }
 
 const createCreditsBlock = (creditsLabel, links) => {
