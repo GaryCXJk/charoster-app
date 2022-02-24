@@ -27,6 +27,13 @@ const createEntityData = () => {
 
 const entities = {};
 const imageMap = {};
+const entityTypes = [
+  'characters',
+  'stages',
+  'items',
+];
+
+export const getEntityTypes = () => [...entityTypes];
 
 export const fetchEntities = async (type, packFolder) => {
   return await fm.fetchEntities(type, packFolder);

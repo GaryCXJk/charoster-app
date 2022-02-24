@@ -82,6 +82,8 @@ const getImageId = (type, entity) => {
   let imageId = null;
   if (funcs[type] && funcs[type].getImageId) {
     imageId = funcs[type].getImageId(entity);
+  } else if (funcs.entities.getImageId) {
+    imageId = funcs.entities.getImageId(entity);
   }
 
   return imageId;

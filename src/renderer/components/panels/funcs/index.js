@@ -1,5 +1,7 @@
-import * as characters from './image-id';
+import * as entities from './image-id';
 
 export default {
-  characters,
+  characters: entities,
+  stages: entities,
+  entities,
 };

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { awaitQueue, fetchEntities, getAltImageInfo, getAltImages, getAltImageUrls, getEntityList, loadEntity, queueEntity } from './entity-manager';
+import { awaitQueue, fetchEntities, getAltImageInfo, getAltImageUrls, getEntityList, loadEntity, queueEntity } from './entity-manager';
 
 export const fetchCharacters = async (packFolder) => {
   return await fetchEntities('characters', packFolder);
