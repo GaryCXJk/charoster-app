@@ -1,4 +1,4 @@
-import { app, protocol, screen } from 'electron';
+import { app, ipcMain, protocol, screen } from 'electron';
 import * as path from 'path';
 import { debounce } from 'throttle-debounce';
 import { hasWindow, createWindow } from './managers/window-manager';
@@ -7,7 +7,7 @@ import { discoverPacks } from './managers/packs-manager';
 import './managers/workspace-manager';
 import './helpers/drag-helper';
 import { getAltImage } from './managers/entity-manager';
-import { getFileBuffer } from './managers/file-manager';
+import { getFileBuffer, setBufferWaiter } from './managers/file-manager';
 
 let mainWindow;
 let pickerWindow;
@@ -63,11 +63,13 @@ app.on('ready', () => {
     }
 
     let buffer;
-    try {
-      buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3]);
-    } catch (e) {
-      console.log(e);
-    }
+    await setBufferWaiter(url, async () => {
+      try {
+        buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3]);
+      } catch (e) {
+        console.log(e);
+      }
+    });
     if (!buffer) {
       callback({ error: 404 });
       return;

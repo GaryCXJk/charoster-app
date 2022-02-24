@@ -28,6 +28,9 @@ const getCurrentRoster = (currentWorkspace = null) => (currentWorkspace ?? works
 
 const setHandlers = () => {
   window.globalEventHandler.on('entity-updated', ({type, entity: entityData}) => {
+    if (!entityData) {
+      return;
+    }
     entities[type] = entities[type] ?? {};
     entities[type][entityData.fullId] = entityData;
     waiters[type] = waiters[type] ?? {};
@@ -79,6 +82,7 @@ const setHandlers = () => {
 }
 
 const getImageList = (entityId) => {
+  const entityType = getCurrentRoster().type;
   const alts = [];
   const entity = entities[entityType][entityId];
 
@@ -105,18 +109,18 @@ const getImageList = (entityId) => {
   return alts;
 }
 
-const createPanel = (charId, imageId = null) => {
+const createPanel = (id, imageId = null) => {
   const entityType = getCurrentRoster().type;
   const panel = createPanelBase({
     type: entityType,
-    entityId: charId,
+    entityId: id,
     imageId,
     showLabel: !imageId,
     draggable: true,
     callbacks: {
       panel: {
         dragstart: () => {
-          window.panels.startDrag(charId, imageId);
+          window.panels.startDrag(id, imageId);
         },
         dragend: () => {
           window.panels.endDrag();
@@ -137,7 +141,7 @@ const createPanel = (charId, imageId = null) => {
 
                 const altGroups = {};
 
-                getImageList(charId).forEach((altInfo) => {
+                getImageList(id).forEach((altInfo) => {
                   let altLabel = altInfo.label ?? altInfo.name ?? '';
                   let altContainer = null;
                   if (altInfo.group) {
@@ -158,8 +162,8 @@ const createPanel = (charId, imageId = null) => {
                       altGroups[altInfo.group] = altContainer;
                     }
                   }
-                  altInfo.images.forEach((costumeId) => {
-                    const altPanel = createPanel(charId, costumeId);
+                  altInfo.images.forEach((altId) => {
+                    const altPanel = createPanel(id, altId);
                     altContainer.append(altPanel);
                   });
                 });
@@ -168,7 +172,11 @@ const createPanel = (charId, imageId = null) => {
               }
             }
           }
-          : {}
+          : {
+            dblclick: () => {
+              console.log(window.panels.send(id, imageId));
+            }
+          }
         ),
       },
       image: {
