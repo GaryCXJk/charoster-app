@@ -27,7 +27,7 @@ const elements = {
 const getCurrentRoster = (currentWorkspace = null) => (currentWorkspace ?? workspace).rosters[(currentWorkspace ?? workspace).displayRoster];
 
 const setHandlers = () => {
-  window.globalEventHandler.on('entity-updated', ({type, entityData}) => {
+  window.globalEventHandler.on('entity-updated', ({type, entity: entityData}) => {
     entities[type] = entities[type] ?? {};
     entities[type][entityData.fullId] = entityData;
     waiters[type] = waiters[type] ?? {};
