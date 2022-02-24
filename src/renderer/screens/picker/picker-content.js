@@ -11,7 +11,6 @@ let altPicker;
 let queryInput;
 const packs = {};
 const blocks = {};
-const characters = {};
 const entities = {};
 const waiters = {
   characters: {},
@@ -19,21 +18,35 @@ const waiters = {
 };
 const packWaiters = {};
 let activePanel = null;
+let workspace;
 
 const elements = {
   off: new Block(),
 };
 
-const setHandlers = () => {
-  window.globalEventHandler.on('entity-updated', (entityType, entityData) => {
+const getCurrentRoster = (currentWorkspace = null) => (currentWorkspace ?? workspace).rosters[(currentWorkspace ?? workspace).displayRoster];
 
+const setHandlers = () => {
+  window.globalEventHandler.on('entity-updated', ({type, entityData}) => {
+    entities[type] = entities[type] ?? {};
+    entities[type][entityData.fullId] = entityData;
+    waiters[type] = waiters[type] ?? {};
+    if (waiters[type][entityData.fullId]) {
+      waiters[type][entityData.fullId].resolve(entityData);
+    }
   });
 
-  window.globalEventHandler.on('character-updated', (characterData) => {
-    characters[characterData.fullId] = characterData;
-    waiters.characters = waiters.characters ?? {};
-    if (waiters.characters[characterData.fullId]) {
-      waiters.characters[characterData.fullId].resolve(characterData);
+  window.globalEventHandler.on('pack-entity-list-ready', async ({ type, packId, entityList }) => {
+    const currentRoster = getCurrentRoster();
+    const currentType = currentRoster.type ?? 'characters';
+    if (!packs[packId]) {
+      packWaiters[packId] = createWaiter();
+      await packWaiters[packId];
+    }
+    packs[packId][type].push(...entityList);
+    if (type === currentType) {
+      entityList.forEach(blocks[packId].createPanel);
+      addPackBlocks();
     }
   });
 
@@ -51,18 +64,13 @@ const setHandlers = () => {
     }
   });
 
-  window.globalEventHandler.on('pack-character-list-ready', async (data) => {
-    const {
-      packId,
-      characters,
-    } = data;
-    if (!packs[packId]) {
-      packWaiters[packId] = createWaiter();
-      await packWaiters[packId];
+  window.globalEventHandler.on('sync-workspace', (newWorkspace) => {
+    const shouldRefresh = getCurrentRoster().type !== getCurrentRoster(newWorkspace).type;
+    workspace = newWorkspace;
+
+    if (shouldRefresh) {
+      pickerReset();
     }
-    packs[packId].characters.push(...characters);
-    characters.forEach(blocks[packId].createPanel);
-    addPackBlocks();
   });
 
   queryInput.addEventListener('input', debounce(250, () => {
@@ -70,12 +78,12 @@ const setHandlers = () => {
   }));
 }
 
-const getImageList = (charId) => {
+const getImageList = (entityId) => {
   const alts = [];
-  const character = characters[charId];
+  const entity = entities[entityType][entityId];
 
-  if (character.images) {
-    character.images.forEach((alt) => {
+  if (entity.images) {
+    entity.images.forEach((alt) => {
       if (alt.images) {
         const altInfo = {
           name: alt.name ?? null,
@@ -83,8 +91,8 @@ const getImageList = (charId) => {
         }
         if (alt.group) {
           altInfo.group = alt.group;
-          if (character.groups?.[alt.group]) {
-            altInfo.label = character.groups[alt.group];
+          if (entity.groups?.[alt.group]) {
+            altInfo.label = entity.groups[alt.group];
           }
         }
         for (let idx = 0; idx < alt.images.length; idx += 1) {
@@ -98,8 +106,9 @@ const getImageList = (charId) => {
 }
 
 const createPanel = (charId, imageId = null) => {
+  const entityType = getCurrentRoster().type;
   const panel = createPanelBase({
-    type: 'characters',
+    type: entityType,
     entityId: charId,
     imageId,
     showLabel: !imageId,
@@ -126,32 +135,32 @@ const createPanel = (charId, imageId = null) => {
                 }
                 activePanel = panel;
 
-                const costumeGroups = {};
+                const altGroups = {};
 
-                getImageList(charId).forEach((costumeInfo) => {
-                  let costumeLabel = costumeInfo.label ?? costumeInfo.name ?? '';
-                  let costumeContainer = null;
-                  if (costumeInfo.group) {
-                    const costumeGroup = costumeInfo.group;
-                    costumeContainer = costumeGroups[costumeGroup] ?? null;
+                getImageList(charId).forEach((altInfo) => {
+                  let altLabel = altInfo.label ?? altInfo.name ?? '';
+                  let altContainer = null;
+                  if (altInfo.group) {
+                    const altGroup = altInfo.group;
+                    altContainer = altGroups[altGroup] ?? null;
                   }
-                  if (!costumeContainer) {
+                  if (!altContainer) {
                     const costumeHeader = new Block({
                       className: 'header',
-                      textContent: costumeLabel,
+                      textContent: altLabel,
                     });
                     altPicker.append(costumeHeader);
-                    costumeContainer = new Block({
+                    altContainer = new Block({
                       className: 'alt-group',
                     });
-                    altPicker.append(costumeContainer);
-                    if (costumeInfo.group) {
-                      costumeGroups[costumeInfo.group] = costumeContainer;
+                    altPicker.append(altContainer);
+                    if (altInfo.group) {
+                      altGroups[altInfo.group] = altContainer;
                     }
                   }
-                  costumeInfo.images.forEach((costumeId) => {
-                    const costumePanel = createPanel(charId, costumeId);
-                    costumeContainer.append(costumePanel);
+                  altInfo.images.forEach((costumeId) => {
+                    const altPanel = createPanel(charId, costumeId);
+                    altContainer.append(altPanel);
                   });
                 });
               } else {
@@ -164,21 +173,21 @@ const createPanel = (charId, imageId = null) => {
       },
       image: {
         setEntity: async (entityId) => {
-          let character = characters[entityId];
+          let entity = entities[entityType][entityId];
 
-          if (!character) {
-            characters[entityId] = await window.characters.getCharacter(entityId);
-            character = characters[entityId];
+          if (!entity) {
+            entities[entityType][entityId] = await window.entities.getEntity(entityType, entityId);
+            entity = entities[entityType][entityId];
           }
-          return character;
+          return entity;
         },
         setImage: ({
-          entity: character,
+          entity,
         }) => {
-          let altId = character.defaultImage;
+          let altId = entity.defaultImage;
 
-          if (!altId && character.images) {
-            character.images.every((alt) => {
+          if (!altId && entity.images) {
+            entity.images.every((alt) => {
               if (alt.images && alt.images.length) {
                 altId = `${alt.fullId}>0`;
                 return false;
@@ -196,6 +205,8 @@ const createPanel = (charId, imageId = null) => {
 }
 
 const createPackBlock = (packId) => {
+  const currentRoster = getCurrentRoster();
+  const entityType = currentRoster.type;
   const pack = packs[packId];
   const block = new Block({
     className: 'pack',
@@ -221,14 +232,15 @@ const createPackBlock = (packId) => {
     block.panelMap[elementId] = panel;
     panel.entityId = elementId;
     block.visible.push(elementId);
-    getEntity('characters', elementId).then((entity) => {
+    getEntity(entityType, elementId).then((entity) => {
       panel.entity = entity;
     });
 
     panels.append(panel);
   };
-  if (Array.isArray(pack.characters)) {
-    pack.characters.forEach(block.createPanel);
+
+  if (Array.isArray(pack[entityType])) {
+    pack[entityType].forEach(block.createPanel);
   }
 
   blocks[packId] = block;
@@ -237,11 +249,11 @@ const createPackBlock = (packId) => {
   block.off = new Block();
   block.panels = panels;
   block.setVisibility = () => {
-    if (!pack.characters) {
+    if (!pack[entityType] || pack[entityType] === true) {
       return;
     }
     block.visible.splice(0, block.visible.length);
-    pack.characters.forEach((entityId) => {
+    pack[entityType].forEach((entityId) => {
       const panel = block.panelMap[entityId];
       if (!queryInput.value) {
         block.visible.push(entityId);
@@ -274,11 +286,13 @@ const addPackBlocks = () => {
 }
 
 const initPickerContent = async () => {
+  workspace = await window.workspace.retrieve();
+  entities.characters = entities.characters ?? {};
   const fetchPacks = await window.packs.getPackList();
   const fetchCharacters = await window.characters.getCharacterList();
 
   Object.assign(packs, fetchPacks);
-  Object.assign(characters, fetchCharacters);
+  Object.assign(entities.characters, fetchCharacters);
 
   Object.keys(fetchPacks).forEach((packId) => {
     elements.off.append(createPackBlock(packId));
@@ -287,10 +301,9 @@ const initPickerContent = async () => {
   addPackBlocks();
 }
 
-let applyEvents = globalAppReset(() => {
+const pickerReset = () => {
   clearObject(packs);
   clearObject(blocks);
-  clearObject(characters);
   clearObject(entities);
   clearObject(waiters);
   activePanel = null;
@@ -299,7 +312,9 @@ let applyEvents = globalAppReset(() => {
   altPicker.empty();
   queryInput.value = '';
   initPickerContent();
-});
+};
+
+let applyEvents = globalAppReset(pickerReset);
 
 export default (queryInputElement, altPickerElement) => {
   applyEvents();
