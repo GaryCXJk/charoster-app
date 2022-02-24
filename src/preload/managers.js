@@ -13,12 +13,10 @@ export const contextBridgePaths = {
   characters: {
     getCharacterList: (filterCharacter = null) => ipcRenderer.invoke('characters:get-character-list', filterCharacter),
     getCharacter: (characterId) => ipcRenderer.invoke('characters:get-character', characterId),
-    getImages: (imageId, filter = null) => ipcRenderer.invoke('characters:get-images', imageId, filter),
   },
   entities: {
     getEntityList: (type, filterEntity = null) => ipcRenderer.invoke('entities:get-entity-list', type, filterEntity),
     getEntity: (type, entityId) => ipcRenderer.invoke('entities:get-entity', type, entityId),
-    getImages: (imageId, filter = null) => ipcRenderer.invoke('entities:get-images', imageId, filter),
   },
   definitions: {
     getDefinitionValue: (definitionId, valueId, field, fromPack = null) => ipcRenderer.invoke('definitions:get-definition-value', definitionId, valueId, field, fromPack),

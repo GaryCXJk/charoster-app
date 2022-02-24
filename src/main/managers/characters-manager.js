@@ -36,5 +36,4 @@ ipcMain.handle('characters:get-character', (_event, characterId) => {
   return loadCharacter(characterId);
 });
 
-ipcMain.handle('characters:get-images', (_event, imageId, filter = null, renderer = false) => getCostumeImages(imageId, filter, renderer));
 ipcMain.handle('characters:get-image-info', (_event, imageId) => getCostumeImageInfo(imageId));
