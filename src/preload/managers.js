@@ -3,6 +3,7 @@ import { ipcRenderer } from 'electron';
 export const ipcListeners = [
   'character-updated',
   'entity-updated',
+  'send-panel',
 ];
 
 export const contextBridgePaths = {

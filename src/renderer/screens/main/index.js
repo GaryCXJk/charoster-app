@@ -12,13 +12,11 @@ import createPanelScreen, {
   getCurrentRoster,
   setCurrentWorkspace,
   getRoster,
-  renderRoster,
   resetRoster,
   setRoster,
   storeWorkspace,
   awaitSetup,
   setStyle,
-  getScreenElement,
   getCurrentWorkspace,
 } from '../../components/panels/panelscreen';
 import mdi from '../../../helpers/mdi';
@@ -79,6 +77,15 @@ const setHandlers = () => {
     });
 
     setCurrentWorkspace(newWorkspace, 'noUpdate', needsUpdate.style, false);
+  });
+
+  window.globalEventHandler.on('send-panel', (entity) => {
+    const currentRoster = getCurrentRoster();
+
+    currentRoster.roster.push(entity);
+    getRoster().push(addPanel(currentRoster.type, entity));
+    resetRoster();
+    storeWorkspace();
   });
 
   window.addEventListener('keydown', (e) => {
@@ -249,7 +256,6 @@ export default () => {
             elements.panels.append(placeholder);
           }
           setStyle(placeholderRoster);
-          // renderRoster(placeholderRoster);
         }
       });
     },

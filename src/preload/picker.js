@@ -16,5 +16,6 @@ export const contextBridgePaths = deepmerge(managers.contextBridgePaths, {
   panels: {
     startDrag: (id, imageId = null) => ipcRenderer.send('drag-helper:on-start-drag', id, imageId),
     endDrag: () => ipcRenderer.send('drag-helper:on-end-drag'),
+    send: (id, imageId = null) =>ipcRenderer.send('entities:send-panel', id, imageId),
   },
 });

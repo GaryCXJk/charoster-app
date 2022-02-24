@@ -424,6 +424,13 @@ ipcMain.handle('entities:get-entity', (_event, type, entityId) => {
 
 ipcMain.handle('entities:get-image-info', (_event, type, imageId) => getAltImageInfo(type, imageId));
 
+ipcMain.on('entities:send-panel', (_event, entityId, imageId = null) => {
+  notifyWindow('send-panel', {
+    entityId,
+    imageId,
+  });
+});
+
 onAppReset(() => {
   clearObject(entities);
   clearObject(imageMap);
