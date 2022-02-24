@@ -12,7 +12,11 @@ let queryInput;
 const packs = {};
 const blocks = {};
 const characters = {};
-const waiters = {};
+const entities = {};
+const waiters = {
+  characters: {},
+  stages: {},
+};
 const packWaiters = {};
 let activePanel = null;
 
@@ -21,10 +25,15 @@ const elements = {
 };
 
 const setHandlers = () => {
+  window.globalEventHandler.on('entity-updated', (entityType, entityData) => {
+
+  });
+
   window.globalEventHandler.on('character-updated', (characterData) => {
     characters[characterData.fullId] = characterData;
-    if (waiters[characterData.fullId]) {
-      waiters[characterData.fullId].resolve(characterData);
+    waiters.characters = waiters.characters ?? {};
+    if (waiters.characters[characterData.fullId]) {
+      waiters.characters[characterData.fullId].resolve(characterData);
     }
   });
 
@@ -282,6 +291,7 @@ let applyEvents = globalAppReset(() => {
   clearObject(packs);
   clearObject(blocks);
   clearObject(characters);
+  clearObject(entities);
   clearObject(waiters);
   activePanel = null;
   elements.off.empty();
