@@ -1,14 +1,11 @@
 import deepmerge from 'deepmerge';
 import { globalAppReset } from '../../../helpers/global-on';
-import { clearObject } from '../../../helpers/object-helper';
 import Block from "../base/Block";
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
-import createWaiter from '../../../helpers/create-waiter';
-
-const renderedLabels = {};
+import { clearImageLabels, getLabel, imageLabel } from './processing/layers/label';
 
 let applyEvents = globalAppReset(() => {
-  clearObject(renderedLabels);
+  clearImageLabels();
 });
 
 const imageContent = async (block, layerInfo, {
@@ -74,40 +71,18 @@ const labelContent = async (block, layerInfo, {
   label = null,
 }) => {
   if (showLabel) {
-    let displayLabel = label;
-    if (!displayLabel) {
-      if (imageId) {
-        const imageInfo = await window.packs.getImageInfo(type, imageId);
-        displayLabel = displayLabel ?? imageInfo.allCapsDisplayName ?? (imageInfo.displayName ? imageInfo.displayName.toUpperCase() : null);
-      }
-      displayLabel = displayLabel ?? entity.allCapsDisplayName ?? (entity.displayName ? entity.displayName.toUpperCase() : null) ?? entity.allCapsName ?? (entity.name ?? entity.id).toUpperCase();
-    }
+    let displayLabel = label ?? await getLabel(type, entity, imageId);
 
     block.prop('textContent', displayLabel);
     if (layerInfo.display === 'image') {
-      if (!renderedLabels[displayLabel]) {
-        await document.fonts.ready;
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        context.font = 'bold 144px "Montserrat"';
-        context.fillStyle = 'white';
-        const metric = context.measureText(displayLabel);
-        const labelY = Math.ceil(metric.actualBoundingBoxAscent);
-        const labelWidth = Math.ceil(metric.width);
-        const labelHeight = Math.ceil(metric.actualBoundingBoxAscent + metric.actualBoundingBoxDescent);
-
-        canvas.width = labelWidth;
-        canvas.height = labelHeight;
-        context.font = 'bold 144px Montserrat';
-        context.fillStyle = 'white';
-        context.fillText(displayLabel, 0, labelY);
-        renderedLabels[displayLabel] = canvas.toDataURL();
-      }
-
       block.prop('textContent', '');
+      const labelUrl = await imageLabel({
+        label: displayLabel,
+      });
+
       const labelImage = document.createElement('img');
       labelImage.className = 'label-image';
-      labelImage.src = renderedLabels[displayLabel];
+      labelImage.src = labelUrl;
       block.append(labelImage);
     }
 
@@ -218,7 +193,10 @@ const setPanelContent = async ({
       panel.append(block);
       if (contentFuncs[layer.type]) {
         blockPromises.push(
-          contentFuncs[layer.type](block, layer, contentProps)
+          contentFuncs[layer.type](block, layer, {
+            ...contentProps,
+            layerIndex: idx,
+          })
         );
       }
     }

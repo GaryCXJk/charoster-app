@@ -87,7 +87,7 @@ export const gatherCredits = (entity, imageId) => {
 }
 
 const getLinkIcon = (href) => {
-  const regex = new RegExp(`^https?:\/\/(.+?\.)(${Object.keys(brandMapping).join('|').replace('.', '\\.')})(.+?)(?:\/.*?)?$`);
+  const regex = new RegExp(`^https?:\/\/(.+?\.)?(${Object.keys(brandMapping).join('|').replace(/\./g, '\\.')})(.+?)(?:\/.*?)?$`);
   const match = href.match(regex);
   let elem = null;
   if (match) {

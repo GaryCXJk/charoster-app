@@ -29,8 +29,11 @@ export const createDesignQueue = (design) => {
     'panels.container.background.image',
     'preview.background.image',
     'preview.image.background.image',
+    'preview.image.characters.background.image',
+    'preview.image.stages.background.image',
     'preview.image.mask.image',
   ];
+  const types = ['images', 'stages', 'items'];
   checks.forEach((check) => {
     const found = traverse(check.split('.'), design);
     checkFileImages(found, queue);
@@ -47,6 +50,19 @@ export const createDesignQueue = (design) => {
       if (style.maskImage) {
         checkFileImages(style.maskImage, queue);
       }
+      types.forEach((type) => {
+        if (style[type]) {
+          if (style[type].background?.image) {
+            checkFileImages(style[type].background.image, queue);
+          }
+          if (style[type].mask?.image) {
+            checkFileImages(style[type].mask.image, queue);
+          }
+          if (style[type].maskImage) {
+            checkFileImages(style[type].maskImage, queue);
+          }
+        }
+      });
     });
   }
   const locations = [];
@@ -68,6 +84,16 @@ export const createDesignQueue = (design) => {
           if (layer.style.mask?.image) {
             checkFileImages(layer.style.mask?.image, queue);
           }
+          types.forEach((type) => {
+            if (layer.style[type]) {
+              if (layer.style[type].background?.image) {
+                checkFileImages(layer.style[type].background.image, queue);
+              }
+              if (layer.style[type].mask?.image) {
+                checkFileImages(layer.style[type].mask.image, queue);
+              }
+            }
+          });
         }
       });
     });
@@ -221,13 +247,13 @@ const handleBackground = (background, imageFiles, styleObject = null, bgMap = {
   position: 'backgroundPosition',
   repeat: 'backgroundRepeat',
   image: handleBackgroundImages,
-}) => {
+}, backgroundKey = 'background') => {
 
   if (typeof background === 'object') {
     return handleStyle(background, imageFiles, styleObject, bgMap);
   } else if (typeof background === 'string') {
     const styleProps = {
-      background,
+      [backgroundKey]: background,
     };
 
     if (styleObject) {
@@ -290,7 +316,7 @@ const handleMask = (mask, imageFiles, styleObject = null) => {
     position: 'maskPosition',
     repeat: 'maskRepeat',
     image: (props, val, imageFiles) => handleBackgroundImages(props, val, imageFiles, 'maskImage'),
-  });
+  }, 'mask');
   if (!returnObject) {
     return null;
   }
@@ -374,9 +400,9 @@ export const createStylesheet = ({
   imageFiles,
 }) => {
   const rosterStyle = getStyleProperties(currentRoster, roster);
+  const types = ['characters', 'stages', 'items'];
 
   const panelImageFilters = processCSSFilters(design.panels.image?.filters);
-  const previewImageFilters = processCSSFilters(design.preview.image?.filters);
 
   const combinedStyles = {};
   if (design.page?.background) {
@@ -411,6 +437,13 @@ export const createStylesheet = ({
       const className = `.sections .content .panels .panel .layer.layer-${idx}`;
       combinedStyles[className] = combinedStyles[className] ?? {};
       setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+      types.forEach((type) => {
+        if (layer.style[type]) {
+          const typeClassName = `${className}.layer-${type}`;
+          combinedStyles[typeClassName] = combinedStyles[typeClassName] ?? {};
+          setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassName]);
+        }
+      });
     }
   });
 
@@ -466,26 +499,37 @@ export const createStylesheet = ({
   if (design.preview.background) {
     combinedStyles['.sections .preview'] = handleBackground(design.preview.background, imageFiles);
   }
-  combinedStyles['.sections .preview .image-container'] = {};
-  if (design.preview.image.width) {
-    combinedStyles['.sections .preview .image-container'].width = design.preview.image.width;
-  }
-  if (design.preview.image.height) {
-    combinedStyles['.sections .preview .image-container'].height = design.preview.image.height;
-  }
-  if (design.preview.image.background) {
-    handleBackground(design.preview.image.background, imageFiles, combinedStyles['.sections .preview .image-container']);
-  }
-  if (design.preview.image.border) {
-    handleBorders(design.preview.image.border, imageFiles, combinedStyles['.sections .preview .image-container']);
-  }
-  combinedStyles['.preview .image'] = {};
-  if (design.preview.image.mask) {
-    handleMask(design.preview.image.mask, imageFiles, combinedStyles['.preview .image']);
-  }
-  if (previewImageFilters) {
-    combinedStyles['.preview .image'].filter = previewImageFilters;
-  }
+
+  const imagePreviews = ['', ...types];
+
+  imagePreviews.forEach((type) => {
+    const selector = `.sections .preview .image-container${type ? `.image-container-${type}` : ''}`;
+    let designStyle = design.preview.image;
+    if (type) {
+      designStyle = designStyle[type] ?? {};
+    }
+    combinedStyles[selector] = {};
+    if (designStyle.width) {
+      combinedStyles[selector].width = designStyle.width;
+    }
+    if (designStyle.height) {
+      combinedStyles[selector].height = designStyle.height;
+    }
+    if (designStyle.background) {
+      handleBackground(designStyle.background, imageFiles, combinedStyles[selector]);
+    }
+    if (designStyle.border) {
+      handleBorders(designStyle.border, imageFiles, combinedStyles[selector]);
+    }
+    combinedStyles[`${selector} .image`] = {};
+    if (designStyle.mask) {
+      handleMask(designStyle.mask, imageFiles, combinedStyles[`${selector} .image`]);
+    }
+    const previewImageFilters = processCSSFilters(designStyle.filters);
+    if (previewImageFilters) {
+      combinedStyles[`${selector} .image`].filter = previewImageFilters;
+    }
+  });
 
   if (design.preview.layout) {
     design.preview.layout.forEach((layout, elementIdx) => {
@@ -496,6 +540,13 @@ export const createStylesheet = ({
             const className = `${baseClassName} .layer.layer-${layerIdx}`;
             combinedStyles[className] = combinedStyles[className] ?? {};
             setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+            types.forEach((type) => {
+              if (layer.style[type]) {
+                const subClassName = `${className}.layer-${type}`;
+                combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
+                setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
+              }
+            });
           }
         });
       }

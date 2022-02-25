@@ -59,6 +59,9 @@ const defaultDesign = {
           },
         }
       ],
+      stages: {
+        width: '23em',
+      },
     },
   },
 };
@@ -67,6 +70,9 @@ const sizes = {
     panel: 452 / 300,
     preview: 128 / 160,
   },
+  stages: {
+    preview: 2 / 1,
+  }
 };
 
 const sizeKeys = {
@@ -88,7 +94,7 @@ export const getSize = async (type, sizeId, designId = null) => {
       return returnSize;
     }
   }
-  if (sizes[type][sizeId]) {
+  if (sizes[type]?.[sizeId]) {
     return sizes[type][sizeId];
   }
   return null;

@@ -46,9 +46,14 @@ const setHandlers = () => {
       packWaiters[packId] = createWaiter();
       await packWaiters[packId];
     }
-    packs[packId][type].push(...entityList);
+    packs[packId][type] = packs[packId][type] ?? [];
+    if (packs[packId][type] === true) {
+      packs[packId][type] = [];
+    }
+    const filteredList = entityList.filter((entityId) => !packs[packId][type].includes(entityId));
+    packs[packId][type].push(...filteredList);
     if (type === currentType) {
-      entityList.forEach(blocks[packId].createPanel);
+      filteredList.forEach(blocks[packId].createPanel);
       addPackBlocks();
     }
   });
@@ -61,7 +66,6 @@ const setHandlers = () => {
         packWaiters[packId].resolve();
         delete packWaiters[packId];
       }
-      pack.characters = [];
       elements.off.append(createPackBlock(packId));
       addPackBlocks();
     }
@@ -92,6 +96,7 @@ const getImageList = (entityId) => {
         const altInfo = {
           name: alt.name ?? null,
           images: [],
+          id: alt.fullId,
         }
         if (alt.group) {
           altInfo.group = alt.group;
@@ -140,26 +145,37 @@ const createPanel = (id, imageId = null) => {
                 activePanel = panel;
 
                 const altGroups = {};
+                const childGroups = {};
 
                 getImageList(id).forEach((altInfo) => {
                   let altLabel = altInfo.label ?? altInfo.name ?? '';
                   let altContainer = null;
+                  const groupId = altInfo.group ?? altInfo.id;
                   if (altInfo.group) {
                     const altGroup = altInfo.group;
                     altContainer = altGroups[altGroup] ?? null;
                   }
+                  if (!altContainer && altInfo.group && !altInfo.label && childGroups[altInfo.group]) {
+                    altContainer = childGroups[altInfo.group];
+                  }
                   if (!altContainer) {
-                    const costumeHeader = new Block({
-                      className: 'header',
-                      textContent: altLabel,
-                    });
-                    altPicker.append(costumeHeader);
                     altContainer = new Block({
                       className: 'alt-group',
                     });
-                    altPicker.append(altContainer);
-                    if (altInfo.group) {
-                      altGroups[altInfo.group] = altContainer;
+                    if (altInfo.group && !altInfo.label) {
+                      childGroups[altInfo.group] = altContainer;
+                    } else {
+                      const costumeHeader = new Block({
+                        className: 'header',
+                        textContent: altLabel,
+                      });
+                      altPicker.append(costumeHeader);
+                      altPicker.append(altContainer);
+                      altGroups[groupId] = altContainer;
+                      if (childGroups[groupId]) {
+                        altContainer.appendChildren(childGroups[groupId]);
+                        delete childGroups[groupId];
+                      }
                     }
                   }
                   altInfo.images.forEach((altId) => {
@@ -174,7 +190,7 @@ const createPanel = (id, imageId = null) => {
           }
           : {
             dblclick: () => {
-              console.log(window.panels.send(id, imageId));
+              window.panels.send(id, imageId);
             }
           }
         ),
@@ -295,12 +311,14 @@ const addPackBlocks = () => {
 
 const initPickerContent = async () => {
   workspace = await window.workspace.retrieve();
-  entities.characters = entities.characters ?? {};
+  const currentRoster = getCurrentRoster();
+  const entityType = currentRoster.type;
+  entities[entityType] = entities[entityType] ?? {};
   const fetchPacks = await window.packs.getPackList();
-  const fetchCharacters = await window.characters.getCharacterList();
+  const fetchEntities = await window.entities.getEntityList(entityType);
 
   Object.assign(packs, fetchPacks);
-  Object.assign(entities.characters, fetchCharacters);
+  Object.assign(entities[entityType], fetchEntities);
 
   Object.keys(fetchPacks).forEach((packId) => {
     elements.off.append(createPackBlock(packId));

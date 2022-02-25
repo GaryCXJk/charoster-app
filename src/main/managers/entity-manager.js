@@ -11,7 +11,6 @@ import { notifyWindow } from './window-manager';
 import { getSize, getSizeKeys } from './designs-manager';
 import { clearObject } from '../../helpers/object-helper';
 import createWaiter from '../../helpers/create-waiter';
-import { pathToFileURL } from 'url';
 import { readFile, writeFile } from 'fs/promises';
 
 const createEntityData = () => {
