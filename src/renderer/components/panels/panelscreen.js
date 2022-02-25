@@ -134,12 +134,19 @@ const createPreviewImageElement = (layer, monitorElements) => {
 }
 
 const createPreviewImageContainerElement = (data, monitorElements) => {
+  const entityType = getCurrentRoster().type;
   const container = new Block({
-    className: 'image-container',
+    className: `image-container image-container-${entityType}`,
   });
 
   if (data.layers) {
     data.layers.forEach((layer, idx) => {
+      if (layer.exclude && layer.exclude.includes(entityType)) {
+        return;
+      }
+      if (layer.include && !layer.include.includes(entityType)) {
+        return;
+      }
       let element;
       switch (layer.type) {
         case 'image':
@@ -152,7 +159,7 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
         if (layer.className) {
           element.element.classList.add(...layer.className.split(' '));
         }
-        element.element.classList.add('layer', `layer-${idx}`);
+        element.element.classList.add('layer', `layer-${idx}`, `layer-${entityType}`);
         container.append(element);
       }
     });

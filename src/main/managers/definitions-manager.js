@@ -385,7 +385,10 @@ ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, 
   for (let idx = 0; idx < values.length; idx += 1) {
     const val = values[idx];
     const outVal = await getDefinitionEntityValue(definitionId, val.split('>'), field, fromPack);
-    ret.push(outVal);
+    ret.push({
+      key: val,
+      value: outVal,
+    });
   }
   const definition = definitions[definitionId];
   if (definition.list) {

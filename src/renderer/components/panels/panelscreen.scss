@@ -38,7 +38,6 @@
           width: 10em;
           height: 13em;
           border: 0.1em solid var(--border-color);
-          overflow: hidden;
 
           .image {
             position: absolute;
@@ -49,6 +48,7 @@
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
+            clip-path: inset(0 0 0 0);
           }
         }
 

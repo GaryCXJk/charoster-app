@@ -3,18 +3,21 @@ import { globalAppReset } from "../../../../../helpers/global-on";
 import { clearObject } from "../../../../../helpers/object-helper";
 import { getEntity } from "../entities";
 import { convertImageDataArray } from "../image-helpers";
-import setSVG from './image/svg';
+import setSVG, { releaseURLs } from './image/svg';
 
 const imageCache = {};
 const imageWaiters = {};
 const imageQueue = [];
+const urlBuffer = {};
 
 let queueRunning = false;
 
 const applyEvents = globalAppReset(() => {
   clearObject(imageCache);
   clearObject(imageWaiters);
+  clearObject(urlBuffer);
   imageQueue.splice(0, imageQueue.length);
+  releaseURLs();
 });
 
 const imageFilters = {
@@ -79,6 +82,9 @@ export const processImageDefinitionLayer = async (layer, type, entity) => {
       let imageEntry = imageData;
       while (Array.isArray(imageEntry)) {
         imageEntry = imageEntry[0];
+        if ((typeof imageEntry === 'object' && imageEntry.key && imageEntry.value)) {
+          imageEntry = imageEntry.value;
+        }
       }
       if (imageEntry) {
         imageId = imageEntry.fullId;
@@ -91,7 +97,13 @@ export const processImageDefinitionLayer = async (layer, type, entity) => {
     let imgStr = null;
     switch (pickedImage.type) {
       case 'svg':
-        imgStr = setSVG(pickedImage.content, layer);
+        const urlBufferKey = `${pickedImage.fullId}${layer.color ? `:${layer.color}` : ''}`;
+        if (urlBuffer[urlBufferKey]) {
+          imgStr = urlBuffer[urlBufferKey];
+        } else {
+          imgStr = setSVG(pickedImage.content, layer);
+          urlBuffer[urlBufferKey] = imgStr;
+        }
         break;
       case 'default':
         break;
