@@ -1,10 +1,8 @@
-import { debounce } from "throttle-debounce";
 import Block from "../../components/base/Block";
-import { storeWorkspace } from "../../components/panels/panelscreen";
 import input from '../../components/forms/input';
 import select from '../../components/forms/select';
 
-export default async () => {
+export default async (properties) => {
   const workspacePanel = new Block({
     className: 'tab-panel tab-panel-workspace',
   });
@@ -14,38 +12,34 @@ export default async () => {
   });
   workspacePanel.append(form);
 
-  const doUpdate = debounce(250, () => {
-    storeWorkspace(workspace);
-  });
+  const { doUpdate } = properties;
 
   const titleInput = input({
     id: 'title',
     label: 'Title',
-    value: workspace.title,
+    value: properties.workspace.title,
   });
   form.append(titleInput);
   titleInput.onInput(() => {
-    workspace.title = titleInput.value;
+    properties.workspace.title = titleInput.value;
     doUpdate();
   });
 
   const themeSelect = select({
     id: 'theme',
     label: 'Theme',
-    value: workspace.theme,
+    value: properties.workspace.theme,
     options: await window.designs.getDropdown(),
   });
   form.append(themeSelect);
   themeSelect.onInput(() => {
-    workspace.theme = themeSelect.value;
+    properties.workspace.theme = themeSelect.value;
     doUpdate();
   });
 
-  window.globalEventHandler.on('sync-workspace', (newWorkspace) => {
-    workspace = newWorkspace;
-
-    titleInput.value = workspace.title;
-    themeSelect.value = workspace.theme ?? '';
+  properties.eventTarget.addEventListener('sync-workspace', () => {
+    titleInput.value = properties.workspace.title;
+    themeSelect.value = properties.workspace.theme ?? '';
   });
 
   return workspacePanel;
