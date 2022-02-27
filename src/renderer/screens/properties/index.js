@@ -98,8 +98,8 @@ const initProperties = async (container) => {
       tabPanels.switch('entity');
     } else {
       tabButtons.entity.detach();
-      if (lastTab) {
-        tabPanels.switch(lastTab);
+      if (currentTab === 'entity') {
+        tabPanels.switch(lastTab ?? 'workspace');
       }
     }
   });
