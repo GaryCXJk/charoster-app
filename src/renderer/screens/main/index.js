@@ -18,8 +18,11 @@ import createPanelScreen, {
   awaitSetup,
   setStyle,
   getCurrentWorkspace,
+  getSelection,
+  clearSelection,
 } from '../../components/panels/panelscreen';
 import mdi from '../../../helpers/mdi';
+import deepmerge from 'deepmerge';
 
 let dragInfo = null;
 let isDragEnter = false;
@@ -28,11 +31,13 @@ let dragLevel = 0;
 let placeholder = null;
 let placeholderRoster = null;
 
-let activePanel = null;
-
 const updateActions = {
   theme: ['style'],
+  displayRoster: ['style', 'selection'],
 };
+const updateRosterActions = {
+  type: ['style', 'selection'],
+}
 
 const actions = {
   create: async () => {
@@ -63,8 +68,9 @@ const setHandlers = () => {
     }
   });
 
-  window.globalEventHandler.on('sync-workspace', (newWorkspace) => {
-    const workspace = getCurrentWorkspace();
+  window.globalEventHandler.on('sync-workspace', async (newWorkspace) => {
+    const { index, panel } = getSelection();
+    const workspace = await getCurrentWorkspace();
 
     const needsUpdate = {};
 
@@ -75,6 +81,28 @@ const setHandlers = () => {
         });
       }
     });
+
+    const prevRoster = workspace.rosters[workspace.displayRoster];
+    const newRoster = newWorkspace.rosters[newWorkspace.displayRoster];
+
+    if (workspace.displayRoster === newWorkspace.displayRoster) {
+      Object.keys(updateRosterActions).forEach((prop) => {
+        if (prevRoster[prop] !== newRoster[prop]) {
+          updateRosterActions[prop].forEach((action) => {
+            needsUpdate[action] = true;
+          });
+        }
+      });
+    }
+
+    if (index > -1) {
+      if (needsUpdate.selection) {
+        clearSelection();
+      } else {
+        const newEntity = newRoster.roster[index];
+        panel.update(newEntity);
+      }
+    }
 
     setCurrentWorkspace(newWorkspace, 'noUpdate', needsUpdate.style, false);
   });
@@ -110,14 +138,6 @@ const setHandlers = () => {
     }
   });
 }
-
-const clearSelection = () => {
-  if (activePanel) {
-    activePanel.panel.element.classList.remove('active');
-    activePanel = null;
-    clearPreview();
-  }
-};
 
 const convertEntity = () => {
   const {

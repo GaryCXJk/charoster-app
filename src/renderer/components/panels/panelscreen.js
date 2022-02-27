@@ -6,6 +6,7 @@ import { getEntity, getEntityObject } from './processing/entities';
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 import { globalAppReset } from '../../../helpers/global-on';
 import createPreviewCreditsContainerElement from './preview/credits';
+import { debounce } from 'throttle-debounce';
 
 let workspace = {};
 const entities = getEntityObject();
@@ -41,7 +42,7 @@ export const setCurrentWorkspace = (newWorkspace, store = true, recreateRoster =
     const currentRoster = getCurrentRoster();
     roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
   }
-  if (updatePreview, elements.preview) {
+  if (updatePreview && elements.preview) {
     elements.preview.resetPreview();
   }
   resetRoster();
@@ -247,21 +248,42 @@ const setPreview = (type, entity) => {
   elements.preview.setPreview(type, entity);
 }
 
-const clearSelection = () => {
+export const sendSelection = debounce(250, (index) => {
+  if (window.workspace?.setSelection) {
+    window.workspace.setSelection(index);
+  }
+});
+
+export const getSelection = () => {
   if (activePanel) {
+    return {
+      index: roster.indexOf(activePanel),
+      panel: activePanel,
+    };
+  }
+  return {
+    index: -1,
+    panel: null,
+  };
+};
+
+export const clearSelection = () => {
+  if (activePanel) {
+    sendSelection(-1);
     activePanel.panel.element.classList.remove('active');
     activePanel = null;
     clearPreview();
   }
 };
 
-const setSelection = (panel) => {
+export const setSelection = (panel) => {
   const isActive = panel.panel.element.classList.contains('active');
   clearSelection();
   if (!isActive) {
     panel.panel.element.classList.add('active');
     activePanel = panel;
     setPreview(panel.entityType, panel.entity);
+    sendSelection(roster.indexOf(panel));
   }
 };
 
@@ -270,45 +292,56 @@ export const addPanel = (type, entity) => {
     className: 'panel-container',
   });
 
-  const panel = createPanel({
-    type: type,
-    designId: getDesignId(),
-    design: getDesign(),
-    panelEntity: entity,
-    ...entity,
-    callbacks: {
-      panel: {
-        click: () => {
-          setSelection(panelContainer);
+  const setPanel = (entityObj) => {
+    const panel = createPanel({
+      type: type,
+      designId: getDesignId(),
+      design: getDesign(),
+      panelEntity: entityObj,
+      ...entityObj,
+      callbacks: {
+        panel: {
+          click: () => {
+            setSelection(panelContainer);
+          },
         },
-      },
-      image: {
-        setEntity: async (entityId) => {
-          entities[type] = entities[type] ?? {};
-          let entity = entities[type][entityId];
+        image: {
+          setEntity: async (entityId) => {
+            entities[type] = entities[type] ?? {};
+            let currentEntity = entities[type][entityId];
 
-          if (!entity) {
-            entity = await getEntity(type, entityId);
+            if (!currentEntity) {
+              currentEntity = await getEntity(type, entityId);
+            }
+            return currentEntity;
+          },
+          setImage: ({
+            entity: imageEntity,
+          }) => {
+            return getImageId(type, imageEntity);
           }
-          return entity;
-        },
-        setImage: ({
-          entity,
-        }) => {
-          return getImageId(type, entity);
         }
-      }
-    },
-  });
-  panelContainer.append(panel);
-  panelContainer.panel = panel;
+      },
+    });
+    panelContainer.append(panel);
+    panelContainer.panel = panel;
+
+    if (addPanelCallbacks) {
+      addPanelCallbacks(panel);
+    }
+
+    panel.container = panelContainer;
+  }
+  setPanel(entity);
   panelContainer.entity = entity;
   panelContainer.entityType = type;
-
-  panel.container = panelContainer;
-
-  if (addPanelCallbacks) {
-    addPanelCallbacks(panel);
+  panelContainer.update = (newEntity) => {
+    panelContainer.panel.detach();
+    setPanel(newEntity);
+    panelContainer.entity = newEntity;
+    if (activePanel === panelContainer) {
+      panelContainer.panel.element.classList.add('active');
+    }
   }
 
   return panelContainer;

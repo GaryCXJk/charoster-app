@@ -151,3 +151,4 @@ ipcMain.handle('workspace:save', (_event, screen, saveAs = false) => saveWorkspa
 ipcMain.handle('workspace:retrieve', getWorkspace);
 ipcMain.handle('workspace:update', (_event, workspaceData) => updateWorkspace(workspaceData));
 ipcMain.handle('workspace:export-image', (_event, screen, options = {}) => exportImage(screen, options));
+ipcMain.handle('workspace:set-selection', (_event, index) => notifyWindow('set-selection', index));

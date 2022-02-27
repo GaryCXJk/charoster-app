@@ -1,6 +1,8 @@
 import { ipcRenderer } from "electron";
 
-export const ipcListeners = [];
+export const ipcListeners = [
+  'set-selection',
+];
 export const contextBridgePaths = {
   workspace: {
     create: () => ipcRenderer.invoke('workspace:new'),
