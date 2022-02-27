@@ -1,7 +1,7 @@
 {
   "name": "charoster-app",
   "productName": "charoster-app",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "An extendible roster maker for any purpose.",
   "main": ".webpack/main",
   "repository": {
