@@ -113,9 +113,15 @@ const getStyleProperties = (currentRoster, roster) => {
   if (returnStyle.alignment.horizontal === 'left') {
     returnStyle.alignment.horizontal = 'start';
   }
+  if (returnStyle.alignment.horizontal === 'right') {
+    returnStyle.alignment.horizontal = 'end';
+  }
 
   if (returnStyle.alignment.vertical === 'top') {
     returnStyle.alignment.vertical = 'start';
+  }
+  if (returnStyle.alignment.vertical === 'bottom') {
+    returnStyle.alignment.vertical = 'end';
   }
 
   if (stylePropTransforms[currentRoster.mode]) {
