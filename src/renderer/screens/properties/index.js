@@ -6,6 +6,7 @@ import Button from '../../components/base/Button';
 import './properties.scss';
 import initWorkspaceProperties from './workspace';
 import initRosterProperties from './roster';
+import initEntityProperties from './entity';
 
 const properties = {
   workspace: {},
@@ -14,6 +15,7 @@ const properties = {
     storeWorkspace(properties.workspace);
   }),
   temporaryRoster: {},
+  currentEntity: null,
 };
 
 const retrieveCurrentWorkspace = async () => await window.workspace.retrieve();
@@ -29,12 +31,20 @@ const initProperties = async (container) => {
   const tabButtons = {
     workspace: 'Workspace',
     roster: 'Roster',
+    entity: '',
+  };
+  const entityTypes = {
+    characters: 'Character',
+    stages: 'Stage',
+    items: 'Item',
   };
   let currentTab = null;
+  let lastTab = null;
 
   const tabContent = {
     workspace: await initWorkspaceProperties(properties),
     roster: await initRosterProperties(properties),
+    entity: await initEntityProperties(properties),
   };
 
   const tabPanels = new Block({
@@ -46,6 +56,11 @@ const initProperties = async (container) => {
     tabPanels.append(tabContent[panel]);
     if (currentTab) {
       tabButtons[currentTab].element.classList.remove('active');
+    }
+    if (panel === 'entity') {
+      lastTab = currentTab;
+    } else {
+      lastTab = null;
     }
     currentTab = panel;
     tabButtons[panel].element.classList.add('active');
@@ -63,10 +78,31 @@ const initProperties = async (container) => {
       tabPanels.switch(id);
     });
 
-    tabs.append(btn);
+    if (label) {
+      tabs.append(btn);
+    }
   });
 
-  tabPanels.switch('workspace');;
+  tabPanels.switch('workspace');
+
+  window.globalEventHandler.on('set-selection', (index) => {
+    console.log(index);
+    if (index > -1) {
+      properties.eventTarget.dispatchEvent(new CustomEvent('sync-entity', {
+        detail: index,
+      }));
+      const currentRoster = properties.workspace.rosters[properties.workspace.displayRoster];
+      const type = currentRoster.type;
+      tabButtons.entity.prop('textContent', entityTypes[type]);
+      tabs.append(tabButtons.entity);
+      tabPanels.switch('entity');
+    } else {
+      tabButtons.entity.detach();
+      if (lastTab) {
+        tabPanels.switch(lastTab);
+      }
+    }
+  });
 };
 
 export default () => {

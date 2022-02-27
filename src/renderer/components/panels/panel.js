@@ -64,6 +64,7 @@ const imageContent = async (block, layerInfo, {
 };
 
 const labelContent = async (block, layerInfo, {
+  panelEntity,
   type,
   entity,
   imageId,
@@ -71,7 +72,7 @@ const labelContent = async (block, layerInfo, {
   label = null,
 }) => {
   if (showLabel) {
-    let displayLabel = label ?? await getLabel(type, entity, imageId);
+    let displayLabel = label ?? (panelEntity ? (panelEntity.allCapsName ? panelEntity.allCapsName : null) ?? (panelEntity.displayName ? panelEntity.displayName.toUpperCase() : null) : null) ?? await getLabel(type, entity, imageId);
 
     block.prop('textContent', displayLabel);
     if (layerInfo.display === 'image') {
@@ -135,6 +136,7 @@ const contentFuncs = {
 
 const setPanelContent = async ({
   panel,
+  panelEntity,
   type,
   entityId,
   callbacks = {},
@@ -165,6 +167,7 @@ const setPanelContent = async ({
 
   const blockPromises = [];
   const contentProps = {
+    panelEntity: panelEntity,
     type,
     entity,
     design,
