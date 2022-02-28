@@ -74,6 +74,7 @@ export const processImageDefinitionLayer = async (layer, type, entity) => {
   const values = entityInfo[layer.from.definition];
   if (values) {
     const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field, entityInfo.pack ?? null);
+    console.log('x', imageData);
     const imageMap = convertImageDataArray(imageData);
     let imageId = null;
     if (entity[layer.from.definition]?.[layer.from?.field]) {
