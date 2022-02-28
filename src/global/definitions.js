@@ -6,6 +6,9 @@ export const franchises = {
   list: true,
   fields: {
     name: "string",
-    symbols: "image,svg"
+    symbols: {
+      "type": "image,svg",
+      "entityProp": "symbol"
+    }
   }
 };

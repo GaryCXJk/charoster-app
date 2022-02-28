@@ -129,6 +129,9 @@ export const getDefinitionEntityValue = async (definitionId, entityIdSegments, f
   }
   if (definition.fields?.[field]) {
     type = definition.fields[field];
+    if (typeof type === 'object') {
+      type = type.type;
+    }
   }
   return await processEntity(type, entity[field] ?? entity.meta?.[field], definition);
 };
@@ -139,7 +142,7 @@ const preprocessValues = (definition, packId, entityId, data) => {
     if (!data[field]) {
       return;
     }
-    const type = definition.fields[field];
+    const type = typeof definition.fields[field] === 'object' ? definition.fields[field].type : definition.fields[field];
     let isFile = true;
     type.split(',').every((t) => {
       if (['image', 'svg', 'json'].includes(t)) {
@@ -376,6 +379,10 @@ const setDefDefinitions = () => {
     });
   });
 }
+
+ipcMain.handle('definitions:get-definition', async (_event, definitionId) => {
+  return definitions[definitionId];
+});
 
 ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field, fromPack = null) => {
   const values = !Array.isArray(valueIds) ? [valueIds] : valueIds;
