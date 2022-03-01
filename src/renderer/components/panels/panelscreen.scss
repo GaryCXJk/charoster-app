@@ -1,7 +1,9 @@
+@use "sass:math";
+
 @mixin panelscreen($screen) {
   #app.#{$screen} {
     .sections {
-      font-size: #{(100 / 1280 * 14)}vw;
+      font-size: #{(math.div(100, 1280) * 14)}vw;
 
       .content {
         display: flex;
