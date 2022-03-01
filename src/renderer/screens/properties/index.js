@@ -86,7 +86,6 @@ const initProperties = async (container) => {
   tabPanels.switch('workspace');
 
   window.globalEventHandler.on('set-selection', (index) => {
-    console.log(index);
     if (index > -1) {
       properties.eventTarget.dispatchEvent(new CustomEvent('sync-entity', {
         detail: index,
