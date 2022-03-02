@@ -73,25 +73,27 @@ export const processImageDefinitionLayer = async (layer, type, entity) => {
 
   const values = entityInfo[layer.from.definition];
   if (values) {
-    const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field, entityInfo.pack ?? null);
-    console.log('x', imageData);
-    const imageMap = convertImageDataArray(imageData);
-    let imageId = null;
-    if (entity[layer.from.definition]?.[layer.from?.field]) {
-      imageId = entity[layer.from.definition][layer.from.field];
-    } else {
-      let imageEntry = imageData;
-      while (Array.isArray(imageEntry)) {
-        imageEntry = imageEntry[0];
-        if ((typeof imageEntry === 'object' && imageEntry.key && imageEntry.value)) {
-          imageEntry = imageEntry.value;
+    let pickedImage = null; // entity['franchise:symbol'] ?? null;
+    if (!pickedImage) {
+      const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field, entityInfo.pack ?? null);
+      const imageMap = convertImageDataArray(imageData);
+      let imageId = null;
+      if (entity[layer.from.definition]?.[layer.from?.field]) {
+        imageId = entity[layer.from.definition][layer.from.field];
+      } else {
+        let imageEntry = imageData;
+        while (Array.isArray(imageEntry)) {
+          imageEntry = imageEntry[0];
+          if ((typeof imageEntry === 'object' && imageEntry.key && imageEntry.value)) {
+            imageEntry = imageEntry.value;
+          }
+        }
+        if (imageEntry) {
+          imageId = imageEntry.fullId;
         }
       }
-      if (imageEntry) {
-        imageId = imageEntry.fullId;
-      }
+      pickedImage = imageMap[imageId];
     }
-    const pickedImage = imageMap[imageId];
     if (!pickedImage) {
       return null;
     }
