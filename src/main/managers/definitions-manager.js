@@ -21,6 +21,7 @@ const definitionQueue = [];
 const definitionDiscovery = {};
 const waiting = {};
 const arrayables = [];
+const entityFields = {};
 
 let queueIsRunning = null;
 
@@ -311,6 +312,23 @@ const discoverDefinitionEntities = async (packId, definitionId) => {
   }
 }
 
+const processFields = (id) => {
+  const definition = definitions[id];
+  const { fields } = definition;
+  Object.keys(fields).forEach((key) => {
+    const fieldData = fields[key];
+    if (typeof fieldData === 'object' && fieldData.entityProp) {
+      const fieldName = `${id}:${fieldData.entityProp}`;
+      entityFields[fieldName] = {
+        definition: id,
+        field: key,
+        type: fieldData.type,
+        label: `${definition.name ?? `${id.slice(0, 1).toUpperCase()}${id.slice(1)}`} > ${fieldData.name ?? `${fieldData.entityProp.slice(0, 1).toUpperCase()}${fieldData.entityProp.slice(1)}`}`,
+      };
+    }
+  });
+};
+
 export const addDefinition = (packId, definition) => {
   const id = (definition.namespace ?? true) ? `${definition.namespace ?? packId}:${definition.id}` : definition.id;
   definitions[id] = definitions[id] ?? {
@@ -345,6 +363,9 @@ export const addDefinition = (packId, definition) => {
   if (definitions[id].discover) {
     const discoveryProperty = definitions[id].discover === true ? definitions[id].id : definitions[id].discover;
     definitionDiscovery[discoveryProperty] = id;
+  }
+  if (definitions[id].fields) {
+    processFields(id);
   }
   if (packId) {
     discoverDefinitionEntities(packId, id);
@@ -402,6 +423,24 @@ ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, 
     return ret;
   }
   return ret[0];
+});
+
+ipcMain.handle('definitions:get-entity-fields', () => entityFields);
+ipcMain.handle('definitions:get-definition-entity', async (_event, definitionId, field, value) => {
+  const definition = definitions[definitionId];
+
+  let type = 'string';
+  if (field === 'meta') {
+    type = 'object';
+  }
+  if (definition.fields?.[field]) {
+    type = definition.fields[field];
+    if (typeof type === 'object') {
+      type = type.type;
+    }
+  }
+
+  return await processEntity(type, value, definition);
 });
 
 onAppReset(() => {

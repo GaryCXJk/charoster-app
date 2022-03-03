@@ -1,5 +1,6 @@
 export const franchises = {
   id: "franchise",
+  name: "Franchise",
   folder: "franchises",
   merge: "auto",
   discover: "franchises",
@@ -7,8 +8,9 @@ export const franchises = {
   fields: {
     name: "string",
     symbols: {
-      "type": "image,svg",
-      "entityProp": "symbol"
+      name: "Symbol",
+      type: "image,svg",
+      entityProp: "symbol"
     }
   }
 };

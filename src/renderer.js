@@ -26,7 +26,6 @@
  * ```
  */
 
-import 'choices.js/src/styles/choices.scss';
 import './index.scss';
 import screens from './renderer/screens';
 import params from './helpers/params';
