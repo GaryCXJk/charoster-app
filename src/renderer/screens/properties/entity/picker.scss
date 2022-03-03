@@ -4,6 +4,8 @@
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  max-height: 13rem;
+  overflow: overlay;
 
   .picker-panel {
     width: 5rem;
