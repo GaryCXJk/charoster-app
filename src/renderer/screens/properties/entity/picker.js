@@ -74,7 +74,7 @@ export default ({
   container.reset = async ({
     type,
     entity,
-    newValue,
+    value: newValue,
   }) => {
     pickerEl.empty();
     container.empty();
