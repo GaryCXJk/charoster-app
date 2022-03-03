@@ -22,7 +22,6 @@ import createPanelScreen, {
   clearSelection,
 } from '../../components/panels/panelscreen';
 import mdi from '../../../helpers/mdi';
-import deepmerge from 'deepmerge';
 
 let dragInfo = null;
 let isDragEnter = false;
@@ -32,11 +31,11 @@ let placeholder = null;
 let placeholderRoster = null;
 
 const updateActions = {
-  theme: ['style'],
+  theme: ['style', 'selection', 'preview'],
   displayRoster: ['style', 'selection'],
 };
 const updateRosterActions = {
-  type: ['style', 'selection'],
+  type: ['style', 'selection', 'preview'],
 }
 
 const actions = {
@@ -104,7 +103,7 @@ const setHandlers = () => {
       }
     }
 
-    setCurrentWorkspace(newWorkspace, 'noUpdate', needsUpdate.style, false);
+    setCurrentWorkspace(newWorkspace, 'noUpdate', needsUpdate.style, needsUpdate.preview ?? false);
   });
 
   window.globalEventHandler.on('send-panel', (entity) => {
