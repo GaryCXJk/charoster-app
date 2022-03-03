@@ -189,6 +189,7 @@ const createCreditsBlock = (creditsLabel, links) => {
 
 export const createPreviewCredits = async (type, entity, container = null) => {
   const content = container ?? new Block();
+  content.empty();
 
   const { entityId } = entity;
   const entityInfo = await getEntity(type, entityId);
