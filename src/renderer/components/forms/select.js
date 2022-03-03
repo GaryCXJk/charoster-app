@@ -27,18 +27,25 @@ export default ({
   });
   container.append(input);
 
-  options.forEach((option) => {
-    const optionEl = new Block({
-      element: 'option',
-      value: option.id,
-      textContent: option.label,
+  container.setOptions = (newOptions, newValue = null) => {
+    input.empty();
+    newOptions.forEach((option) => {
+      const optionEl = new Block({
+        element: 'option',
+        value: option.id,
+        textContent: option.label,
+      });
+      if (option.id === value) {
+        optionEl.prop('selected', true);
+      }
+      input.append(optionEl);
     });
-    if (option.id === value) {
-      optionEl.prop('selected', true);
+    if (newValue !== null) {
+      input.element.value = newValue;
     }
-    input.append(optionEl);
-  });
+  };
 
+  container.setOptions(options);
 
   container.onInput = (callback) => {
     input.on('input', callback);

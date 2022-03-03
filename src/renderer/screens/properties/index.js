@@ -58,7 +58,9 @@ const initProperties = async (container) => {
       tabButtons[currentTab].element.classList.remove('active');
     }
     if (panel === 'entity') {
-      lastTab = currentTab;
+      if (currentTab !== 'entity') {
+        lastTab = currentTab;
+      }
     } else {
       lastTab = null;
     }
@@ -98,6 +100,9 @@ const initProperties = async (container) => {
     } else {
       tabButtons.entity.detach();
       if (currentTab === 'entity') {
+        if (lastTab === 'entity') {
+          lastTab = null;
+        }
         tabPanels.switch(lastTab ?? 'workspace');
       }
     }

@@ -32,7 +32,7 @@ let placeholderRoster = null;
 
 const updateActions = {
   theme: ['style', 'selection', 'preview'],
-  displayRoster: ['style', 'selection'],
+  displayRoster: ['style', 'selection', 'preview'],
 };
 const updateRosterActions = {
   type: ['style', 'selection', 'preview'],
