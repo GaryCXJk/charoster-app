@@ -63,17 +63,26 @@ export const getImage = async (type, imageId, designId = '', prioritize = false)
   return await waiter;
 }
 
-export const processImageDefinitionLayer = async (layer, type, entity) => {
+export const processImageDefinitionLayer = async (layer, type, entity, image = null) => {
   applyEvents();
   const { entityId } = entity;
   if (!entityId) {
     return null;
   }
   const entityInfo = await getEntity(type, entityId);
+  const definitionInfo = await window.definitions.getDefinition(layer.from.definition);
 
   const values = entityInfo[layer.from.definition];
   if (values) {
-    let pickedImage = null; // entity['franchise:symbol'] ?? null;
+    let pickedImage = image;
+    const fieldInfo = definitionInfo?.fields?.[layer.from.field] ?? null;
+    if (fieldInfo && typeof fieldInfo === 'object' && fieldInfo.entityProp) {
+      const fieldName = `${layer.from.definition}:${fieldInfo.entityProp}`;
+      pickedImage = entity[fieldName] ?? entityInfo[fieldName] ?? null;
+    }
+    if (pickedImage) {
+      pickedImage = await window.definitions.getDefinitionEntity(layer.from.definition, layer.from.field, pickedImage);
+    }
     if (!pickedImage) {
       const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field, entityInfo.pack ?? null);
       const imageMap = convertImageDataArray(imageData);
