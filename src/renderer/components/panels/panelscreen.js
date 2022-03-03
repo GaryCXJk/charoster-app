@@ -244,7 +244,7 @@ const clearPreview = () => {
   elements.preview.clearPreview();
 }
 
-const setPreview = (type, entity) => {
+export const setPreview = (type, entity) => {
   elements.preview.setPreview(type, entity);
 }
 

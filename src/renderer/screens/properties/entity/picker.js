@@ -2,6 +2,7 @@ import Block from "../../../components/base/Block";
 import '../../../components/forms/forms.scss';
 import { getEntity } from "../../../components/panels/processing/entities";
 import { convertImageDataArray } from "../../../components/panels/processing/image-helpers";
+import { processImageDefinitionLayer } from "../../../components/panels/processing/layers/image";
 import './picker.scss';
 
 export default ({
@@ -86,6 +87,8 @@ export default ({
 
     const entityInfo = await getEntity(type, entity.entityId);
 
+    const color = getComputedStyle(document.body).getPropertyValue('--main-color');
+
     const defValue = entityInfo[fieldData.definition];
     if (defValue) {
       container.append(formContainer);
@@ -100,7 +103,18 @@ export default ({
         });
         pickerEl.append(el);
 
-        el.prop('innerHTML', imageMap[imageLink].content);
+        const imgStr = await processImageDefinitionLayer({
+          from: {
+            definition: fieldData.definition,
+            field: fieldData.field,
+          },
+          color,
+        }, type, entity, imageLink);
+
+        if (imgStr) {
+          el.element.style.backgroundImage = `url(${imgStr})`;
+        }
+
         el.on('click', () => {
           setValue(imageLink);
           et.dispatchEvent(new CustomEvent('input', {

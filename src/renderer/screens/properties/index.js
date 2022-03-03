@@ -107,6 +107,10 @@ const initProperties = async (container) => {
       }
     }
   });
+
+  window.globalEventHandler.on('darkmode-switched', () => {
+    properties.eventTarget.dispatchEvent(new Event('darkmode-switched'));
+  });
 };
 
 export default () => {
