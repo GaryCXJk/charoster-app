@@ -75,10 +75,12 @@ export const processImageDefinitionLayer = async (layer, type, entity, image = n
   const values = entityInfo[layer.from.definition];
   if (values) {
     let pickedImage = image;
-    const fieldInfo = definitionInfo?.fields?.[layer.from.field] ?? null;
-    if (fieldInfo && typeof fieldInfo === 'object' && fieldInfo.entityProp) {
-      const fieldName = `${layer.from.definition}:${fieldInfo.entityProp}`;
-      pickedImage = entity[fieldName] ?? entityInfo[fieldName] ?? null;
+    if (!pickedImage) {
+      const fieldInfo = definitionInfo?.fields?.[layer.from.field] ?? null;
+      if (fieldInfo && typeof fieldInfo === 'object' && fieldInfo.entityProp) {
+        const fieldName = `${layer.from.definition}:${fieldInfo.entityProp}`;
+        pickedImage = entity[fieldName] ?? entityInfo[fieldName] ?? null;
+      }
     }
     if (pickedImage) {
       pickedImage = await window.definitions.getDefinitionEntity(layer.from.definition, layer.from.field, pickedImage);

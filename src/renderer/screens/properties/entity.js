@@ -111,5 +111,22 @@ export default async (properties) => {
     setEntityData(type, entity, elements, properties);
   });
 
+  properties.eventTarget.addEventListener('darkmode-switched', () => {
+    const currentRoster = getCurrentRoster();
+    const type = currentRoster.type;
+    const entity = currentRoster.roster[index];
+
+    Object.keys(elements.fields).forEach((key) => {
+      const fieldBlock = elements.fields[key];
+
+      if (fieldBlock.reset) {
+        fieldBlock.reset({
+          type,
+          entity,
+        });
+      }
+    });
+  });
+
   return container;
 };

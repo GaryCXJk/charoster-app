@@ -20,6 +20,7 @@ import createPanelScreen, {
   getCurrentWorkspace,
   getSelection,
   clearSelection,
+  setPreview,
 } from '../../components/panels/panelscreen';
 import mdi from '../../../helpers/mdi';
 
@@ -100,6 +101,7 @@ const setHandlers = () => {
       } else {
         const newEntity = newRoster.roster[index];
         panel.update(newEntity);
+        setPreview(newRoster.type, newEntity);
       }
     }
 
