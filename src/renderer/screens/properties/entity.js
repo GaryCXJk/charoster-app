@@ -12,6 +12,7 @@ const setEntityData = (type, entity, elements, properties) => {
       fieldBlock.reset({
         type,
         entity,
+        value: entity[key] ?? '',
       });
     } else {
       fieldBlock.value = entity[key] ?? '';

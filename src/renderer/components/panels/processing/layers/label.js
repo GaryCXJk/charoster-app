@@ -26,7 +26,7 @@ export const imageLabel = async ({
   fontWeight = '900',
   fontColor = 'white',
 }) => {
-  let id = label;
+  let id = `${label}>>${fontWeight} ${fontFamily}, ${fontColor}`;
   if (!renderedLabels[id]) {
     const waiter = createWaiter();
     renderedLabels[id] = waiter;
