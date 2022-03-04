@@ -236,7 +236,7 @@ export const getAltImageUrls = (type, imageId, filterSizes = null, renderer = fa
     const fileKey = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}`;
     if (!imageMap[fileKey]) {
       const time = (new Date()).getTime();
-      const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.png`;
+      const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.webp`;
       imageMap[fileKey] = {
         file: fakeFile,
         time,
@@ -371,7 +371,7 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
       width: sizeData.width,
       height: sizeData.height,
     })
-    .png();
+    .webp();
 
   const finalPass = new Sharp(await sharpImage.toBuffer());
   const fpMeta = await finalPass.metadata();
@@ -382,7 +382,7 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
       width: maxRenderWidth[type],
     });
   }
-  await finalPass.png();
+  await finalPass.webp();
 
   const imageBuffer = await finalPass.toBuffer();
 
@@ -395,13 +395,13 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
     const fileKey = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}`;
     if (!imageMap[fileKey]) {
       const time = (new Date()).getTime();
-      const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.png`;
+      const fakeFile = `${type}/${imageId.replace(/\>/g, '/')}/${size}/${maxRenderWidth}/${time}.webp`;
       imageMap[fileKey] = {
         file: fakeFile,
         time,
       };
     }
-    const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${maxRenderWidth[type]}--${imageMap[fileKey].time}.png`;
+    const outFile = `${type}--${imageId.replace(/\>/g, '--')}--${size}--${maxRenderWidth[type]}--${imageMap[fileKey].time}.webp`;
     const writePath = path.join(getTempPath(), outFile);
     await writeFile(writePath, imageBuffer);
     setTempFile(outFile);
