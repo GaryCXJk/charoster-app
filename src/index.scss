@@ -80,7 +80,7 @@ body {
   height: 100vh;
 }
 
-input, button {
+input, button, select {
   background-color: var(--elem-bg-color);
   color: var(--main-color);
   border: 1px solid var(--main-color);
@@ -121,6 +121,11 @@ button {
 
 a {
   color: var(--main-color);
+}
+
+small, .small {
+  font-size: 0.8em;
+  font-weight: 350;
 }
 
 @import "./sass/panels";

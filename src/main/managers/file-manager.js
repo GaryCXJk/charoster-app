@@ -5,6 +5,9 @@ import createWaiter from '@@helpers/create-waiter';
 import { getConfig } from './config-manager';
 import { showError } from './error-manager';
 
+const bufferWaiters = {};
+const activeWaiters = [];
+
 /**
  *
  * @param {string} type
@@ -111,10 +114,31 @@ export const queueEntity = (entityQueue, entityWaiting, entityId) => {
   entityWaiting[entityId] = createWaiter();
 }
 
-export const getFileBuffer = async (filePath) => {
-  try {
-    return await readFile(filePath);
-  } catch (_e) {
-    return null;
+export const setBufferWaiter = async (bufferId, callback) => {
+  const waiter = createWaiter();
+  bufferWaiters[bufferId] = waiter;
+  while (activeWaiters.length > 25) {
+    await Promise.any(activeWaiters);
   }
+  activeWaiters.push(waiter);
+  const returnValue = await callback();
+  delete bufferWaiters[bufferId];
+  const waiterIdx = activeWaiters.indexOf(waiter);
+  if (waiterIdx > -1) {
+    activeWaiters.splice(waiterIdx, 1);
+  }
+  waiter.resolve();
+  return returnValue;
+}
+
+export const getFileBuffer = async (filePath) => {
+  return await setBufferWaiter(filePath, async () => {
+    let buffer = null;
+    try {
+      buffer = await readFile(filePath);
+    } catch (_e) {
+      //
+    }
+    return buffer;
+  });
 }

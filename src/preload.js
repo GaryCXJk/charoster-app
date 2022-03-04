@@ -6,6 +6,7 @@ import * as error from './preload/error';
 import * as general from './preload/general';
 import * as main from './preload/main';
 import * as picker from './preload/picker';
+import * as properties from './preload/properties';
 import * as render from './preload/render';
 import * as setup from './preload/setup';
 
@@ -13,6 +14,7 @@ const screens = {
   error,
   main,
   picker,
+  properties,
   render,
   setup,
 };

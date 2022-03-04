@@ -97,7 +97,7 @@ export const saveWorkspace = async (screen, saveAs = false) => {
 export const updateWorkspace = (workspaceData) => {
   workspace = workspaceData;
 
-  notifyWindow('sync-workspace', workspace, 'render');
+  notifyWindow('sync-workspace', workspace);
 
   return workspace;
 }
@@ -151,3 +151,4 @@ ipcMain.handle('workspace:save', (_event, screen, saveAs = false) => saveWorkspa
 ipcMain.handle('workspace:retrieve', getWorkspace);
 ipcMain.handle('workspace:update', (_event, workspaceData) => updateWorkspace(workspaceData));
 ipcMain.handle('workspace:export-image', (_event, screen, options = {}) => exportImage(screen, options));
+ipcMain.handle('workspace:set-selection', (_event, index) => notifyWindow('set-selection', index));

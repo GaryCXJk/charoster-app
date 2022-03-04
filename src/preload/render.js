@@ -4,7 +4,6 @@ import * as managers from './managers';
 
 export const ipcListeners = [
   ...managers.ipcListeners,
-  'sync-workspace',
   'request-credits-size',
   'cleanup-credits',
 ];

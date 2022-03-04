@@ -15,6 +15,7 @@ export const contextBridgePaths = deepmerge(managers.contextBridgePaths, {
     save: (saveAs = false) => ipcRenderer.invoke('workspace:save', 'main', saveAs),
     load: () => ipcRenderer.invoke('workspace:load', 'main'),
     exportImage: (options = {}) => ipcRenderer.invoke('workspace:export-image', 'main', options),
+    setSelection: (index) => ipcRenderer.invoke('workspace:set-selection', index),
   },
   designs: {
     get: (designId = null) => ipcRenderer.invoke('designs:get', designId),

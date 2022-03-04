@@ -8,6 +8,7 @@ import { awaitCharacterQueue, fetchCharacters, getCostumeImageInfo, getCostumeIm
 import { getConfig, waitForWorkFolder } from './config-manager';
 import { addDefinition, autoDiscoverDefinitions } from './definitions-manager';
 import { fetchDesigns, getDesignImage, queueDesign } from './designs-manager';
+import { awaitQueue, fetchEntities, getAltImageInfo, getAltImageUrls, getEntityTypes, queueEntity } from './entity-manager';
 import { notifyWindow } from './window-manager';
 
 const { readdir, readFile, stat } = fsPromises;
@@ -54,37 +55,43 @@ export const fetchPack = async (folder) => {
 
     notifyWindow('pack-loading', deepmerge({}, packInfo));
 
-    // Fetch characters.
-    if (packInfo.characters) {
-      const characters = await fetchCharacters(folder);
+    const entityTypes = getEntityTypes();
+    for (let idx = 0; idx < entityTypes.length; idx += 1) {
+      const entityType = entityTypes[idx];
 
-      if (characters.length) {
-        characters.forEach((characterId) => {
-          queueCharacter(characterId);
-        });
+      if (packInfo[entityType]) {
+        const entities = await fetchEntities(entityType, folder);
 
-        awaitCharacterQueue(characters).then((values) => {
-          packInfo.characters = [];
-          const addons = [];
-          values.forEach((value) => {
-            if (value.value.type === 'character') {
-              packInfo.characters.push(value.value.fullId);
-            } else {
-              addons.push(`characters>${value.value.type}:${value.value.fullId}`);
+        if (entities.length) {
+          entities.forEach((entityId) => {
+            queueEntity(entityType, entityId);
+          });
+
+          awaitQueue(entityType, entities).then((values) => {
+            packInfo[entityType] = [];
+            const addons = [];
+            values.forEach((value) => {
+              if (value.value.type === entityType.replace(/s$/, '')) {
+                packInfo[entityType].push(value.value.fullId);
+              } else {
+                addons.push(`${entityType}>${value.value.type}:${value.value.fullId}`);
+              }
+            });
+            if (addons.length) {
+              packInfo.addons = packInfo.addons ?? [];
+              packInfo.addons.push(...addons);
             }
+            notifyWindow('pack-entity-list-ready', {
+              type: entityType,
+              packId: packInfo.id,
+              entityList: packInfo[entityType],
+            });
+          }).catch(() => {
+            // Do nothing
           });
-          if (addons.length) {
-            packInfo.addons = addons;
-          }
-          notifyWindow('pack-character-list-ready', {
-            packId: packInfo.id,
-            characters: packInfo.characters,
-          });
-        }).catch(() => {
-          // Do nothing
-        });
+        }
       } else {
-        packInfo.characters = false;
+        packInfo[entityType] = false;
       }
     }
     if (packInfo.designs) {
@@ -152,7 +159,7 @@ ipcMain.handle('packs:get-pack-list', getPackList);
 
 ipcMain.handle('packs:get-images', (_event, type, imageId, filter = null, renderer = false) => {
   if (!imageReaders[type]) {
-    return null;
+    return getAltImageUrls(type, imageId, filter, renderer);
   }
 
   return imageReaders[type](imageId, filter, renderer);
@@ -160,7 +167,7 @@ ipcMain.handle('packs:get-images', (_event, type, imageId, filter = null, render
 
 ipcMain.handle('packs:get-image-info', (_event, type, imageId) => {
   if (!imageInfoReaders[type]) {
-    return null;
+    return getAltImageInfo(type, imageId);
   }
 
   return imageInfoReaders[type](imageId);

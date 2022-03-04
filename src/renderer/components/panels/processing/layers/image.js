@@ -3,18 +3,21 @@ import { globalAppReset } from "../../../../../helpers/global-on";
 import { clearObject } from "../../../../../helpers/object-helper";
 import { getEntity } from "../entities";
 import { convertImageDataArray } from "../image-helpers";
-import setSVG from './image/svg';
+import setSVG, { releaseURLs } from './image/svg';
 
 const imageCache = {};
 const imageWaiters = {};
 const imageQueue = [];
+const urlBuffer = {};
 
 let queueRunning = false;
 
 const applyEvents = globalAppReset(() => {
   clearObject(imageCache);
   clearObject(imageWaiters);
+  clearObject(urlBuffer);
   imageQueue.splice(0, imageQueue.length);
+  releaseURLs();
 });
 
 const imageFilters = {
@@ -60,38 +63,61 @@ export const getImage = async (type, imageId, designId = '', prioritize = false)
   return await waiter;
 }
 
-export const processImageDefinitionLayer = async (layer, type, entity) => {
+export const processImageDefinitionLayer = async (layer, type, entity, image = null) => {
   applyEvents();
   const { entityId } = entity;
   if (!entityId) {
     return null;
   }
   const entityInfo = await getEntity(type, entityId);
+  const definitionInfo = await window.definitions.getDefinition(layer.from.definition);
 
   const values = entityInfo[layer.from.definition];
   if (values) {
-    const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field, entityInfo.pack ?? null);
-    const imageMap = convertImageDataArray(imageData);
-    let imageId = null;
-    if (entity[layer.from.definition]?.[layer.from?.field]) {
-      imageId = entity[layer.from.definition][layer.from.field];
-    } else {
-      let imageEntry = imageData;
-      while (Array.isArray(imageEntry)) {
-        imageEntry = imageEntry[0];
-      }
-      if (imageEntry) {
-        imageId = imageEntry.fullId;
+    let pickedImage = image;
+    if (!pickedImage) {
+      const fieldInfo = definitionInfo?.fields?.[layer.from.field] ?? null;
+      if (fieldInfo && typeof fieldInfo === 'object' && fieldInfo.entityProp) {
+        const fieldName = `${layer.from.definition}:${fieldInfo.entityProp}`;
+        pickedImage = entity[fieldName] ?? entityInfo[fieldName] ?? null;
       }
     }
-    const pickedImage = imageMap[imageId];
+    if (pickedImage) {
+      pickedImage = await window.definitions.getDefinitionEntity(layer.from.definition, layer.from.field, pickedImage);
+    }
+    if (!pickedImage) {
+      const imageData = await window.definitions.getDefinitionValue(layer.from.definition, values, layer.from.field, entityInfo.pack ?? null);
+      const imageMap = convertImageDataArray(imageData);
+      let imageId = null;
+      if (entity[layer.from.definition]?.[layer.from?.field]) {
+        imageId = entity[layer.from.definition][layer.from.field];
+      } else {
+        let imageEntry = imageData;
+        while (Array.isArray(imageEntry)) {
+          imageEntry = imageEntry[0];
+          if ((typeof imageEntry === 'object' && imageEntry.key && imageEntry.value)) {
+            imageEntry = imageEntry.value;
+          }
+        }
+        if (imageEntry) {
+          imageId = imageEntry.fullId;
+        }
+      }
+      pickedImage = imageMap[imageId];
+    }
     if (!pickedImage) {
       return null;
     }
     let imgStr = null;
     switch (pickedImage.type) {
       case 'svg':
-        imgStr = setSVG(pickedImage.content, layer);
+        const urlBufferKey = `${pickedImage.fullId}${layer.color ? `:${layer.color}` : ''}`;
+        if (urlBuffer[urlBufferKey]) {
+          imgStr = urlBuffer[urlBufferKey];
+        } else {
+          imgStr = setSVG(pickedImage.content, layer);
+          urlBuffer[urlBufferKey] = imgStr;
+        }
         break;
       case 'default':
         break;

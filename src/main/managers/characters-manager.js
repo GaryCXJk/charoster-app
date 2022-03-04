@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { awaitQueue, fetchEntities, getAltImageInfo, getAltImages, getAltImageUrls, getEntityList, loadEntity, queueEntity } from './entity-manager';
+import { awaitQueue, fetchEntities, getAltImageInfo, getAltImageUrls, getEntityList, loadEntity, queueEntity } from './entity-manager';
 
 export const fetchCharacters = async (packFolder) => {
   return await fetchEntities('characters', packFolder);
@@ -36,5 +36,4 @@ ipcMain.handle('characters:get-character', (_event, characterId) => {
   return loadCharacter(characterId);
 });
 
-ipcMain.handle('characters:get-images', (_event, imageId, filter = null, renderer = false) => getCostumeImages(imageId, filter, renderer));
 ipcMain.handle('characters:get-image-info', (_event, imageId) => getCostumeImageInfo(imageId));
