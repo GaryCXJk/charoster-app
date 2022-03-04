@@ -2,7 +2,9 @@ import { ipcRenderer } from 'electron';
 import params from '@@helpers/params';
 
 export const ipcListeners = [
+  'darkmode-switched',
   'reset-all',
+  'sync-workspace',
 ];
 
 export const contextBridgePaths = {

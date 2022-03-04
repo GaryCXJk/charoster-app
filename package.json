@@ -1,7 +1,7 @@
 {
   "name": "charoster-app",
   "productName": "charoster-app",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "An extendible roster maker for any purpose.",
   "main": ".webpack/main",
   "repository": {
@@ -36,7 +36,7 @@
     "css-loader": "^6.0.0",
     "electron": "17.0.0",
     "node-loader": "^2.0.0",
-    "node-sass": "^7.0.1",
+    "sass": "^1.49.9",
     "sass-loader": "^12.4.0",
     "style-loader": "^3.0.0",
     "svg-loader": "^0.0.2",

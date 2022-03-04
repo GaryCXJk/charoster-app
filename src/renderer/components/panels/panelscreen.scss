@@ -1,7 +1,9 @@
+@use "sass:math";
+
 @mixin panelscreen($screen) {
   #app.#{$screen} {
     .sections {
-      font-size: #{(100 / 1280 * 14)}vw;
+      font-size: #{(math.div(100, 1280) * 14)}vw;
 
       .content {
         display: flex;
@@ -38,7 +40,6 @@
           width: 10em;
           height: 13em;
           border: 0.1em solid var(--border-color);
-          overflow: hidden;
 
           .image {
             position: absolute;
@@ -49,6 +50,7 @@
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
+            clip-path: inset(0 0 0 0);
           }
         }
 

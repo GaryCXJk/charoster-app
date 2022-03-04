@@ -1,26 +1,26 @@
+import deepmerge from 'deepmerge';
 import { ipcRenderer } from 'electron';
+import * as entities from './managers/entities';
+import * as definitions from './managers/definitions';
 
 export const ipcListeners = [
   'character-updated',
+  'entity-updated',
+  'send-panel',
 ];
 
-export const contextBridgePaths = {
-  packs: {
-    getPackList: () => ipcRenderer.invoke('packs:get-pack-list'),
-    getImages: (type, imageId, filter = null) => ipcRenderer.invoke('packs:get-images', type, imageId, filter),
-    getImageInfo: (type, imageId) => ipcRenderer.invoke('packs:get-image-info', type, imageId),
+export const contextBridgePaths = deepmerge.all([
+  {
+    packs: {
+      getPackList: () => ipcRenderer.invoke('packs:get-pack-list'),
+      getImages: (type, imageId, filter = null) => ipcRenderer.invoke('packs:get-images', type, imageId, filter),
+      getImageInfo: (type, imageId) => ipcRenderer.invoke('packs:get-image-info', type, imageId),
+    },
+    characters: {
+      getCharacterList: (filterCharacter = null) => ipcRenderer.invoke('characters:get-character-list', filterCharacter),
+      getCharacter: (characterId) => ipcRenderer.invoke('characters:get-character', characterId),
+    },
   },
-  characters: {
-    getCharacterList: (filterCharacter = null) => ipcRenderer.invoke('characters:get-character-list', filterCharacter),
-    getCharacter: (characterId) => ipcRenderer.invoke('characters:get-character', characterId),
-    getImages: (imageId, filter = null) => ipcRenderer.invoke('characters:get-images', imageId, filter),
-  },
-  entities: {
-    getEntityList: (type, filterEntity = null) => ipcRenderer.invoke('entities:get-entity-list', type, filterEntity),
-    getEntity: (type, entityId) => ipcRenderer.invoke('entities:get-entity', type, entityId),
-    getImages: (imageId, filter = null) => ipcRenderer.invoke('entities:get-images', imageId, filter),
-  },
-  definitions: {
-    getDefinitionValue: (definitionId, valueId, field, fromPack = null) => ipcRenderer.invoke('definitions:get-definition-value', definitionId, valueId, field, fromPack),
-  },
-};
+  entities.contextBridgePaths,
+  definitions.contextBridgePaths,
+]);

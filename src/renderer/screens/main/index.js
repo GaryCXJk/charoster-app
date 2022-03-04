@@ -12,13 +12,15 @@ import createPanelScreen, {
   getCurrentRoster,
   setCurrentWorkspace,
   getRoster,
-  renderRoster,
   resetRoster,
   setRoster,
   storeWorkspace,
   awaitSetup,
   setStyle,
-  getScreenElement,
+  getCurrentWorkspace,
+  getSelection,
+  clearSelection,
+  setPreview,
 } from '../../components/panels/panelscreen';
 import mdi from '../../../helpers/mdi';
 
@@ -29,7 +31,13 @@ let dragLevel = 0;
 let placeholder = null;
 let placeholderRoster = null;
 
-let activePanel = null;
+const updateActions = {
+  theme: ['style', 'selection', 'preview'],
+  displayRoster: ['style', 'selection', 'preview'],
+};
+const updateRosterActions = {
+  type: ['style', 'selection', 'preview'],
+}
 
 const actions = {
   create: async () => {
@@ -60,6 +68,55 @@ const setHandlers = () => {
     }
   });
 
+  window.globalEventHandler.on('sync-workspace', async (newWorkspace) => {
+    const { index, panel } = getSelection();
+    const workspace = await getCurrentWorkspace();
+
+    const needsUpdate = {};
+
+    Object.keys(updateActions).forEach((prop) => {
+      if (workspace[prop] !== newWorkspace[prop]) {
+        updateActions[prop].forEach((action) => {
+          needsUpdate[action] = true;
+        });
+      }
+    });
+
+    const prevRoster = workspace.rosters[workspace.displayRoster];
+    const newRoster = newWorkspace.rosters[newWorkspace.displayRoster];
+
+    if (workspace.displayRoster === newWorkspace.displayRoster) {
+      Object.keys(updateRosterActions).forEach((prop) => {
+        if (prevRoster[prop] !== newRoster[prop]) {
+          updateRosterActions[prop].forEach((action) => {
+            needsUpdate[action] = true;
+          });
+        }
+      });
+    }
+
+    if (index > -1) {
+      if (needsUpdate.selection) {
+        clearSelection();
+      } else {
+        const newEntity = newRoster.roster[index];
+        panel.update(newEntity);
+        setPreview(newRoster.type, newEntity);
+      }
+    }
+
+    setCurrentWorkspace(newWorkspace, 'noUpdate', needsUpdate.style, needsUpdate.preview ?? false);
+  });
+
+  window.globalEventHandler.on('send-panel', (entity) => {
+    const currentRoster = getCurrentRoster();
+
+    currentRoster.roster.push(entity);
+    getRoster().push(addPanel(currentRoster.type, entity));
+    resetRoster();
+    storeWorkspace();
+  });
+
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey) {
       switch (e.key) {
@@ -82,14 +139,6 @@ const setHandlers = () => {
     }
   });
 }
-
-const clearSelection = () => {
-  if (activePanel) {
-    activePanel.panel.element.classList.remove('active');
-    activePanel = null;
-    clearPreview();
-  }
-};
 
 const convertEntity = () => {
   const {
@@ -228,7 +277,6 @@ export default () => {
             elements.panels.append(placeholder);
           }
           setStyle(placeholderRoster);
-          // renderRoster(placeholderRoster);
         }
       });
     },

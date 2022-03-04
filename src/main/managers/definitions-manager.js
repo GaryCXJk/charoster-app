@@ -21,6 +21,7 @@ const definitionQueue = [];
 const definitionDiscovery = {};
 const waiting = {};
 const arrayables = [];
+const entityFields = {};
 
 let queueIsRunning = null;
 
@@ -129,6 +130,9 @@ export const getDefinitionEntityValue = async (definitionId, entityIdSegments, f
   }
   if (definition.fields?.[field]) {
     type = definition.fields[field];
+    if (typeof type === 'object') {
+      type = type.type;
+    }
   }
   return await processEntity(type, entity[field] ?? entity.meta?.[field], definition);
 };
@@ -139,7 +143,7 @@ const preprocessValues = (definition, packId, entityId, data) => {
     if (!data[field]) {
       return;
     }
-    const type = definition.fields[field];
+    const type = typeof definition.fields[field] === 'object' ? definition.fields[field].type : definition.fields[field];
     let isFile = true;
     type.split(',').every((t) => {
       if (['image', 'svg', 'json'].includes(t)) {
@@ -308,6 +312,23 @@ const discoverDefinitionEntities = async (packId, definitionId) => {
   }
 }
 
+const processFields = (id) => {
+  const definition = definitions[id];
+  const { fields } = definition;
+  Object.keys(fields).forEach((key) => {
+    const fieldData = fields[key];
+    if (typeof fieldData === 'object' && fieldData.entityProp) {
+      const fieldName = `${id}:${fieldData.entityProp}`;
+      entityFields[fieldName] = {
+        definition: id,
+        field: key,
+        type: fieldData.type,
+        label: `${definition.name ?? `${id.slice(0, 1).toUpperCase()}${id.slice(1)}`} > ${fieldData.name ?? `${fieldData.entityProp.slice(0, 1).toUpperCase()}${fieldData.entityProp.slice(1)}`}`,
+      };
+    }
+  });
+};
+
 export const addDefinition = (packId, definition) => {
   const id = (definition.namespace ?? true) ? `${definition.namespace ?? packId}:${definition.id}` : definition.id;
   definitions[id] = definitions[id] ?? {
@@ -343,6 +364,9 @@ export const addDefinition = (packId, definition) => {
     const discoveryProperty = definitions[id].discover === true ? definitions[id].id : definitions[id].discover;
     definitionDiscovery[discoveryProperty] = id;
   }
+  if (definitions[id].fields) {
+    processFields(id);
+  }
   if (packId) {
     discoverDefinitionEntities(packId, id);
   }
@@ -377,6 +401,10 @@ const setDefDefinitions = () => {
   });
 }
 
+ipcMain.handle('definitions:get-definition', async (_event, definitionId) => {
+  return definitions[definitionId];
+});
+
 ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field, fromPack = null) => {
   const values = !Array.isArray(valueIds) ? [valueIds] : valueIds;
 
@@ -385,13 +413,34 @@ ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, 
   for (let idx = 0; idx < values.length; idx += 1) {
     const val = values[idx];
     const outVal = await getDefinitionEntityValue(definitionId, val.split('>'), field, fromPack);
-    ret.push(outVal);
+    ret.push({
+      key: val,
+      value: outVal,
+    });
   }
   const definition = definitions[definitionId];
   if (definition.list) {
     return ret;
   }
   return ret[0];
+});
+
+ipcMain.handle('definitions:get-entity-fields', () => entityFields);
+ipcMain.handle('definitions:get-definition-entity', async (_event, definitionId, field, value) => {
+  const definition = definitions[definitionId];
+
+  let type = 'string';
+  if (field === 'meta') {
+    type = 'object';
+  }
+  if (definition.fields?.[field]) {
+    type = definition.fields[field];
+    if (typeof type === 'object') {
+      type = type.type;
+    }
+  }
+
+  return await processEntity(type, value, definition);
 });
 
 onAppReset(() => {

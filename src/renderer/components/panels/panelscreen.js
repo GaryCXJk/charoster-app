@@ -6,6 +6,7 @@ import { getEntity, getEntityObject } from './processing/entities';
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 import { globalAppReset } from '../../../helpers/global-on';
 import createPreviewCreditsContainerElement from './preview/credits';
+import { debounce } from 'throttle-debounce';
 
 let workspace = {};
 const entities = getEntityObject();
@@ -32,16 +33,18 @@ export const resetRoster = () => {
   renderRoster();
 }
 
-export const setCurrentWorkspace = (newWorkspace, store = true, recreateRoster = false) => {
+export const setCurrentWorkspace = (newWorkspace, store = true, recreateRoster = false, updatePreview = true) => {
   workspace = newWorkspace;
   if (store) {
-    storeWorkspace();
+    storeWorkspace(null, store !== 'noUpdate');
   }
   if (recreateRoster) {
     const currentRoster = getCurrentRoster();
     roster = currentRoster.roster.map((entity) => addPanel(currentRoster.type, entity));
   }
-  elements.preview.resetPreview();
+  if (updatePreview && elements.preview) {
+    elements.preview.resetPreview();
+  }
   resetRoster();
 }
 
@@ -80,6 +83,8 @@ const getImageId = (type, entity) => {
   let imageId = null;
   if (funcs[type] && funcs[type].getImageId) {
     imageId = funcs[type].getImageId(entity);
+  } else if (funcs.entities.getImageId) {
+    imageId = funcs.entities.getImageId(entity);
   }
 
   return imageId;
@@ -130,12 +135,19 @@ const createPreviewImageElement = (layer, monitorElements) => {
 }
 
 const createPreviewImageContainerElement = (data, monitorElements) => {
+  const entityType = getCurrentRoster().type;
   const container = new Block({
-    className: 'image-container',
+    className: `image-container image-container-${entityType}`,
   });
 
   if (data.layers) {
     data.layers.forEach((layer, idx) => {
+      if (layer.exclude && layer.exclude.includes(entityType)) {
+        return;
+      }
+      if (layer.include && !layer.include.includes(entityType)) {
+        return;
+      }
       let element;
       switch (layer.type) {
         case 'image':
@@ -148,7 +160,7 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
         if (layer.className) {
           element.element.classList.add(...layer.className.split(' '));
         }
-        element.element.classList.add('layer', `layer-${idx}`);
+        element.element.classList.add('layer', `layer-${idx}`, `layer-${entityType}`);
         container.append(element);
       }
     });
@@ -160,6 +172,7 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
 const createPreviewLayoutElements = async (preview, monitorElements) => {
   await setupPromise;
   const design = await getDesign();
+  preview.empty();
   const layout = design.preview?.layout ?? [
     {
       type: "image",
@@ -231,25 +244,46 @@ const clearPreview = () => {
   elements.preview.clearPreview();
 }
 
-const setPreview = (type, entity) => {
+export const setPreview = (type, entity) => {
   elements.preview.setPreview(type, entity);
 }
 
-const clearSelection = () => {
+export const sendSelection = debounce(250, (index) => {
+  if (window.workspace?.setSelection) {
+    window.workspace.setSelection(index);
+  }
+});
+
+export const getSelection = () => {
   if (activePanel) {
+    return {
+      index: roster.indexOf(activePanel),
+      panel: activePanel,
+    };
+  }
+  return {
+    index: -1,
+    panel: null,
+  };
+};
+
+export const clearSelection = () => {
+  if (activePanel) {
+    sendSelection(-1);
     activePanel.panel.element.classList.remove('active');
     activePanel = null;
     clearPreview();
   }
 };
 
-const setSelection = (panel) => {
+export const setSelection = (panel) => {
   const isActive = panel.panel.element.classList.contains('active');
   clearSelection();
   if (!isActive) {
     panel.panel.element.classList.add('active');
     activePanel = panel;
     setPreview(panel.entityType, panel.entity);
+    sendSelection(roster.indexOf(panel));
   }
 };
 
@@ -258,45 +292,56 @@ export const addPanel = (type, entity) => {
     className: 'panel-container',
   });
 
-  const panel = createPanel({
-    type: type,
-    designId: getDesignId(),
-    design: getDesign(),
-    panelEntity: entity,
-    ...entity,
-    callbacks: {
-      panel: {
-        click: () => {
-          setSelection(panelContainer);
+  const setPanel = (entityObj) => {
+    const panel = createPanel({
+      type: type,
+      designId: getDesignId(),
+      design: getDesign(),
+      panelEntity: entityObj,
+      ...entityObj,
+      callbacks: {
+        panel: {
+          click: () => {
+            setSelection(panelContainer);
+          },
         },
-      },
-      image: {
-        setEntity: async (entityId) => {
-          entities[type] = entities[type] ?? {};
-          let entity = entities[type][entityId];
+        image: {
+          setEntity: async (entityId) => {
+            entities[type] = entities[type] ?? {};
+            let currentEntity = entities[type][entityId];
 
-          if (!entity) {
-            entity = await getEntity(type, entityId);
+            if (!currentEntity) {
+              currentEntity = await getEntity(type, entityId);
+            }
+            return currentEntity;
+          },
+          setImage: ({
+            entity: imageEntity,
+          }) => {
+            return getImageId(type, imageEntity);
           }
-          return entity;
-        },
-        setImage: ({
-          entity,
-        }) => {
-          return getImageId(type, entity);
         }
-      }
-    },
-  });
-  panelContainer.append(panel);
-  panelContainer.panel = panel;
+      },
+    });
+    panelContainer.append(panel);
+    panelContainer.panel = panel;
+
+    if (addPanelCallbacks) {
+      addPanelCallbacks(panel);
+    }
+
+    panel.container = panelContainer;
+  }
+  setPanel(entity);
   panelContainer.entity = entity;
   panelContainer.entityType = type;
-
-  panel.container = panelContainer;
-
-  if (addPanelCallbacks) {
-    addPanelCallbacks(panel);
+  panelContainer.update = (newEntity) => {
+    panelContainer.panel.detach();
+    setPanel(newEntity);
+    panelContainer.entity = newEntity;
+    if (activePanel === panelContainer) {
+      panelContainer.panel.element.classList.add('active');
+    }
   }
 
   return panelContainer;
@@ -331,9 +376,14 @@ const setupWorkspace = async () => {
   workspace = await window.workspace.retrieve();
 }
 
-export const storeWorkspace = async () => {
+export const storeWorkspace = async (newWorkspace = null, update = true) => {
+  if (newWorkspace) {
+    workspace = newWorkspace;
+  }
   window.sessionStorage.setItem('currentWorkspace', JSON.stringify(workspace));
-  await window.workspace.update(workspace);
+  if (update) {
+    await window.workspace.update(workspace);
+  }
 }
 
 const applyEvents = globalAppReset(() => {

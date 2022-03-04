@@ -1,0 +1,34 @@
+#app.properties {
+  .tabs {
+    padding: 0.5rem 1rem 0;
+    border-bottom: 0.1rem solid var(--border-color);
+
+    .tab {
+      border: 0.1rem solid var(--border-color);
+      margin: 0 0.2rem -0.1rem;
+
+      &.active {
+        background-color: var(--main-bg-color);
+        border-bottom-color: var(--main-bg-color);
+      }
+    }
+  }
+  .tab-panel-container {
+    flex: 1 0 0;
+    overflow: overlay;
+
+    p {
+      margin: 1em;
+    }
+  }
+  .row {
+    display: flex;
+    .col {
+      flex: 1 0 0;
+    }
+  }
+
+  .form-sublabel {
+    margin: 1rem 1rem 0;
+  }
+}

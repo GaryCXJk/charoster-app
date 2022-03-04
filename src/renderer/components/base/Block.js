@@ -72,6 +72,12 @@ export default class Block {
     this.#container.parentNode.insertBefore(element, this.#container);
   }
 
+  appendChildren(block) {
+    if (block instanceof Block) {
+      this.append(block.element.children);
+    }
+  }
+
   detach() {
     if (this.#container.parentNode) {
       this.#container.parentNode.removeChild(this.#container);

@@ -2,6 +2,7 @@ import { mkdir, mkdtempSync, rmSync } from 'fs';
 import { rm } from 'fs/promises';
 import createWaiter from '../../helpers/create-waiter';
 import { onAppReset } from '../helpers/manager-helper';
+import { notifyWindow } from './window-manager';
 
 const { app, ipcMain, nativeTheme, dialog } = require('electron');
 const path = require('path');
@@ -114,6 +115,7 @@ export const setDarkMode = (darkMode = null, save = true) => {
   if (save) {
     saveConfig();
   }
+  notifyWindow('darkmode-switched');
 }
 
 const fileLoad = new Promise((resolve) => {
