@@ -2,6 +2,7 @@ import { dialog, ipcMain } from "electron";
 import deepmerge from "deepmerge";
 import * as path from "path";
 import { readFile, writeFile } from "fs/promises";
+import Sharp from 'sharp';
 import { getWorkFolder } from "./config-manager";
 import { getWindow, notifyWindow, notifyWindowWithReply } from "./window-manager";
 
@@ -130,6 +131,14 @@ const exportImage = async (screen, options = {}) => {
       {
         name: 'PNG',
         extensions: ['png'],
+      },
+      {
+        name: 'JPEG',
+        extensions: ['jpg', 'jpeg'],
+      },
+      {
+        name: 'WEBP',
+        extensions: ['webp'],
       }
     ],
     properties: [],
@@ -142,7 +151,29 @@ const exportImage = async (screen, options = {}) => {
   if (status.canceled) {
     return null;
   }
-  await writeFile(status.filePath.toString(), image.toPNG());
+  let type = 'png';
+  let filePath = status.filePath.toString();
+  const match = filePath.match(/\.(png|jpg|jpeg|webp)$/);
+  if (match) {
+    type = match[1];
+  } else {
+    filePath = `${filePath}.png`;
+  }
+  let buffer;
+  switch (type) {
+    case 'webp':
+      buffer = await (new Sharp(image.toPNG())).webp({ lossless: true }).toBuffer();
+      break;
+    case 'jpg':
+    case 'jpeg':
+      buffer = image.toJPEG();
+      break;
+    case 'png':
+    default:
+      buffer = image.toPNG();
+      break;
+  }
+  await writeFile(filePath, buffer);
 }
 
 ipcMain.handle('workspace:new', createWorkspace);
