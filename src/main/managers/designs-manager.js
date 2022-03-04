@@ -8,6 +8,7 @@ import { getConfig, getTempPath, setTempFile } from "./config-manager";
 import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
 import { onAppReset } from '../helpers/manager-helper';
 import { clearObject } from '../../helpers/object-helper';
+import { readFile } from 'fs/promises';
 
 const designs = {};
 const designQueue = [];
@@ -166,13 +167,13 @@ export const getDesignImage = async (imageId) => {
   const workFolder = getConfig('workFolder');
   const designPath = path.join(workFolder, 'packs', folder, 'designs', designId, image);
 
-  const sharpImage = new Sharp(designPath);
+  const sharpImage = new Sharp(await readFile(designPath)); // We'll read from file buffer, to not lock up files in Windows.
 
   await sharpImage
-    .png();
+    .webp({ lossless: true });
 
   try {
-    const outFile = `design--${imageId.replace(/\>/g, '--')}--raw--${(new Date()).getTime()}.png`;
+    const outFile = `design--${imageId.replace(/\>/g, '--')}--raw--${(new Date()).getTime()}.webp`;
     const writePath = path.join(getTempPath(), outFile);
     const info = await sharpImage.toFile(writePath);
     const fileUrl = `${app.name}://${outFile}`;
@@ -188,7 +189,7 @@ export const getDesignImage = async (imageId) => {
 
     images[imageId] = {
       buffer,
-      data: `data:image/png;base64,${buffer.toString('base64')}`,
+      data: `data:image/webp;base64,${buffer.toString('base64')}`,
     };
   }
   waiter.resolve();
