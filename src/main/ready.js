@@ -1,5 +1,6 @@
 import { app, protocol, session } from "electron";
 import * as path from 'path';
+import { lookup } from 'mime-types';
 import { getTempPath } from "./managers/config-manager";
 import { getAltImage } from './managers/entity-manager';
 import { getFileBuffer, setBufferWaiter } from './managers/file-manager';
@@ -16,14 +17,14 @@ export default () => {
 
   protocol.interceptBufferProtocol(app.name, async (request, callback) => {
     const url = request.url.slice(app.name.length + 3);
-    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.png$/);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
     if (!match) {
       const file = path.join(getTempPath(), url.replace(/\//g, '--'));
       const buffer = await getFileBuffer(file);
       if (!buffer) {
         callback({ error: 404 });
       } else {
-        callback({ mimeType: 'image/png', data: buffer });
+        callback({ mimeType: lookup(url), data: buffer });
       }
       return;
     }
@@ -40,11 +41,11 @@ export default () => {
       callback({ error: 404 });
       return;
     }
-    callback({ mimeType: 'image/png', data: buffer });
+    callback({ mimeType: lookup(url), data: buffer });
   });
   protocol.interceptBufferProtocol(`${app.name}-renderer`, async (request, callback) => {
     const url = request.url.slice(app.name.length + 12);
-    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.png$/);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
     if (!match) {
       callback({ error: 404 });
       return;
@@ -59,6 +60,6 @@ export default () => {
       callback({ error: 404 });
       return;
     }
-    callback({ mimeType: 'image/png', data: buffer });
+    callback({ mimeType: lookup(url), data: buffer });
   });
 }

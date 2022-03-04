@@ -19,8 +19,8 @@ const defaultConfig = {
   },
   workFolder: null,
   maxRenderWidth: {
-    characters: 128,
-    stages: 256
+    characters: 256,
+    stages: 512
   }
 };
 
