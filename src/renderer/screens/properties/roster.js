@@ -49,9 +49,10 @@ export default async (properties) => {
     id: 'roster',
     label: 'Roster',
     options: properties.workspace.rosters.map((roster, index) => {
+      const rosterPadding = Math.ceil(Math.log(properties.workspace.rosters.length) / Math.log(10));
       return {
         id: index,
-        label: roster.name ?? `Roster ${index + 1}`,
+        label: `${`${index}`.padStart(rosterPadding, '0')}: ${roster.name ?? `Roster ${index + 1}`}`,
       }
     }),
   });
@@ -194,9 +195,10 @@ export default async (properties) => {
   const resetRosterProperties = (resetRosterSelect = true) => {
     if (resetRosterSelect) {
       rosterSelect.setOptions(properties.workspace.rosters.map((roster, index) => {
+        const rosterPadding = Math.ceil(Math.log(properties.workspace.rosters.length) / Math.log(10));
         return {
           id: index,
-          label: roster.name ?? `Roster ${index + 1}`,
+          label: `${`${index}`.padStart(rosterPadding, '0')}: ${roster.name ?? `Roster ${index + 1}`}`,
         }
       }));
     }
