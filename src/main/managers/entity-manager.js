@@ -300,7 +300,7 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
 
   const heightRatio = await getSize(type, size, designId);
 
-  const sharpImage = new Sharp(altPath);
+  const sharpImage = new Sharp(await readFile(altPath)); // We'll read from file buffer, to not lock up files in Windows.
   const sharpMeta = await sharpImage.metadata();
   let sizeData = alt.sizes && alt.sizes[size];
   if (imageInfo.sizes && imageInfo.sizes[size]) {
@@ -371,7 +371,7 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
       width: sizeData.width,
       height: sizeData.height,
     })
-    .webp();
+    .webp({ lossless: true });
 
   const finalPass = new Sharp(await sharpImage.toBuffer());
   const fpMeta = await finalPass.metadata();
@@ -382,7 +382,7 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
       width: maxRenderWidth[type],
     });
   }
-  await finalPass.webp();
+  await finalPass.webp({ lossless: true });
 
   const imageBuffer = await finalPass.toBuffer();
 
