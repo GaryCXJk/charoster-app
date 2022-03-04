@@ -13,6 +13,7 @@ const SHARP_NODE_MODULES_TO_COPY = [
   'color-name',
   'color-string',
   'detect-libc',
+  'is-arrayish',
   'simple-swizzle',
   'semver',
 ];
