@@ -169,10 +169,10 @@ export const getDesignImage = async (imageId) => {
   const sharpImage = new Sharp(designPath);
 
   await sharpImage
-    .png();
+    .webp();
 
   try {
-    const outFile = `design--${imageId.replace(/\>/g, '--')}--raw--${(new Date()).getTime()}.png`;
+    const outFile = `design--${imageId.replace(/\>/g, '--')}--raw--${(new Date()).getTime()}.webp`;
     const writePath = path.join(getTempPath(), outFile);
     const info = await sharpImage.toFile(writePath);
     const fileUrl = `${app.name}://${outFile}`;
@@ -188,7 +188,7 @@ export const getDesignImage = async (imageId) => {
 
     images[imageId] = {
       buffer,
-      data: `data:image/png;base64,${buffer.toString('base64')}`,
+      data: `data:image/webp;base64,${buffer.toString('base64')}`,
     };
   }
   waiter.resolve();
