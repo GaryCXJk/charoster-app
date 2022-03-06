@@ -44,12 +44,14 @@ const actions = {
     const newWorkspace = await window.workspace.create();
     if (newWorkspace) {
       setCurrentWorkspace(newWorkspace, true, true);
+      clearSelection(-1);
     }
   },
   open: async () => {
     const newWorkspace = await window.workspace.load();
     if (newWorkspace) {
       setCurrentWorkspace(newWorkspace, true, true);
+      clearSelection(-1);
     }
   },
 };
