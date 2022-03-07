@@ -73,6 +73,12 @@
 
     .panel {
       width: 4.5rem;
+
+      &.empty {
+        background: none;
+        border-style: dashed;
+        border-width: 0.3rem;
+      }
     }
   }
 }

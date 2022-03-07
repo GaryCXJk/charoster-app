@@ -99,7 +99,10 @@ const createPreviewImageElement = (layer, monitorElements) => {
     if (layer.file) {
       return;
     }
-    const { entityId } = entity;
+    const { entityId = null } = entity ?? {};
+    if (entityId === null) {
+      return;
+    }
     const entityInfo = await getEntity(type, entityId);
 
     if (layer.from?.definition && layer.from?.field) {

@@ -1,3 +1,11 @@
 @import "../../components/panels/panelscreen.scss";
 
 @include panelscreen(main);
+
+#app.main {
+  .sections .content .panels .panel.empty {
+    background: none;
+    border-style: dashed;
+    border-width: 0.5em;
+  }
+}

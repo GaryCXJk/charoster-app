@@ -230,9 +230,9 @@ export default () => {
 
       panel.on('dragstart', () => {
         const {
-          entityId: panelId,
+          entityId: panelId = null,
           ...restInfo
-        } = panel.container.entity;
+        } = panel.container.entity ?? {};
 
         dragInfo = {
           ...restInfo,
