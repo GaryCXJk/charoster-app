@@ -172,7 +172,8 @@ export default () => {
             const roster = getRoster();
             roster.splice(placeholder.index(), 0, placeholder);
             setRoster(roster);
-            currentRoster.roster.splice(placeholder.index(), 0, placeholder.entity);
+            const { entity: insertEntity } = placeholder;
+            currentRoster.roster.splice(placeholder.index(), 0, insertEntity.entityId === null ? null : insertEntity);
             storeWorkspace();
             resetRoster();
           }
