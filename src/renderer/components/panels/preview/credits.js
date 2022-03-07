@@ -191,7 +191,10 @@ export const createPreviewCredits = async (type, entity, container = null) => {
   const content = container ?? new Block();
   content.empty();
 
-  const { entityId } = entity;
+  const { entityId = null } = entity ?? {};
+  if (entityId === null) {
+    return content;
+  }
   const entityInfo = await getEntity(type, entityId);
   const imageId = entity.imageId ?? getImageId(entityInfo);
   const creditsData = gatherCredits(entityInfo, imageId);

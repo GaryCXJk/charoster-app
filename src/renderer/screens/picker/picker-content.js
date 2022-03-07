@@ -131,7 +131,7 @@ const createPanel = (id, imageId = null) => {
           window.panels.endDrag();
         },
         ...(
-          !imageId
+          !imageId && id !== null
           ? {
             click: () => {
               panel.element.classList.toggle('active');
@@ -165,11 +165,11 @@ const createPanel = (id, imageId = null) => {
                     if (altInfo.group && !altInfo.label) {
                       childGroups[altInfo.group] = altContainer;
                     } else {
-                      const costumeHeader = new Block({
+                      const altHeader = new Block({
                         className: 'header',
                         textContent: altLabel,
                       });
-                      altPicker.append(costumeHeader);
+                      altPicker.append(altHeader);
                       altPicker.append(altContainer);
                       altGroups[groupId] = altContainer;
                       if (childGroups[groupId]) {
@@ -185,6 +185,7 @@ const createPanel = (id, imageId = null) => {
                 });
               } else {
                 activePanel = null;
+                createEmptyPanelPicker();
               }
             }
           }
@@ -226,6 +227,19 @@ const createPanel = (id, imageId = null) => {
   });
 
   return panel;
+}
+
+const createEmptyPanelPicker = () => {
+  const emptyContainer = new Block({
+    className: 'alt-group',
+  });
+  const emptyHeader = new Block({
+    className: 'header',
+    textContent: 'Empty panel',
+  });
+  altPicker.append(emptyHeader);
+  altPicker.append(emptyContainer);
+  emptyContainer.append(createPanel(null, null));
 }
 
 const createPackBlock = (packId) => {
@@ -325,6 +339,7 @@ const initPickerContent = async () => {
   });
 
   addPackBlocks();
+  createEmptyPanelPicker();
 }
 
 const pickerReset = () => {

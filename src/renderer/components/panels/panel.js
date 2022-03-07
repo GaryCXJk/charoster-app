@@ -138,11 +138,15 @@ const setPanelContent = async ({
   panel,
   panelEntity,
   type,
-  entityId,
+  entityId = null,
   callbacks = {},
   design: designPromise = null,
   ...props
 }) => {
+  if (entityId === null) {
+    panel.element.classList.add('empty');
+    return null;
+  }
   let design = null;
   if (designPromise) {
     design = await designPromise;
@@ -210,7 +214,7 @@ const setPanelContent = async ({
 
 export const createPanel = ({
   type,
-  entityId,
+  entityId = null,
   imageId = null,
   draggable = false,
   callbacks = {},

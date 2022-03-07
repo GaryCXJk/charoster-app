@@ -3,6 +3,10 @@
 @include panelscreen(render);
 
 #app.render {
+  .sections .content .panels .panel.empty {
+    background: none;
+    border-style: none;
+  }
   .credits-placeholder {
     width: 100%;
     font-size: 0.7em;

@@ -88,11 +88,11 @@ const initProperties = async (container) => {
   tabPanels.switch('workspace');
 
   window.globalEventHandler.on('set-selection', (index) => {
-    if (index > -1) {
+    const currentRoster = properties.workspace.rosters[properties.workspace.displayRoster];
+    if (index > -1 && currentRoster.roster[index] !== null) {
       properties.eventTarget.dispatchEvent(new CustomEvent('sync-entity', {
         detail: index,
       }));
-      const currentRoster = properties.workspace.rosters[properties.workspace.displayRoster];
       const type = currentRoster.type;
       tabButtons.entity.prop('textContent', entityTypes[type]);
       tabs.append(tabButtons.entity);
