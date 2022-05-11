@@ -79,6 +79,7 @@ const sizes = {
 const sizeKeys = {
   characters: ['panel', 'preview'],
   stages: ['preview'],
+  items: ['preview'],
 };
 
 export const getSizeKeys = (type) => {

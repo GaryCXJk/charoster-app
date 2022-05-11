@@ -53,7 +53,7 @@ const imageContent = async (block, layerInfo, {
       if (imageSize) {
         imageStr = imageSize.file ?? imageSize.data;
       } else {
-        imageStr = imageData.file ?? imageSize.data ?? null;
+        imageStr = imageData.file ?? imageData.data ?? null;
       }
     }
     if (imageStr) {
