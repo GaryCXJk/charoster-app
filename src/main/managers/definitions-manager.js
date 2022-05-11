@@ -255,6 +255,8 @@ const loadDefinitionEntity = async (definitionId, entityIdSegments, fromPack = n
         }
       }
     }
+    waiting[fullEntityId] = null;
+    waiter.resolve();
     return null;
   } else {
     return await waiting[fullEntityId];
@@ -415,7 +417,7 @@ ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, 
     const outVal = await getDefinitionEntityValue(definitionId, val.split('>'), field, fromPack);
     ret.push({
       key: val,
-      value: outVal,
+      value: outVal ?? [],
     });
   }
   const definition = definitions[definitionId];
