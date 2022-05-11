@@ -103,7 +103,7 @@ export const processImageDefinitionLayer = async (layer, type, entity, image = n
           imageId = imageEntry.fullId;
         }
       }
-      pickedImage = imageMap[imageId];
+      pickedImage = imageMap[imageId] ?? Object.values(imageMap)[0] ?? null;
     }
     if (!pickedImage) {
       return null;
