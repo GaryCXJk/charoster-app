@@ -15,6 +15,13 @@ export const getLabel = async (type, entity, imageId = null) => {
   if (imageId) {
     const imageInfo = await window.packs.getImageInfo(type, imageId);
     displayLabel = displayLabel ?? imageInfo.allCapsDisplayName ?? (imageInfo.displayName ? imageInfo.displayName.toUpperCase() : null);
+    if (!displayLabel) {
+      const imageIdGroup = imageId.split('>').slice(0, -1).join('>');
+      if (entity.imageMap[imageIdGroup]) {
+        const imageGroup = entity.imageMap[imageIdGroup];
+        displayLabel = displayLabel ?? imageGroup.allCapsDisplayName ?? (imageGroup.displayName ? imageGroup.displayName.toUpperCase() : null);
+      }
+    }
   }
   displayLabel = displayLabel ?? entity.allCapsDisplayName ?? (entity.displayName ? entity.displayName.toUpperCase() : null) ?? entity.allCapsName ?? (entity.name ?? entity.id).toUpperCase();
   return displayLabel;
