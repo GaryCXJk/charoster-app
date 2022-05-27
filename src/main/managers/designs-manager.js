@@ -20,8 +20,10 @@ let queueIsRunning = null;
 const baseDesign = {
   page: {},
   panels: {},
-  preview: {}
-}
+  preview: {
+    image: {},
+  },
+};
 
 const defaultDesign = {
   panels: {

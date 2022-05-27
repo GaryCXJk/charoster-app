@@ -77,8 +77,13 @@ const labelContent = async (block, layerInfo, {
     block.prop('textContent', displayLabel);
     if (layerInfo.display === 'image') {
       block.prop('textContent', '');
+      const labelStyle = {};
+      if (layerInfo.fontColor) {
+        labelStyle.fontColor = layerInfo.fontColor;
+      }
       const labelUrl = await imageLabel({
         label: displayLabel,
+        ...labelStyle,
       });
 
       const labelImage = document.createElement('img');
