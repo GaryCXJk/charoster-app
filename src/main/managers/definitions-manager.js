@@ -407,8 +407,18 @@ ipcMain.handle('definitions:get-definition', async (_event, definitionId) => {
   return definitions[definitionId];
 });
 
+const processValueIds = async (valueIds) => {
+  if (Array.isArray(valueIds)) {
+    return valueIds;
+  }
+  if (valueIds === '*') {
+
+  }
+  return [valueIds];
+};
+
 ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field, fromPack = null) => {
-  const values = !Array.isArray(valueIds) ? [valueIds] : valueIds;
+  const values = await processValueIds(valueIds);
 
   const ret = [];
 

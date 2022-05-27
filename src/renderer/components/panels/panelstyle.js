@@ -21,6 +21,27 @@ const checkFileImages = (found, queue) => {
   }
 }
 
+const queueLayerImages = (queue, types, layer) => {
+  if (layer.style) {
+    if (layer.style.background?.image) {
+      checkFileImages(layer.style.background?.image, queue);
+    }
+    if (layer.style.mask?.image) {
+      checkFileImages(layer.style.mask?.image, queue);
+    }
+    types.forEach((type) => {
+      if (layer.style[type]) {
+        if (layer.style[type].background?.image) {
+          checkFileImages(layer.style[type].background.image, queue);
+        }
+        if (layer.style[type].mask?.image) {
+          checkFileImages(layer.style[type].mask.image, queue);
+        }
+      }
+    });
+  };
+}
+
 export const createDesignQueue = (design) => {
   const queue = [];
   const checks = [
@@ -68,34 +89,24 @@ export const createDesignQueue = (design) => {
   const locations = [];
   locations.push(design.panels.layers ?? getDefaultPanelLayout());
   if (design.preview?.layout) {
-    design.preview.layout.forEach((layout) => {
-      if (layout.layers) {
-        locations.push(layout.layers);
-      }
-    });
+    const previewLayouts = [design.preview.layout];
+    while (previewLayouts.length) {
+      const previewLayout = previewLayouts.shift();
+      previewLayout.forEach((layout) => {
+        queueLayerImages(queue, types, layout);
+        if (layout.layers) {
+          if (layout.type === 'container') {
+            previewLayouts.push(layout.layers);
+          } else {
+            locations.push(layout.layers);
+          }
+        }
+      });
+    }
   }
   if (locations.length) {
     locations.forEach((location) => {
-      location.forEach((layer) => {
-        if (layer.style) {
-          if (layer.style.background?.image) {
-            checkFileImages(layer.style.background?.image, queue);
-          }
-          if (layer.style.mask?.image) {
-            checkFileImages(layer.style.mask?.image, queue);
-          }
-          types.forEach((type) => {
-            if (layer.style[type]) {
-              if (layer.style[type].background?.image) {
-                checkFileImages(layer.style[type].background.image, queue);
-              }
-              if (layer.style[type].mask?.image) {
-                checkFileImages(layer.style[type].mask.image, queue);
-              }
-            }
-          });
-        }
-      });
+      location.forEach(queueLayerImages.bind(null, queue, types));
     });
   }
   return queue;
@@ -345,8 +356,43 @@ const handleFont = (font, imageFiles, styleObject = null) => (
     weight: 'fontWeight',
     style: 'fontStyle',
     decoration: 'textDecoration',
+    color: 'color',
   })
 );
+
+const handleTransform = (style, styleObject = null) => {
+  const newStyle = {};
+
+  const transforms = [];
+
+  if (Array.isArray(style)) {
+    style.forEach((transform) => {
+      if (transform.type) {
+        const value = [];
+        switch (transform.type) {
+          case 'skew':
+            value.push(transform.x ?? '0deg');
+            if (transform.y) {
+              value.push(transform.y);
+            }
+            transforms.push(`skew(${value.join(',')})`);
+            break;
+          default:
+            break;
+        }
+      }
+    });
+    if (transforms.length) {
+      newStyle.transform = transforms.join(' ');
+    }
+  }
+
+  if (styleObject) {
+    Object.assign(styleObject, newStyle);
+  }
+
+  return newStyle;
+};
 
 const handleElement = (style, styleObject = null) => {
   const {
@@ -355,7 +401,9 @@ const handleElement = (style, styleObject = null) => {
     left = null,
     right = null,
     top = null,
-    bottom = null
+    bottom = null,
+    overlay = false,
+    contain = false
   } = style;
 
   const newStyle = {};
@@ -376,6 +424,12 @@ const handleElement = (style, styleObject = null) => {
     newStyle.top = top ?? newStyle.top ?? 'auto';
     newStyle.bottom = bottom ?? newStyle.bottom ?? 'auto';
   }
+  if (overlay) {
+    newStyle.position = 'absolute';
+  }
+  if (contain) {
+    newStyle.overflow = 'hidden';
+  }
 
   if (styleObject) {
     Object.assign(styleObject, newStyle);
@@ -395,6 +449,7 @@ const setCSSStyle = (style, imageFiles, styleObject = null) => {
         styleObject.filter = ret;
       }
     },
+    transform: (_props, val) => handleTransform(val, styleObject),
     element: (_props, val) => handleElement(val, styleObject),
   });
 }
@@ -437,6 +492,12 @@ export const createStylesheet = ({
   combinedStyles['.sections .content .panels .panel'] = {};
   if (design.panels.border) {
     handleBorders(design.panels.border, imageFiles, combinedStyles['.sections .content .panels .panel']);
+  }
+  if (design.panels.transform) {
+    handleTransform(design.panels.transform, combinedStyles['.sections .content .panels .panel']);
+  }
+  if (design.panels.element?.contain) {
+    combinedStyles['.sections .content .panels .panel'].overflow = 'hidden';
   }
   (design.panels.layers ?? getDefaultPanelLayout()).forEach((layer, idx) => {
     if (layer.style) {
@@ -538,25 +599,46 @@ export const createStylesheet = ({
   });
 
   if (design.preview.layout) {
-    design.preview.layout.forEach((layout, elementIdx) => {
-      const baseClassName = `.sections .preview .element.element-${elementIdx}`;
-      if (layout.layers) {
-        layout.layers.forEach((layer, layerIdx) => {
-          if (layer.style) {
-            const className = `${baseClassName} .layer.layer-${layerIdx}`;
-            combinedStyles[className] = combinedStyles[className] ?? {};
-            setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-            types.forEach((type) => {
-              if (layer.style[type]) {
-                const subClassName = `${className}.layer-${type}`;
-                combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
-                setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
+    const previewLayouts = [{
+      previewLayout: design.preview.layout,
+      classPrefix: '',
+    }];
+    while (previewLayouts.length) {
+      const {
+        previewLayout,
+        classPrefix,
+      } = previewLayouts.shift();
+      previewLayout.forEach((layout, elementIdx) => {
+        const baseClassName = `.sections .preview${classPrefix} .element.element-${elementIdx}`;
+        if (layout.style) {
+          combinedStyles[baseClassName] = combinedStyles[baseClassName] ?? {};
+          setCSSStyle(layout.style, imageFiles, combinedStyles[baseClassName]);
+        }
+        if (layout.layers) {
+          if (layout.type === 'container') {
+            previewLayouts.push({
+              previewLayout: layout.layers,
+              classPrefix: ` .element.element-${elementIdx}`,
+            });
+          } else {
+            layout.layers.forEach((layer, layerIdx) => {
+              if (layer.style) {
+                const className = `${baseClassName} .layer.layer-${layerIdx}`;
+                combinedStyles[className] = combinedStyles[className] ?? {};
+                setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+                types.forEach((type) => {
+                  if (layer.style[type]) {
+                    const subClassName = `${className}.layer-${type}`;
+                    combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
+                    setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
+                  }
+                });
               }
             });
           }
-        });
-      }
-    });
+        }
+      });
+    }
   }
 
   return createStyleString(combinedStyles);

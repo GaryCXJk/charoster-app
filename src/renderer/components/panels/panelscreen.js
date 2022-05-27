@@ -172,11 +172,11 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
   return container;
 }
 
-const createPreviewLayoutElements = async (preview, monitorElements) => {
+const createPreviewLayoutElements = async (preview, monitorElements, innerLayout = null) => {
   await setupPromise;
   const design = await getDesign();
   preview.empty();
-  const layout = design.preview?.layout ?? [
+  const layout = innerLayout ?? design.preview?.layout ?? [
     {
       type: "image",
       layers: [
@@ -202,9 +202,16 @@ const createPreviewLayoutElements = async (preview, monitorElements) => {
     }
   ];
 
-  layout.forEach((element, idx) => {
+  await layout.reduce(async (memo, element, idx) => {
+    await memo;
     let container = null;
     switch (element.type) {
+      case 'container':
+        container = new Block({
+          className: `preview-container`,
+        });
+        await createPreviewLayoutElements(container, monitorElements, element.layers ?? []);
+        break;
       case 'image':
         container = createPreviewImageContainerElement(element, monitorElements);
         break;
@@ -217,7 +224,7 @@ const createPreviewLayoutElements = async (preview, monitorElements) => {
       container.element.classList.add('element', `element-${idx}`)
       preview.append(container);
     }
-  });
+  }, Promise.resolve());
 }
 
 const createPreviewElements = (preview) => {
