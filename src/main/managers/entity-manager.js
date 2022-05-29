@@ -302,9 +302,24 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
 
   const sharpImage = new Sharp(await readFile(altPath)); // We'll read from file buffer, to not lock up files in Windows.
   const sharpMeta = await sharpImage.metadata();
-  let sizeData = alt.sizes && alt.sizes[size];
-  if (imageInfo.sizes && imageInfo.sizes[size]) {
-    sizeData = imageInfo.sizes[size];
+  let sizeData = null;
+  if (imageInfo.sizes) {
+    if (!Number.isNaN(+imageInfo.sizes)) {
+      console.log(alt.sizes);
+      if (alt.sizes && Array.isArray(alt.sizes) && +imageInfo.sizes < alt.sizes.length) {
+        sizeData = alt.sizes[imageInfo.sizes] && alt.sizes[imageInfo.sizes][size];
+      }
+    } else if (imageInfo.sizes[size]) {
+      sizeData = imageInfo.sizes[size];
+    }
+  }
+  if (!sizeData) {
+    if (Array.isArray(alt.sizes)) {
+      console.log(alt.sizes);
+      sizeData = alt.sizes[0] && alt.sizes[0][size];
+    } else {
+      sizeData = alt.sizes && alt.sizes[size];
+    }
   }
 
   if (!sizeData) {
