@@ -305,7 +305,6 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
   let sizeData = null;
   if (imageInfo.sizes) {
     if (!Number.isNaN(+imageInfo.sizes)) {
-      console.log(alt.sizes);
       if (alt.sizes && Array.isArray(alt.sizes) && +imageInfo.sizes < alt.sizes.length) {
         sizeData = alt.sizes[imageInfo.sizes] && alt.sizes[imageInfo.sizes][size];
       }
@@ -315,7 +314,6 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
   }
   if (!sizeData) {
     if (Array.isArray(alt.sizes)) {
-      console.log(alt.sizes);
       sizeData = alt.sizes[0] && alt.sizes[0][size];
     } else {
       sizeData = alt.sizes && alt.sizes[size];

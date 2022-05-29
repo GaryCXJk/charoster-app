@@ -41,6 +41,17 @@
         justify-content: start;
         gap: 1rem;
         clear: both;
+
+        + .panels {
+          margin-top: 1rem;
+        }
+
+        .label {
+          font-family: "Montserrat";
+          width: 100%;
+          font-weight: 700;
+          font-size: 0.8rem;
+        }
       }
     }
   }

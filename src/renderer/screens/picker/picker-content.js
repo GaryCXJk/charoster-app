@@ -256,10 +256,27 @@ const createPackBlock = (packId) => {
   });
   block.append(label);
 
-  const panels = new Block({
-    className: 'panels',
-  });
-  block.append(panels);
+  const panelGroups = {};
+
+  const getPanelGroup = (id = '') => {
+    if (!panelGroups[id]) {
+      panelGroups[id] = new Block({
+        className: 'panels',
+      });
+
+      if (id) {
+        const groupLabel = new Block({
+          className: 'label',
+          textContent: id,
+        });
+        panelGroups[id].append(groupLabel);
+      }
+      block.append(panelGroups[id]);
+    }
+
+
+    return panelGroups[id];
+  };
 
   block.panelMap = {};
 
@@ -267,14 +284,19 @@ const createPackBlock = (packId) => {
 
   block.createPanel = (elementId) => {
     const panel = createPanel(elementId);
+    panel.eventTarget = new EventTarget();
     block.panelMap[elementId] = panel;
     panel.entityId = elementId;
     block.visible.push(elementId);
+    getPanelGroup('').append(panel);
     getEntity(entityType, elementId).then((entity) => {
       panel.entity = entity;
-    });
 
-    panels.append(panel);
+      const panels = getPanelGroup(entity.group ?? '');
+
+      panels.append(panel);
+      panel.eventTarget.dispatchEvent(new Event('entityLoaded'));
+    });
   };
 
   if (Array.isArray(pack[entityType])) {
@@ -285,7 +307,7 @@ const createPackBlock = (packId) => {
 
   block.pack = pack;
   block.off = new Block();
-  block.panels = panels;
+  block.panels = panelGroups;
   block.setVisibility = () => {
     if (!pack[entityType] || pack[entityType] === true) {
       return;
@@ -293,13 +315,26 @@ const createPackBlock = (packId) => {
     block.visible.splice(0, block.visible.length);
     pack[entityType].forEach((entityId) => {
       const panel = block.panelMap[entityId];
+      const panels = getPanelGroup(panel.entity?.group ?? '');
       if (!queryInput.value) {
         block.visible.push(entityId);
         panels.append(panel);
         return;
       }
       const isVisible = (panel.entity?.name ?? panel.entityId).toLowerCase().indexOf(queryInput.value.toLowerCase()) > -1;
-      block[isVisible ? 'panels' : 'off'].append(panel);
+      if (isVisible) {
+        const addToPanel = () => {
+          panel.eventTarget.removeEventListener('entityLoaded', addToPanel);
+          getPanelGroup(panel.entity?.group ?? '').append(panel);
+        }
+        if (!panel.entity) {
+          panel.eventTarget.addEventListener('entityLoaded', addToPanel);
+        } else {
+          addToPanel();
+        }
+      } else {
+        block.off.append(panel);
+      }
       if (isVisible) {
         block.visible.push(entityId);
       }
