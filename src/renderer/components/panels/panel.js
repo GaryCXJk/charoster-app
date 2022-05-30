@@ -72,6 +72,7 @@ const labelContent = async (block, layerInfo, {
   label = null,
 }) => {
   if (showLabel) {
+    console.log(panelEntity, entity);
     let displayLabel = label ?? (panelEntity ? (panelEntity.allCapsName ? panelEntity.allCapsName : null) ?? (panelEntity.displayName ? panelEntity.displayName.toUpperCase() : null) : null) ?? await getLabel(type, entity, imageId);
 
     block.prop('textContent', displayLabel);

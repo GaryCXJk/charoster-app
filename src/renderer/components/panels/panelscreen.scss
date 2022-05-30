@@ -53,6 +53,20 @@
             background-repeat: no-repeat;
             clip-path: inset(0 0 0 0);
           }
+
+          .label {
+            position: absolute;
+            left: -0.6em;
+            right: -0.6em;
+            bottom: -0.6em;
+            font-size: 1.2em;
+            text-align: center;
+
+            .label-image {
+              height: 1.4em;
+              max-width: 100%;
+            }
+          }
         }
 
         .credits-container {

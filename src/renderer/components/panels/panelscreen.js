@@ -7,6 +7,7 @@ import { getImage, processImageDefinitionLayer } from './processing/layers/image
 import { globalAppReset } from '../../../helpers/global-on';
 import createPreviewCreditsContainerElement from './preview/credits';
 import { debounce } from 'throttle-debounce';
+import { getLabel, imageLabel } from './processing/layers/label';
 
 let workspace = {};
 const entities = getEntityObject();
@@ -137,7 +138,87 @@ const createPreviewImageElement = (layer, monitorElements) => {
   return image;
 }
 
-const createPreviewImageContainerElement = (data, monitorElements) => {
+const createPreviewLabelElement = (layer, monitorElements) => {
+  const label = new Block({
+    className: 'label',
+  });
+
+  if (layer.display === 'image') {
+    const labelImage = document.createElement('img');
+    labelImage.className = 'label-image';
+    labelImage.src = '';
+    label.append(labelImage);
+    label.image = labelImage;
+  }
+
+  label.setPreview = async (type, entity) => {
+    const { entityId = null } = entity ?? {};
+    if (entityId === null) {
+      return;
+    }
+    const entityInfo = await getEntity(type, entityId);
+    let displayLabel = (entity ? (entity.allCapsName ? entity.allCapsName : null) ?? (entity.displayName ? entity.displayName.toUpperCase() : null) : null) ?? await getLabel(type, entityInfo, entity.imageId);
+
+    if (layer.display === 'image') {
+      const labelStyle = {};
+      if (layer.fontColor) {
+        labelStyle.fontColor = layer.fontColor;
+      }
+      const labelUrl = await imageLabel({
+        label: displayLabel,
+        ...labelStyle,
+      });
+
+      label.image.src = labelUrl;
+    } else {
+      label.prop('textContent', displayLabel);
+    }
+    /*
+    if (layer.file) {
+      return;
+    }
+    const { entityId = null } = entity ?? {};
+    if (entityId === null) {
+      return;
+    }
+    const entityInfo = await getEntity(type, entityId);
+
+    if (layer.from?.definition && layer.from?.field) {
+      const values = entityInfo[layer.from.definition];
+      if (values) {
+        const imgStr = await processImageDefinitionLayer(layer, type, entity);
+        if (imgStr) {
+          image.css({
+            backgroundImage: `url(${imgStr})`,
+          });
+        }
+      }
+    } else if (layer.size) {
+      const imageId = entity.imageId ?? getImageId(type, entityInfo);
+
+      const imageData = await getImage(type, imageId, getDesignId());
+
+      image.css({
+        backgroundImage: `url(${imageData.preview.file ?? imageData.preview.data})`,
+      });
+    }
+    */
+  };
+
+  label.clearPreview = () => {
+    if (layer.display === 'image') {
+      label.image.src = '';
+    } else {
+      label.prop('textContent', '');
+    }
+  }
+
+  monitorElements.push(label);
+
+  return label;
+};
+
+const createPreviewImageContainerElement = async (data, monitorElements) => {
   const entityType = getCurrentRoster().type;
   const container = new Block({
     className: `image-container image-container-${entityType}`,
@@ -155,6 +236,9 @@ const createPreviewImageContainerElement = (data, monitorElements) => {
       switch (layer.type) {
         case 'image':
           element = createPreviewImageElement(layer, monitorElements);
+          break;
+        case 'label':
+          element = createPreviewLabelElement(layer, monitorElements);
           break;
         default:
           break;
@@ -186,6 +270,10 @@ const createPreviewLayoutElements = async (preview, monitorElements, innerLayout
             "preview"
           ],
         },
+        {
+          type: 'label',
+          display: 'image',
+        },
       ],
     },
     {
@@ -213,7 +301,7 @@ const createPreviewLayoutElements = async (preview, monitorElements, innerLayout
         await createPreviewLayoutElements(container, monitorElements, element.layers ?? []);
         break;
       case 'image':
-        container = createPreviewImageContainerElement(element, monitorElements);
+        container = await createPreviewImageContainerElement(element, monitorElements);
         break;
       case 'credits':
         container = createPreviewCreditsContainerElement(element, monitorElements);
