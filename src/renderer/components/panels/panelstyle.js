@@ -242,7 +242,7 @@ const handleStyle = (style, imageFiles, styleObject = null, styleMap = {}) => {
   Object.keys(styleMap).forEach((prop) => {
     const mapTo = styleMap[prop];
     const val = style[prop];
-    if (val) {
+    if (typeof val !== 'undefined') {
       if (typeof mapTo === 'function') {
         mapTo(styleProps, val, imageFiles);
       } else {
@@ -438,6 +438,41 @@ const handleElement = (style, styleObject = null) => {
   return newStyle;
 }
 
+const handleBoxShadow = (style, styleObject = null) => {
+  if (typeof style === 'object') {
+    const {
+      x = 0,
+      y = 0,
+      blur = 0,
+      spread = 0,
+      color = 'currentColor',
+      inset = false,
+    } = style;
+
+    const styleProps = {
+      ['box-shadow']: `${inset ? 'inset ' : ''}${x} ${y} ${blur} ${spread} ${color}`,
+    };
+
+    if (styleObject) {
+      Object.assign(styleObject, styleProps)
+    }
+
+    return styleProps;
+  } else if (typeof style === 'string') {
+    const styleProps = {
+      ['box-shadow']: style,
+    };
+
+    if (styleObject) {
+      Object.assign(styleObject, styleProps)
+    }
+
+    return styleProps;
+  }
+
+  return null;
+};
+
 const setCSSStyle = (style, imageFiles, styleObject = null) => {
   return handleStyle(style, imageFiles, styleObject, {
     background: (_props, val) => handleBackground(val, imageFiles, styleObject),
@@ -449,8 +484,14 @@ const setCSSStyle = (style, imageFiles, styleObject = null) => {
         styleObject.filter = ret;
       }
     },
+    boxShadow: (_props, val) => handleBoxShadow(val, styleObject),
     transform: (_props, val) => handleTransform(val, styleObject),
     element: (_props, val) => handleElement(val, styleObject),
+    boxed: (_props, val) => {
+      if (!val) {
+        styleObject['clip-path'] = 'none';
+      }
+    }
   });
 }
 
@@ -495,6 +536,9 @@ export const createStylesheet = ({
   }
   if (design.panels.transform) {
     handleTransform(design.panels.transform, combinedStyles['.sections .content .panels .panel']);
+  }
+  if (design.panels.boxShadow) {
+    handleBoxShadow(design.panels.boxShadow, combinedStyles['.sections .content .panels .panel']);
   }
   if (design.panels.element?.contain) {
     combinedStyles['.sections .content .panels .panel'].overflow = 'hidden';
@@ -572,8 +616,10 @@ export const createStylesheet = ({
   imagePreviews.forEach((type) => {
     const selector = `.sections .preview .image-container${type ? `.image-container-${type}` : ''}`;
     let designStyle = design.preview.image;
+    let labelStyle = design.preview.label ?? {};
     if (type) {
       designStyle = designStyle[type] ?? {};
+      labelStyle = labelStyle[type] ?? {};
     }
     combinedStyles[selector] = {};
     if (designStyle.width) {
@@ -596,20 +642,28 @@ export const createStylesheet = ({
     if (previewImageFilters) {
       combinedStyles[`${selector} .image`].filter = previewImageFilters;
     }
+
+    combinedStyles[`${selector} .label`] = {};
+    const previewLabelFilters = processCSSFilters(labelStyle.filters ?? []);
+    if (previewLabelFilters) {
+      combinedStyles[`${selector} .label`].filter = previewLabelFilters;
+    }
   });
 
   if (design.preview.layout) {
     const previewLayouts = [{
       previewLayout: design.preview.layout,
       classPrefix: '',
+      depth: 0,
     }];
     while (previewLayouts.length) {
       const {
         previewLayout,
         classPrefix,
+        depth,
       } = previewLayouts.shift();
       previewLayout.forEach((layout, elementIdx) => {
-        const baseClassName = `.sections .preview${classPrefix} .element.element-${elementIdx}`;
+        const baseClassName = `.sections .preview${classPrefix} .element.element-${elementIdx}.element-depth-${depth}`;
         if (layout.style) {
           combinedStyles[baseClassName] = combinedStyles[baseClassName] ?? {};
           setCSSStyle(layout.style, imageFiles, combinedStyles[baseClassName]);
@@ -618,9 +672,44 @@ export const createStylesheet = ({
           if (layout.type === 'container') {
             previewLayouts.push({
               previewLayout: layout.layers,
-              classPrefix: ` .element.element-${elementIdx}`,
+              classPrefix: `${classPrefix} .element.element-${elementIdx}.element-depth-${depth}`,
+              depth: depth + 1,
             });
           } else {
+            const previewLayers = [{
+              previewLayer: layout.layers,
+              layerClassPrefix: '',
+              layerDepth: 0,
+            }];
+            while (previewLayers.length) {
+              const {
+                previewLayer,
+                layerClassPrefix,
+                layerDepth,
+              } = previewLayers.shift();
+              previewLayer.forEach((layer, layerIdx) => {
+                if (layer.style) {
+                  const className = `${baseClassName}${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`;
+                  combinedStyles[className] = combinedStyles[className] ?? {};
+                  setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+                  types.forEach((type) => {
+                    if (layer.style[type]) {
+                      const subClassName = `${className}.layer-${type}`;
+                      combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
+                      setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
+                    }
+                  });
+                }
+                if (layer.layers) {
+                  previewLayers.push({
+                    previewLayer: layer.layers,
+                    layerClassPrefix: `${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`,
+                    layerDepth: layerDepth + 1,
+                  });
+                }
+              });
+            }
+            /*
             layout.layers.forEach((layer, layerIdx) => {
               if (layer.style) {
                 const className = `${baseClassName} .layer.layer-${layerIdx}`;
@@ -635,6 +724,7 @@ export const createStylesheet = ({
                 });
               }
             });
+            */
           }
         }
       });

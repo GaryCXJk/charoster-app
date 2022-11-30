@@ -258,7 +258,7 @@ const createPackBlock = (packId) => {
 
   const panelGroups = {};
 
-  const getPanelGroup = (id = '') => {
+  const getPanelGroup = (id = '', labelText = null) => {
     if (!panelGroups[id]) {
       panelGroups[id] = new Block({
         className: 'panels',
@@ -267,7 +267,7 @@ const createPackBlock = (packId) => {
       if (id) {
         const groupLabel = new Block({
           className: 'label',
-          textContent: id,
+          textContent: labelText ?? id,
         });
         panelGroups[id].append(groupLabel);
       }
@@ -282,21 +282,27 @@ const createPackBlock = (packId) => {
 
   block.visible = [];
 
-  block.createPanel = (elementId) => {
+  getPanelGroup('');
+  if (pack.groups?.[entityType] && typeof pack.groups[entityType] === 'object') {
+    Object.keys(pack.groups[entityType]).forEach((panelGroupId) => {
+      getPanelGroup(panelGroupId, pack.groups[entityType][panelGroupId]);
+    });
+  }
+
+  block.createPanel = async (elementId) => {
     const panel = createPanel(elementId);
     panel.eventTarget = new EventTarget();
     block.panelMap[elementId] = panel;
     panel.entityId = elementId;
     block.visible.push(elementId);
     getPanelGroup('').append(panel);
-    getEntity(entityType, elementId).then((entity) => {
-      panel.entity = entity;
+    const entity = await getEntity(entityType, elementId);
+    panel.entity = entity;
 
-      const panels = getPanelGroup(entity.group ?? '');
+    const panels = getPanelGroup(entity.group ?? '');
 
-      panels.append(panel);
-      panel.eventTarget.dispatchEvent(new Event('entityLoaded'));
-    });
+    panels.append(panel);
+    panel.eventTarget.dispatchEvent(new Event('entityLoaded'));
   };
 
   if (Array.isArray(pack[entityType])) {

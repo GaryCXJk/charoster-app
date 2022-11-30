@@ -6,6 +6,7 @@ export default ({
   label,
   placeholder = '',
   value = '',
+  disabled = false,
 } = {
 }) => {
   const container = new Block({
@@ -24,6 +25,7 @@ export default ({
     id,
     placeholder,
     value,
+    disabled,
   });
   container.append(input);
 
@@ -31,10 +33,18 @@ export default ({
     input.on('input', callback);
   };
 
-  Object.defineProperty(container, 'value', {
-    get: () => input.element.value,
-    set: (value) => {
-      input.element.value = value;
+  Object.defineProperties(container, {
+    value: {
+      get: () => input.element.value,
+      set: (value) => {
+        input.element.value = value;
+      },
+    },
+    disabled: {
+      get: () => !!input.element.disabled,
+      set: (value) => {
+        input.element.disabled = !!value;
+      },
     },
   });
 

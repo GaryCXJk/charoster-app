@@ -6,6 +6,7 @@ import { getEntity, getEntityObject } from './processing/entities';
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 import { globalAppReset } from '../../../helpers/global-on';
 import createPreviewCreditsContainerElement from './preview/credits';
+import createPreviewInformationContainerElement from './preview/information';
 import { debounce } from 'throttle-debounce';
 import { getLabel, imageLabel } from './processing/layers/label';
 
@@ -173,36 +174,6 @@ const createPreviewLabelElement = (layer, monitorElements) => {
     } else {
       label.prop('textContent', displayLabel);
     }
-    /*
-    if (layer.file) {
-      return;
-    }
-    const { entityId = null } = entity ?? {};
-    if (entityId === null) {
-      return;
-    }
-    const entityInfo = await getEntity(type, entityId);
-
-    if (layer.from?.definition && layer.from?.field) {
-      const values = entityInfo[layer.from.definition];
-      if (values) {
-        const imgStr = await processImageDefinitionLayer(layer, type, entity);
-        if (imgStr) {
-          image.css({
-            backgroundImage: `url(${imgStr})`,
-          });
-        }
-      }
-    } else if (layer.size) {
-      const imageId = entity.imageId ?? getImageId(type, entityInfo);
-
-      const imageData = await getImage(type, imageId, getDesignId());
-
-      image.css({
-        backgroundImage: `url(${imageData.preview.file ?? imageData.preview.data})`,
-      });
-    }
-    */
   };
 
   label.clearPreview = () => {
@@ -218,7 +189,7 @@ const createPreviewLabelElement = (layer, monitorElements) => {
   return label;
 };
 
-const createPreviewImageContainerElement = async (data, monitorElements) => {
+const createPreviewImageContainerElement = async (data, monitorElements, depth = 0) => {
   const entityType = getCurrentRoster().type;
   const container = new Block({
     className: `image-container image-container-${entityType}`,
@@ -234,6 +205,9 @@ const createPreviewImageContainerElement = async (data, monitorElements) => {
       }
       let element;
       switch (layer.type) {
+        case 'container':
+          element = createPreviewImageContainerElement(layer, monitorElements, depth + 1);
+          break;
         case 'image':
           element = createPreviewImageElement(layer, monitorElements);
           break;
@@ -241,13 +215,16 @@ const createPreviewImageContainerElement = async (data, monitorElements) => {
           element = createPreviewLabelElement(layer, monitorElements);
           break;
         default:
+          element = new Block({
+            className: layer.type,
+          });
           break;
       }
       if (element) {
         if (layer.className) {
           element.element.classList.add(...layer.className.split(' '));
         }
-        element.element.classList.add('layer', `layer-${idx}`, `layer-${entityType}`);
+        element.element.classList.add('layer', `layer-${idx}`, `layer-${entityType}`, `layer-depth-${depth}`);
         container.append(element);
       }
     });
@@ -256,7 +233,7 @@ const createPreviewImageContainerElement = async (data, monitorElements) => {
   return container;
 }
 
-const createPreviewLayoutElements = async (preview, monitorElements, innerLayout = null) => {
+const createPreviewLayoutElements = async (preview, monitorElements, innerLayout = null, depth = 0) => {
   await setupPromise;
   const design = await getDesign();
   preview.empty();
@@ -287,6 +264,19 @@ const createPreviewLayoutElements = async (preview, monitorElements, innerLayout
           type: "content"
         }
       ]
+    },
+    {
+      type: "information",
+      layers: [
+        {
+          type: "header",
+          label: "Description"
+        },
+        {
+          type: "content",
+          value: "description"
+        }
+      ]
     }
   ];
 
@@ -298,18 +288,21 @@ const createPreviewLayoutElements = async (preview, monitorElements, innerLayout
         container = new Block({
           className: `preview-container`,
         });
-        await createPreviewLayoutElements(container, monitorElements, element.layers ?? []);
+        await createPreviewLayoutElements(container, monitorElements, element.layers ?? [], depth + 1);
         break;
       case 'image':
         container = await createPreviewImageContainerElement(element, monitorElements);
         break;
       case 'credits':
         container = createPreviewCreditsContainerElement(element, monitorElements);
+        break;
+      case 'information':
+        container = createPreviewInformationContainerElement(element, monitorElements);
       default:
         break;
     }
     if (container) {
-      container.element.classList.add('element', `element-${idx}`)
+      container.element.classList.add('element', `element-${idx}`, `element-depth-${depth}`)
       preview.append(container);
     }
   }, Promise.resolve());

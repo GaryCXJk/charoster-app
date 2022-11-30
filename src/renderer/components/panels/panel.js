@@ -72,7 +72,6 @@ const labelContent = async (block, layerInfo, {
   label = null,
 }) => {
   if (showLabel) {
-    console.log(panelEntity, entity);
     let displayLabel = label ?? (panelEntity ? (panelEntity.allCapsName ? panelEntity.allCapsName : null) ?? (panelEntity.displayName ? panelEntity.displayName.toUpperCase() : null) : null) ?? await getLabel(type, entity, imageId);
 
     block.prop('textContent', displayLabel);
@@ -96,6 +95,49 @@ const labelContent = async (block, layerInfo, {
     return block;
   }
   return null;
+};
+
+const containerContent = async (panel, layerInfo, {
+  depth = 0,
+  ...contentProps
+}) => {
+  const {
+    layers,
+  } = layerInfo;
+  const blockPromises = [];
+
+  for (let idx = 0; idx < layers.length; idx += 1) {
+    const layer = layers[idx];
+    const contentInfo = {
+      shown: true,
+      className: layer.type,
+    };
+    if (preContentFuncs[layer.type]) {
+      Object.assign(contentInfo, preContentFuncs[layer.type](layer, contentProps));
+    }
+
+    if (layer.className) {
+      contentInfo.className = `${contentInfo.className ?? layer.type} ${layer.className}`;
+    }
+
+    if (contentInfo.shown) {
+      const block = new Block({
+        className: `layer layer-${idx} layer-depth-${depth} ${contentInfo.className}`,
+      });
+      panel.append(block);
+      if (contentFuncs[layer.type]) {
+        blockPromises.push(
+          contentFuncs[layer.type](block, layer, {
+            ...contentProps,
+            depth: depth + 1,
+            layerIndex: idx,
+          })
+        );
+      }
+    }
+  }
+
+  await Promise.all(blockPromises);
 };
 
 const preContentFuncs = {
@@ -138,6 +180,7 @@ export const getDefaultPanelLayout = () => ([
 const contentFuncs = {
   image: imageContent,
   label: labelContent,
+  container: containerContent,
 };
 
 const setPanelContent = async ({
@@ -185,35 +228,11 @@ const setPanelContent = async ({
     ...props
   };
 
-  for (let idx = 0; idx < layers.length; idx += 1) {
-    const layer = layers[idx];
-    const contentInfo = {
-      shown: true,
-      className: layer.type,
-    };
-    if (preContentFuncs[layer.type]) {
-      Object.assign(contentInfo, preContentFuncs[layer.type](layer, contentProps));
-    }
-
-    if (layer.className) {
-      contentInfo.className = `${contentInfo.className ?? layer.type} ${layer.className}`;
-    }
-
-    if (contentInfo.shown) {
-      const block = new Block({
-        className: `layer layer-${idx} ${contentInfo.className}`,
-      });
-      panel.append(block);
-      if (contentFuncs[layer.type]) {
-        blockPromises.push(
-          contentFuncs[layer.type](block, layer, {
-            ...contentProps,
-            layerIndex: idx,
-          })
-        );
-      }
-    }
-  }
+  blockPromises.push(
+    containerContent(panel, {
+      layers,
+    }, contentProps)
+  );
 
   await Promise.all(blockPromises);
 };

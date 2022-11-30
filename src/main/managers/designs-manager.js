@@ -60,11 +60,24 @@ const defaultDesign = {
             radius: '0.2em',
             color: 'rgba(32, 32, 32, 0.7)',
           },
-        }
+        },
       ],
       stages: {
         width: '23em',
       },
+    },
+    label: {
+      filters: [
+        {
+          type: 'drop-shadow',
+          value: {
+            x: '0.25em',
+            y: '-0.25em',
+            radius: '0.2em',
+            color: 'rgba(0, 0, 0, 0.7)',
+          },
+        },
+      ],
     },
   },
 };

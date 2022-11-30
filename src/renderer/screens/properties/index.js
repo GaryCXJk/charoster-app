@@ -7,6 +7,7 @@ import './properties.scss';
 import initWorkspaceProperties from './workspace';
 import initRosterProperties from './roster';
 import initEntityProperties from './entity';
+import initExporterProperties from './exporter';
 
 const properties = {
   workspace: {},
@@ -32,6 +33,7 @@ const initProperties = async (container) => {
     workspace: 'Workspace',
     roster: 'Roster',
     entity: '',
+    exporter: 'Export',
   };
   const entityTypes = {
     characters: 'Character',
@@ -45,6 +47,7 @@ const initProperties = async (container) => {
     workspace: await initWorkspaceProperties(properties),
     roster: await initRosterProperties(properties),
     entity: await initEntityProperties(properties),
+    exporter: await initExporterProperties(properties),
   };
 
   const tabPanels = new Block({
@@ -95,7 +98,7 @@ const initProperties = async (container) => {
       }));
       const type = currentRoster.type;
       tabButtons.entity.prop('textContent', entityTypes[type]);
-      tabs.append(tabButtons.entity);
+      tabButtons.exporter.insertBefore(tabButtons.entity);
       tabPanels.switch('entity');
     } else {
       tabButtons.entity.detach();
