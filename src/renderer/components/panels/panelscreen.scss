@@ -1,5 +1,65 @@
 @use "sass:math";
 
+@mixin info-container($type) {
+  .#{$type}-container {
+    display: flex;
+    flex: 1 0 0;
+    justify-content: stretch;
+    align-content: stretch;
+    gap: 2em;
+
+    .#{$type}-content-container {
+      flex: 1 0 0;
+      position: relative;
+    }
+
+    .#{$type}-content {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      max-height: 100%;
+      overflow: overlay;
+      padding-right: 15px;
+    }
+
+    .#{$type}-block {
+      margin: 1em 0;
+
+      &:first-child {
+        margin-top: 0;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .#{$type}-label {
+      font-family: 'Montserrat';
+      font-weight: 700;
+    }
+    .#{$type}-link {
+      display: block;
+      padding: 0 0.5em;
+
+      img {
+        height: 2em;
+        vertical-align: middle;
+        margin-right: 1em;
+      }
+
+      svg.icon {
+        width: 2em;
+        height: 2em;
+        margin-right: 1em;
+        vertical-align: middle;
+      }
+    }
+  }
+}
+
 @mixin panelscreen($screen) {
   #app.#{$screen} {
     .sections {
@@ -69,62 +129,8 @@
           }
         }
 
-        .credits-container {
-          display: flex;
-          flex: 1 0 0;
-          justify-content: stretch;
-          align-content: stretch;
-          gap: 2em;
-
-          .credits-content-container {
-            flex: 1 0 0;
-            position: relative;
-          }
-
-          .credits-content {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            max-height: 100%;
-            overflow: overlay;
-          }
-
-          .credits-block {
-            margin: 1em 0;
-
-            &:first-child {
-              margin-top: 0;
-            }
-
-            &:last-child {
-              margin-bottom: 0;
-            }
-          }
-
-          .credits-label {
-            font-family: 'Montserrat';
-            font-weight: 700;
-          }
-          .credits-link {
-            display: block;
-            padding: 0 0.5em;
-
-            img {
-              height: 2em;
-              vertical-align: middle;
-              margin-right: 1em;
-            }
-
-            svg.icon {
-              width: 2em;
-              height: 2em;
-              margin-right: 1em;
-              vertical-align: middle;
-            }
-          }
-        }
+        @include info-container('credits');
+        @include info-container('information');
       }
     }
   }

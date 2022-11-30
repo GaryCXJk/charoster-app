@@ -10,4 +10,26 @@
     display: block;
     width: 100%;
   }
+
+  .form-switch {
+    input {
+      display: none;
+
+      &:checked + .form-switch-container .form-switch-toggle {
+        margin-left: auto;
+      }
+    }
+
+    .form-switch-container {
+      height: 2em;
+      max-width: 4em;
+      border: 1px solid var(--main-color);
+
+      .form-switch-toggle {
+        height: 100%;
+        width: 50%;
+        background-color: var(--main-color);
+      }
+    }
+  }
 }

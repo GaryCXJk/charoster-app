@@ -60,7 +60,7 @@ export default () => {
       });
       entityBlock.append(header);
 
-      await createPreviewCredits(type, roster[idx], entityBlock);
+      await createPreviewCredits(type, roster[idx], entityBlock, false);
     }
     const style = getComputedStyle(creditsContainer.element);
     const elementHeight = Math.ceil(+style.height.replace(/px$/, ''));

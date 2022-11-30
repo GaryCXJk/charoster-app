@@ -187,9 +187,11 @@ const createCreditsBlock = (creditsLabel, links) => {
   return block;
 }
 
-export const createPreviewCredits = async (type, entity, container = null) => {
+export const createPreviewCredits = async (type, entity, container = null, emptyContainer = true) => {
   const content = container ?? new Block();
-  content.empty();
+  if (emptyContainer) {
+    content.empty();
+  }
 
   const { entityId = null } = entity ?? {};
   if (entityId === null) {
@@ -250,7 +252,7 @@ const createHeader = (layer) => {
   return container;
 };
 
-export default (data, monitorElements) => {
+const createContainer = (data, monitorElements, depth = 0) => {
   const container = new Block({
     className: 'credits-container',
   });
@@ -259,6 +261,9 @@ export default (data, monitorElements) => {
     data.layers.forEach((layer, idx) => {
       let element;
       switch (layer.type) {
+        case 'container':
+          element = createContainer(layer, monitorElements, depth + 1);
+          break;
         case 'header':
           element = createHeader(layer, monitorElements);
           break;
@@ -272,7 +277,7 @@ export default (data, monitorElements) => {
         if (layer.className) {
           element.element.classList.add(...layer.className.split(' '));
         }
-        element.element.classList.add('layer', `layer-${idx}`);
+        element.element.classList.add('layer', `layer-${idx}`, `layer-${depth}`);
         container.append(element);
       }
     });
@@ -280,3 +285,4 @@ export default (data, monitorElements) => {
 
   return container;
 }
+export default createContainer;
