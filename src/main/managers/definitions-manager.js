@@ -118,7 +118,7 @@ const processEntity = async (type, value, definition) => {
   }
 }
 
-export const getDefinitionEntityValue = async (definitionId, entityIdSegments, field, fromPack = null) => {
+export const getDefinitionEntityValue = async (definitionId, entityIdSegments, field, fromPack = null, returnEntity = false) => {
   const definition = definitions[definitionId];
   const entity = await loadDefinitionEntity(definitionId, entityIdSegments, fromPack);
   if (!entity?.[field] && !entity?.meta?.[field]) {
@@ -134,7 +134,13 @@ export const getDefinitionEntityValue = async (definitionId, entityIdSegments, f
       type = type.type;
     }
   }
-  return await processEntity(type, entity[field] ?? entity.meta?.[field], definition);
+  if (returnEntity) {
+    return entity;
+  }
+  const entityMap = (entity[field] ?? entity.meta?.[field] ?? []).map((entityId) => (
+    typeof entityId === 'object' ? entityId.fullId : entityId
+  ));
+  return await processEntity(type, entityMap, definition);
 };
 
 const preprocessValues = (definition, packId, entityId, data) => {
@@ -155,7 +161,19 @@ const preprocessValues = (definition, packId, entityId, data) => {
 
     if (isFile) {
       if (Array.isArray(data[field])) {
-        data[field] = data[field].map((item) => `${fullEntityId}>${item}`);
+        data[field] = data[field].map((item) => {
+          if (typeof item === 'object') {
+            const {
+              image,
+              ...itemRest
+            } = item;
+            return {
+              ...itemRest,
+              fullId: `${fullEntityId}>${image}`,
+            };
+          }
+          return `${fullEntityId}>${item}`;
+        });
       } else if (typeof data[field] === 'string') {
         data[field] = `${fullEntityId}>${data[field]}`;
       }
@@ -417,14 +435,14 @@ const processValueIds = async (valueIds) => {
   return [valueIds];
 };
 
-ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field, fromPack = null) => {
+ipcMain.handle('definitions:get-definition-value', async (_event, definitionId, valueIds, field, fromPack = null, returnEntity = false) => {
   const values = await processValueIds(valueIds);
 
   const ret = [];
 
   for (let idx = 0; idx < values.length; idx += 1) {
     const val = values[idx];
-    const outVal = await getDefinitionEntityValue(definitionId, val.split('>'), field, fromPack);
+    const outVal = await getDefinitionEntityValue(definitionId, val.split('>'), field, fromPack, returnEntity);
     ret.push({
       key: val,
       value: outVal ?? [],

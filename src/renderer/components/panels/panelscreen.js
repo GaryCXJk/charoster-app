@@ -9,6 +9,7 @@ import createPreviewCreditsContainerElement from './preview/credits';
 import createPreviewInformationContainerElement from './preview/information';
 import { debounce } from 'throttle-debounce';
 import { getLabel, imageLabel } from './processing/layers/label';
+import defaultLayout from './preview/defaultLayout';
 
 let workspace = {};
 const entities = getEntityObject();
@@ -237,48 +238,7 @@ const createPreviewLayoutElements = async (preview, monitorElements, innerLayout
   await setupPromise;
   const design = await getDesign();
   preview.empty();
-  const layout = innerLayout ?? design.preview?.layout ?? [
-    {
-      type: "image",
-      layers: [
-        {
-          type: "image",
-          size: [
-            "preview"
-          ],
-        },
-        {
-          type: 'label',
-          display: 'image',
-        },
-      ],
-    },
-    {
-      type: "credits",
-      layers: [
-        {
-          type: "header",
-          label: "Credits"
-        },
-        {
-          type: "content"
-        }
-      ]
-    },
-    {
-      type: "information",
-      layers: [
-        {
-          type: "header",
-          label: "Description"
-        },
-        {
-          type: "content",
-          value: "description"
-        }
-      ]
-    }
-  ];
+  const layout = innerLayout ?? design.preview?.layout ?? defaultLayout;
 
   await layout.reduce(async (memo, element, idx) => {
     await memo;

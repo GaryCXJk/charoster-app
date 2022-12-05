@@ -4,9 +4,11 @@ import './forms.scss';
 export default ({
   id,
   label,
+  type = 'text',
   placeholder = '',
   value = '',
   disabled = false,
+  inputProps = {},
 } = {
 }) => {
   const container = new Block({
@@ -26,6 +28,8 @@ export default ({
     placeholder,
     value,
     disabled,
+    type,
+    ...inputProps,
   });
   container.append(input);
 

@@ -106,12 +106,43 @@ export default async () => {
     }
   });
 
-  const includeCredits = switchEl({
-    label: 'Include credits',
+  const creditsBlock = new Block({
+    className: 'row',
   });
-  exporterPanel.append(includeCredits);
+  exporterPanel.append(creditsBlock);
+
+  const creditsToggleCol = new Block();
+  creditsBlock.append(creditsToggleCol);
+
+  const creditsColumnCol = new Block({
+    className: 'col',
+  });
+  creditsBlock.append(creditsColumnCol);
+
+  const creditsColumns = input({
+    id: 'credits-column',
+    label: 'Columns',
+    type: 'number',
+    value: options.creditsColumns ?? 3,
+    disabled: !(options.includeCredits ?? false),
+    inputProps: {
+      min: 1,
+    },
+  });
+  creditsColumnCol.append(creditsColumns);
+  creditsColumns.on('input', () => {
+    options.creditsColumns = +creditsColumns.value;
+  });
+
+  const includeCredits = switchEl({
+    id: 'include-credits',
+    label: 'Include credits',
+    checked: options.includeCredits ?? false,
+  });
+  creditsToggleCol.append(includeCredits);
   includeCredits.on('input', () => {
     options.includeCredits = includeCredits.checked;
+    creditsColumns.disabled = !includeCredits.checked;
   });
 
   const btnGroup = new Block({
