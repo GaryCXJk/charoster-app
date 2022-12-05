@@ -2,6 +2,7 @@ import * as path from 'path';
 import deepmerge from "deepmerge";
 import Sharp from 'sharp';
 import { app, ipcMain } from "electron";
+import { isPlainObject } from 'is-plain-object';
 import createWaiter from "../../helpers/create-waiter";
 import traverse from "../../helpers/traverse";
 import { getConfig, getTempPath, setTempFile } from "./config-manager";
@@ -9,6 +10,7 @@ import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
 import { onAppReset } from '../helpers/manager-helper';
 import { clearObject } from '../../helpers/object-helper';
 import { readFile } from 'fs/promises';
+import retrieveImports from '../../global/helpers/retrieveImports';
 
 const designs = {};
 const designQueue = [];
@@ -23,6 +25,7 @@ const baseDesign = {
   preview: {
     image: {},
   },
+  imports: [],
 };
 
 const defaultDesign = {
@@ -80,6 +83,7 @@ const defaultDesign = {
       ],
     },
   },
+  imports: [],
 };
 const sizes = {
   characters: {
@@ -132,11 +136,25 @@ export const getDesign = async (designId = null) => {
     }
     if (design) {
       Object.keys(design).forEach((section) => {
-        defaultDesignCopy[section] = defaultDesignCopy[section] ?? {};
-        Object.assign(defaultDesignCopy[section], design[section]);
+        if (isPlainObject(design[section])) {
+          defaultDesignCopy[section] = defaultDesignCopy[section] ?? {};
+          Object.assign(defaultDesignCopy[section], design[section]);
+        } else {
+          defaultDesignCopy[section] = design[section];
+        }
       });
     }
     design = defaultDesignCopy;
+    if (!design.imports) {
+      design.imports = [];
+    }
+
+    if (design.panels?.layers) {
+      retrieveImports(design.panels.layers, design.imports);
+    }
+    if (design.preview?.layout) {
+      retrieveImports(design.preview.layout, design.imports);
+    }
   }
   return design;
 }

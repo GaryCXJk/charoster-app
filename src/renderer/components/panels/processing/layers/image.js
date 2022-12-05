@@ -63,6 +63,23 @@ export const getImage = async (type, imageId, designId = '', prioritize = false)
   return await waiter;
 }
 
+export const getImageStr = (pickedImage, layer = {}) => {
+  let imgStr = null;
+  switch (pickedImage.type) {
+    case 'svg':
+      const urlBufferKey = `${pickedImage.fullId}${layer.color ? `:${layer.color}` : ''}`;
+      if (urlBuffer[urlBufferKey]) {
+        imgStr = urlBuffer[urlBufferKey];
+      } else {
+        imgStr = setSVG(pickedImage.content, layer);
+        urlBuffer[urlBufferKey] = imgStr;
+      }
+      break;
+    case 'default':
+      break;
+  }
+  return imgStr;
+}
 export const processImageDefinitionLayer = async (layer, type, entity, image = null) => {
   applyEvents();
   const { entityId } = entity;
@@ -108,20 +125,6 @@ export const processImageDefinitionLayer = async (layer, type, entity, image = n
     if (!pickedImage) {
       return null;
     }
-    let imgStr = null;
-    switch (pickedImage.type) {
-      case 'svg':
-        const urlBufferKey = `${pickedImage.fullId}${layer.color ? `:${layer.color}` : ''}`;
-        if (urlBuffer[urlBufferKey]) {
-          imgStr = urlBuffer[urlBufferKey];
-        } else {
-          imgStr = setSVG(pickedImage.content, layer);
-          urlBuffer[urlBufferKey] = imgStr;
-        }
-        break;
-      case 'default':
-        break;
-    }
-    return imgStr;
+    return getImageStr(pickedImage, layer);
   }
 }

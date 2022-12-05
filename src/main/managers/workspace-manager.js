@@ -115,7 +115,9 @@ const exportImage = async (screen, options = {}) => {
   }
 
   if (options.includeCredits) {
-    const reply = await notifyWindowWithReply('request-credits-size', {}, 'render');
+    const reply = await notifyWindowWithReply('request-credits-size', {
+      columns: options.creditsColumns ?? 3,
+    }, 'render');
     const [ addedHeight ] = reply;
 
     if (addedHeight) {
@@ -124,7 +126,33 @@ const exportImage = async (screen, options = {}) => {
     }
   }
 
-  const image = await window.window.webContents.capturePage();
+  const [imageWidth, imageHeight] = window.window.getSize();
+  const image = Sharp({
+    create: {
+      width: imageWidth,
+      height: imageHeight,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    }
+  });
+
+  const imageCols = Math.ceil(imageWidth / 1024);
+  const imageRows = Math.ceil(imageHeight / 1024);
+  const composites = [];
+
+  for (let x = 0; x < imageCols; x += 1) {
+    for (let y = 0; y < imageRows; y += 1) {
+      const rect = {
+        x: x * 1024,
+        y: y * 1024,
+        width: Math.min((x + 1) * 1024, imageWidth) - (x * 1024),
+        height: Math.min((y + 1) * 1024, imageHeight) - (y * 1024),
+      };
+      const subImage = await window.window.webContents.capturePage(rect);
+      composites.push({ input: subImage.toPNG(), left: rect.x, top: rect.y })
+    }
+  }
+  image.composite(composites);
   const status = await dialog.showSaveDialog(getWindow(screen).window, {
     defaultPath: getWorkFolder(),
     filters: [
@@ -162,15 +190,18 @@ const exportImage = async (screen, options = {}) => {
   let buffer;
   switch (type) {
     case 'webp':
-      buffer = await (new Sharp(image.toPNG())).webp({ lossless: true }).toBuffer();
+      // buffer = await (new Sharp(image.toPNG())).webp({ lossless: true }).toBuffer();
+      buffer = await image.webp({ lossless: true }).toBuffer();
       break;
     case 'jpg':
     case 'jpeg':
-      buffer = image.toJPEG();
+      // buffer = image.toJPEG();
+      buffer = await image.jpeg().toBuffer();
       break;
     case 'png':
     default:
-      buffer = image.toPNG();
+      // buffer = image.toPNG();
+      buffer = await image.png().toBuffer();
       break;
   }
   await writeFile(filePath, buffer);
