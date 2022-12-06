@@ -345,7 +345,7 @@ export const createPreviewCredits = async (type, entity, container = null, empty
       await designImports.reduce(async (promise, designImport) => {
         await promise;
         const definitionCreditsItem = await gatherDefinitionCredits(entityInfo, entity, designImport, definitions);
-        if (definitions[designImport.definition]?.fields?.[designImport.field]) {
+        if (definitionCreditsItem.credits && definitions[designImport.definition]?.fields?.[designImport.field]) {
           const definition = definitions[designImport.definition];
           const field = definition.fields[designImport.field];
           const label = new Block({
