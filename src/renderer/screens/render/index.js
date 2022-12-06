@@ -108,11 +108,13 @@ export default () => {
           definitionCredits[defName] = definitionCredits[defName] ?? [];
           if (!definitionCredits[defName].find((entry) => entry.imageId === imageId)) {
             const definitionCreditsItem = await getDefinitionInfo(designImport, entityInfo[designImport.definition], entityInfo);
-            definitionCredits[defName].push({
-              imageId,
-              ...definitionCreditsItem[imageId],
-              name: `${definition.name}: ${definitionCreditsItem[imageId].name} > ${field.name}`,
-            });
+            if (definitionCreditsItem.credits) {
+              definitionCredits[defName].push({
+                imageId,
+                ...definitionCreditsItem[imageId],
+                name: `${definition.name}: ${definitionCreditsItem[imageId].name} > ${field.name}`,
+              });
+            }
           }
         }
       }, Promise.resolve());
