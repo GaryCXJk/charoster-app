@@ -62,6 +62,9 @@ export default () => {
 
     for (let idx = 0; idx < roster.length; idx += 1) {
       const entity = roster[idx];
+      if (!entity) {
+        continue;
+      }
       const entityInfo = await getEntity(type, entity.entityId);
       const imageId = entity.imageId ?? getImageId(entityInfo);
       const creditsData = gatherCredits(entityInfo, imageId);
@@ -108,7 +111,7 @@ export default () => {
           definitionCredits[defName] = definitionCredits[defName] ?? [];
           if (!definitionCredits[defName].find((entry) => entry.imageId === imageId)) {
             const definitionCreditsItem = await getDefinitionInfo(designImport, entityInfo[designImport.definition], entityInfo);
-            if (definitionCreditsItem.credits) {
+            if (definitionCreditsItem[imageId].credits) {
               definitionCredits[defName].push({
                 imageId,
                 ...definitionCreditsItem[imageId],
