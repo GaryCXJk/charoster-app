@@ -1,7 +1,7 @@
 import Block from "../../components/base/Block";
 import { getImageId } from "../../components/panels/funcs/image-id";
 import createPanelScreen, { getCurrentRoster, getDesign, setCurrentWorkspace } from "../../components/panels/panelscreen";
-import { createPreviewCredits, createPreviewCreditsBlock, gatherCredits, gatherDefinitionCredits, getDefinitionImageInfo, getDefinitionInfo } from "../../components/panels/preview/credits";
+import { createPreviewCredits, createPreviewCreditsBlock, gatherCredits, getDefinitionImageInfo, getDefinitionInfo } from "../../components/panels/preview/credits";
 import { getEntity } from "../../components/panels/processing/entities";
 import { getImage, getImageStr } from "../../components/panels/processing/layers/image";
 import "./render.scss";
@@ -69,32 +69,31 @@ export default () => {
       const imageId = entity.imageId ?? getImageId(entityInfo);
       const creditsData = gatherCredits(entityInfo, imageId);
 
-      if (!creditsData.imageUrls.length && !creditsData.credits.length) {
-        continue;
+      if (creditsData.imageUrls.length && creditsData.credits.length) {
+        let displayLabel = null;
+        if (imageId) {
+          const imageInfo = await window.packs.getImageInfo(type, imageId);
+          displayLabel = displayLabel ?? imageInfo.displayName ?? null;
+        }
+        displayLabel = displayLabel ?? entityInfo.displayName ?? entityInfo.name ?? entityInfo.id;
+        const imageData = await getImage(type, imageId);
+
+        const entityBlock = new Block({
+          className: 'credits-group',
+        });
+        creditsContainer.append(entityBlock);
+
+        const header = new Block({
+          element: 'h2',
+          textContent: displayLabel,
+        });
+        header.css({
+          backgroundImage: `url(${imageData.panel?.file ?? imageData.preview?.file ?? imageData.raw?.file})`,
+        });
+        entityBlock.append(header);
+
+        await createPreviewCredits(type, roster[idx], entityBlock, false, false);
       }
-      let displayLabel = null;
-      if (imageId) {
-        const imageInfo = await window.packs.getImageInfo(type, imageId);
-        displayLabel = displayLabel ?? imageInfo.displayName ?? null;
-      }
-      displayLabel = displayLabel ?? entityInfo.displayName ?? entityInfo.name ?? entityInfo.id;
-      const imageData = await getImage(type, imageId);
-
-      const entityBlock = new Block({
-        className: 'credits-group',
-      });
-      creditsContainer.append(entityBlock);
-
-      const header = new Block({
-        element: 'h2',
-        textContent: displayLabel,
-      });
-      header.css({
-        backgroundImage: `url(${imageData.panel?.file ?? imageData.preview?.file ?? imageData.raw?.file})`,
-      });
-      entityBlock.append(header);
-
-      await createPreviewCredits(type, roster[idx], entityBlock, false, false);
 
       await designImports.reduce(async (promise, designImport) => {
         await promise;

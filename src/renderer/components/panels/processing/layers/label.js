@@ -10,20 +10,50 @@ export const clearImageLabels = () => {
   clearObject(renderedLabels);
 };
 
-export const getLabel = async (type, entity, imageId = null) => {
+export const getLabelText = async (allCaps = false, ...labels) => {
+  let label = null;
+  let idx = 0;
+  while (label === null && idx < labels.length) {
+    label = labels[idx] ?? null;
+    if (typeof label === 'function') {
+      label = await label(allCaps) ?? null;
+    } else if (label !== null && allCaps) {
+      label = label.toUpperCase();
+    }
+    idx+= 1;
+  }
+  return label;
+};
+
+export const getLabel = async (type, entity, imageId = null, allCaps = true) => {
   let displayLabel;
   if (imageId) {
     const imageInfo = await window.packs.getImageInfo(type, imageId);
-    displayLabel = displayLabel ?? imageInfo.allCapsDisplayName ?? (imageInfo.displayName ? imageInfo.displayName.toUpperCase() : null);
+    displayLabel = displayLabel ?? await getLabelText(
+      allCaps,
+      (caps) => caps ? imageInfo.allCapsDisplayName : null,
+      imageInfo.displayName,
+    );
     if (!displayLabel) {
       const imageIdGroup = imageId.split('>').slice(0, -1).join('>');
       if (entity.imageMap[imageIdGroup]) {
         const imageGroup = entity.imageMap[imageIdGroup];
-        displayLabel = displayLabel ?? imageGroup.allCapsDisplayName ?? (imageGroup.displayName ? imageGroup.displayName.toUpperCase() : null);
+        displayLabel = displayLabel ?? await getLabelText(
+          allCaps,
+          (caps) => caps ? imageGroup.allCapsDisplayName : null,
+          imageGroup.displayName,
+        );
       }
     }
   }
-  displayLabel = displayLabel ?? entity.allCapsDisplayName ?? (entity.displayName ? entity.displayName.toUpperCase() : null) ?? entity.allCapsName ?? (entity.name ?? entity.id).toUpperCase();
+  displayLabel = displayLabel ?? await getLabelText(
+    allCaps,
+    (caps) => caps ? entity.allCapsDisplayName : null,
+    entity.displayName,
+    (caps) => caps ? entity.allCapsName : null,
+    entity.name,
+    entity.id,
+  );
   return displayLabel;
 };
 

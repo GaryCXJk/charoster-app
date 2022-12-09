@@ -120,7 +120,11 @@ export const getDefinitionInfoFromEntities = (definitionEntities, from) => {
         if (defInfo[fieldName]?.credits) {
           const imageUrls = [];
           const credits = [];
-          defInfo[fieldName].credits.forEach((info) => {
+          let { credits: creditsArray } = defInfo[fieldName];
+          if (!Array.isArray(creditsArray)) {
+            creditsArray = [creditsArray];
+          }
+          creditsArray.forEach((info) => {
             const {
               imageUrls: urls = null,
               ...artist
