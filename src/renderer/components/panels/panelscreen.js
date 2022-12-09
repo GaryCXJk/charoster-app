@@ -8,7 +8,7 @@ import { globalAppReset } from '../../../helpers/global-on';
 import createPreviewCreditsContainerElement from './preview/credits';
 import createPreviewInformationContainerElement from './preview/information';
 import { debounce } from 'throttle-debounce';
-import { getLabel, imageLabel } from './processing/layers/label';
+import { getLabel, getLabelText, imageLabel } from './processing/layers/label';
 import defaultLayout from './preview/defaultLayout';
 
 let workspace = {};
@@ -159,7 +159,12 @@ const createPreviewLabelElement = (layer, monitorElements) => {
       return;
     }
     const entityInfo = await getEntity(type, entityId);
-    let displayLabel = (entity ? (entity.allCapsName ? entity.allCapsName : null) ?? (entity.displayName ? entity.displayName.toUpperCase() : null) : null) ?? await getLabel(type, entityInfo, entity.imageId);
+    let displayLabel = await getLabelText(
+      layer.caps ?? true,
+      (caps) => caps ? entity?.allCapsName : null,
+      entity?.displayName,
+      async () => await getLabel(type, entityInfo, entity.imageId, layer.caps),
+    );
 
     if (layer.display === 'image') {
       const labelStyle = {};

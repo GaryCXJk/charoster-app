@@ -2,7 +2,7 @@ import deepmerge from 'deepmerge';
 import { globalAppReset } from '../../../helpers/global-on';
 import Block from "../base/Block";
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
-import { clearImageLabels, getLabel, imageLabel } from './processing/layers/label';
+import { clearImageLabels, getLabel, getLabelText, imageLabel } from './processing/layers/label';
 
 let applyEvents = globalAppReset(() => {
   clearImageLabels();
@@ -72,7 +72,17 @@ const labelContent = async (block, layerInfo, {
   label = null,
 }) => {
   if (showLabel) {
-    let displayLabel = label ?? (panelEntity ? (panelEntity.allCapsName ? panelEntity.allCapsName : null) ?? (panelEntity.displayName ? panelEntity.displayName.toUpperCase() : null) : null) ?? await getLabel(type, entity, imageId);
+    const displayLabel = await getLabelText(
+      layerInfo.caps ?? true,
+      label,
+      (caps) => caps ? (
+        (panelEntity?.allCapsName ?? null)
+        ?? (panelEntity?.displayName ? panelEntity.displayName.toUpperCase() : null)
+      ) : (
+        panelEntity?.displayName ?? null
+      ),
+      async (caps) => await getLabel(type, entity, imageId, caps)
+    );
 
     block.prop('textContent', displayLabel);
     if (layerInfo.display === 'image') {

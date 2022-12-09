@@ -3,6 +3,10 @@ import traverse from '../../../helpers/traverse';
 import { getDefaultPanelLayout } from './panel';
 import dynamicStyle from './panelstyle/dynamic';
 
+const overrideWebkit = {
+  webkitBackgroundClip: '-webkit-background-clip',
+};
+
 const stylePropTransforms = {
   dynamic: dynamicStyle,
 };
@@ -47,6 +51,7 @@ export const createDesignQueue = (design) => {
   const checks = [
     'page.background.image',
     'panels.background.image',
+    'panels.active.background.image',
     'panels.container.background.image',
     'preview.background.image',
     'preview.image.background.image',
@@ -180,9 +185,15 @@ const createStyleString = (styles) => {
   Object.keys(styles).forEach((selector) => {
     const style = styles[selector];
     Object.assign(dummy.style, style);
-    const rules = dummy.getAttribute('style');
-    if (rules)  {
-      lines.push(`#app.${screen} ${selector} { ${rules} }`);
+    const rules = [dummy.getAttribute('style')];
+    Object.keys(overrideWebkit).forEach((prop) => {
+      if (dummy.style[prop]) {
+        rules.push(`${overrideWebkit[prop]}: ${dummy.style[prop]};`);
+      }
+    });
+    const ruleStr = rules.filter((rule) => rule).join(' ');
+    if (ruleStr)  {
+      lines.push(`#app.${screen} ${selector} { ${ruleStr} }`);
     }
     dummy.setAttribute('style', '');
   });
@@ -264,6 +275,12 @@ const handleBackground = (background, imageFiles, styleObject = null, bgMap = {
   position: 'backgroundPosition',
   repeat: 'backgroundRepeat',
   image: handleBackgroundImages,
+  clip: (props, val) => {
+    Object.assign(props, {
+      webkitBackgroundClip: val,
+      backgroundClip: val,
+    });
+  },
 }, backgroundKey = 'background') => {
 
   if (typeof background === 'object') {
@@ -327,6 +344,60 @@ const handleBorders = (border, imageFiles, styleObject = null, prefix = null) =>
   return null;
 }
 
+const handleSpacing = (spacing, imageFiles, styleObject = null, prefix = null) => {
+  const allowedDirections = ['left', 'right', 'top', 'bottom'];
+  const allowedSpacing = ['padding', 'margin'];
+
+  if (prefix && !allowedSpacing.includes(prefix)) {
+    return null;
+  }
+
+  if (typeof spacing === 'object') {
+    const styleProps = {};
+
+    if (prefix) {
+      allowedDirections.forEach((direction) => {
+        const val = spacing[direction];
+        if (val && typeof val === 'string') {
+          styleProps[`${prefix}-${direction}`] = val;
+        }
+      });
+    } else {
+      allowedSpacing.forEach((spacingProp) => {
+        const val = spacing[spacingProp];
+        if (val) {
+          if (typeof val === 'object') {
+            const newProps = handleSpacing(val, imageFiles, null, spacingProp);
+            if (newProps) {
+              Object.assign(styleProps, newProps);
+            }
+          } else if (typeof val === 'string') {
+            styleProps[spacingProp] = val;
+          }
+        }
+      });
+    }
+    if (styleObject) {
+      Object.assign(styleObject, styleProps);
+    }
+
+    return styleProps;
+  } else if (typeof spacing === 'string') {
+    if (!prefix) {
+      return null;
+    }
+    const styleProps = {
+      [prefix]: spacing,
+    };
+
+    if (styleObject) {
+      Object.assign(styleObject, styleProps)
+    }
+
+    return styleProps;
+  }
+}
+
 const handleMask = (mask, imageFiles, styleObject = null) => {
   const returnObject = handleBackground(mask, imageFiles, styleObject, {
     size: 'maskSize',
@@ -357,6 +428,25 @@ const handleFont = (font, imageFiles, styleObject = null) => (
     style: 'fontStyle',
     decoration: 'textDecoration',
     color: 'color',
+    alignment: 'textAlign',
+    stroke: (props, val) => {
+      if (typeof val === 'object') {
+        handleStyle({
+          order: 'stroke',
+          ...val
+        }, imageFiles, props, {
+          width: 'webkitTextStrokeWidth',
+          color: 'webkitTextStrokeColor',
+          order: 'paintOrder',
+        });
+      } else if (typeof val === 'string') {
+        props['webkitTextStroke'] = val;
+        props['paintOrder'] = 'stroke';
+      }
+      if (font.color) {
+        props['webkitTextFillColor'] = font.color;
+      }
+    }
   })
 );
 
@@ -376,6 +466,13 @@ const handleTransform = (style, styleObject = null) => {
               value.push(transform.y);
             }
             transforms.push(`skew(${value.join(',')})`);
+            break;
+          case 'translate':
+            value.push(transform.x ?? '0');
+            if (transform.y) {
+              value.push(transform.y);
+            }
+            transforms.push(`translate(${value.join(',')})`);
             break;
           default:
             break;
@@ -473,10 +570,23 @@ const handleBoxShadow = (style, styleObject = null) => {
   return null;
 };
 
+const handleContent = (content, imageFiles, styleObject = null) => (
+  handleStyle(content, imageFiles, styleObject, {
+    direction: (_props, val) => {
+      Object.assign(styleObject, {
+        display: 'flex',
+        flexDirection: val,
+      });
+    },
+    gap: 'gap',
+  })
+);
+
 const setCSSStyle = (style, imageFiles, styleObject = null) => {
   return handleStyle(style, imageFiles, styleObject, {
     background: (_props, val) => handleBackground(val, imageFiles, styleObject),
     border: (_props, val) => handleBorders(val, imageFiles, styleObject),
+    spacing: (_props, val) => handleSpacing(val, imageFiles, styleObject),
     mask: (_props, val) => handleMask(val, imageFiles, styleObject),
     filter: (_props, val) => {
       const ret = processCSSFilters(val);
@@ -491,7 +601,9 @@ const setCSSStyle = (style, imageFiles, styleObject = null) => {
       if (!val) {
         styleObject['clip-path'] = 'none';
       }
-    }
+    },
+    font: (_props, val) => handleFont(val, imageFiles, styleObject),
+    content: (_props, val) => handleContent(val, imageFiles, styleObject),
   });
 }
 
@@ -540,9 +652,9 @@ export const createStylesheet = ({
   if (design.panels.boxShadow) {
     handleBoxShadow(design.panels.boxShadow, combinedStyles['.sections .content .panels .panel']);
   }
-  if (design.panels.element?.contain) {
-    combinedStyles['.sections .content .panels .panel'].overflow = 'hidden';
-  }
+ if (design.panels.element) {
+  handleElement(design.panels.element, combinedStyles['.sections .content .panels .panel']);
+ }
   (design.panels.layers ?? getDefaultPanelLayout()).forEach((layer, idx) => {
     if (layer.style) {
       const className = `.sections .content .panels .panel .layer.layer-${idx}`;
@@ -555,17 +667,22 @@ export const createStylesheet = ({
           setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassName]);
         }
       });
+      if (layer.style.font?.link) {
+        combinedStyles[`${className} a`] = [];
+        handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
+      }
     }
   });
 
-  const imageFontData = design.panels.image?.font ?? {
+  const imageFontData = {
     size: '0.6em',
+    ...(design.panels.image?.font ?? {})
   };
   const imageFont = handleFont(imageFontData, imageFiles);
   if (imageFontData.autoScale) {
     const { fontMod } = rosterStyle.panels;
     const fontModifier = 1 - (+imageFontData.autoScale * (1 - fontMod));
-    imageFont.fontSize = imageFont.fontSize.replace(/^(\d+(?:\.\d+))/, (match) => {
+    imageFont.fontSize = imageFont.fontSize.replace(/^(\d+(?:\.\d+)?)/, (match) => {
       return +match * fontModifier;
     });
   }
@@ -577,7 +694,10 @@ export const createStylesheet = ({
     };
   }
   if (design.panels.active) {
-    combinedStyles[`.panels .panel.active`] = design.panels.active;
+    const activeStyle = {};
+    Object.assign(activeStyle, design.panels.active);
+    combinedStyles[`.panels .panel.active`] = activeStyle;
+    setCSSStyle(design.panels.active, imageFiles, combinedStyles[`.panels .panel.active`]);
   }
   if (design.panels.classNames) {
     Object.keys(design.panels.classNames).forEach((className) => {
@@ -609,6 +729,9 @@ export const createStylesheet = ({
   }
   if (design.preview.background) {
     combinedStyles['.sections .preview'] = handleBackground(design.preview.background, imageFiles);
+  }
+  if (design.preview.style) {
+    setCSSStyle(design.preview.style, imageFiles, combinedStyles['.sections .preview']);
   }
 
   const imagePreviews = ['', ...types];
@@ -667,6 +790,10 @@ export const createStylesheet = ({
         if (layout.style) {
           combinedStyles[baseClassName] = combinedStyles[baseClassName] ?? {};
           setCSSStyle(layout.style, imageFiles, combinedStyles[baseClassName]);
+          if (layout.style.font?.link) {
+            combinedStyles[`${baseClassName} a`] = [];
+            handleFont(layout.style.font.link, imageFiles, combinedStyles[`${baseClassName} a`]);
+          }
         }
         if (layout.layers) {
           if (layout.type === 'container') {
@@ -699,6 +826,10 @@ export const createStylesheet = ({
                       setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
                     }
                   });
+                  if (layer.style.font?.link) {
+                    combinedStyles[`${className} a`] = [];
+                    handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
+                  }
                 }
                 if (layer.layers) {
                   previewLayers.push({
