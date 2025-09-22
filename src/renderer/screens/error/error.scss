@@ -1,8 +1,10 @@
+@use '../../../sass/color';
+
 $errorColor: #fff;
 $errorBgColor: #701;
-$errorSubBgColor: lighten($errorBgColor, 10%);
-$errorElemBgColor: lighten($errorSubBgColor, 5%);
-$errorFooterBgColor: lighten($errorBgColor, 2.5%);
+$errorSubBgColor: color.lighten($errorBgColor, 10%);
+$errorElemBgColor: color.lighten($errorSubBgColor, 5%);
+$errorFooterBgColor: color.lighten($errorBgColor, 2.5%);
 
 body.error {
   overflow: overlay;
@@ -30,7 +32,7 @@ body.error {
 
     &:disabled {
       background-color: $errorBgColor;
-      color: darken($errorColor, 10%);
+      color: color.darken($errorColor, 10%);
     }
   }
 
@@ -40,7 +42,7 @@ body.error {
     }
 
     &:active {
-      background-color: lighten($errorElemBgColor, 5%);
+      background-color: color.lighten($errorElemBgColor, 5%);
     }
   }
 

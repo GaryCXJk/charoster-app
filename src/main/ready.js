@@ -5,6 +5,11 @@ import { getTempPath } from "./managers/config-manager";
 import { getAltImage } from './managers/entity-manager';
 import { getFileBuffer, setBufferWaiter } from './managers/file-manager';
 
+const notFoundResponse = new Response('Not Found', {
+  status: 404,
+  headers: {'content-type': 'text/html'},
+});
+
 export default () => {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -15,18 +20,18 @@ export default () => {
     });
   });
 
-  protocol.interceptBufferProtocol(app.name, async (request, callback) => {
+  protocol.handle(app.name, async (request) => {
     const url = request.url.slice(app.name.length + 3);
     const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
     if (!match) {
       const file = path.join(getTempPath(), url.replace(/\//g, '--'));
       const buffer = await getFileBuffer(file);
       if (!buffer) {
-        callback({ error: 404 });
-      } else {
-        callback({ mimeType: lookup(url), data: buffer });
+        return notFoundResponse;
       }
-      return;
+      return new Response(buffer, {
+        mimeType: lookup(url),
+      });
     }
 
     let buffer;
@@ -38,17 +43,19 @@ export default () => {
       }
     });
     if (!buffer) {
-      callback({ error: 404 });
-      return;
+      return notFoundResponse;
     }
-    callback({ mimeType: lookup(url), data: buffer });
+    return new Response(buffer, {
+      mimeType: lookup(url),
+    });
   });
-  protocol.interceptBufferProtocol(`${app.name}-renderer`, async (request, callback) => {
+
+  protocol.handle(`${app.name}-renderer`, async (request) => {
     const url = request.url.slice(app.name.length + 12);
     const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
+
     if (!match) {
-      callback({ error: 404 });
-      return;
+      return notFoundResponse;
     }
     let buffer;
     try {
@@ -57,9 +64,10 @@ export default () => {
       console.log(e);
     }
     if (!buffer) {
-      callback({ error: 404 });
-      return;
+      return notFoundResponse;
     }
-    callback({ mimeType: lookup(url), data: buffer });
+    return new Response(buffer, {
+      mimeType: lookup(url),
+    });
   });
 }
