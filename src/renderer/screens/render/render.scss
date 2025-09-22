@@ -1,6 +1,6 @@
-@import "../../components/panels/panelscreen.scss";
+@use "../../components/panels/panelscreen";
 
-@include panelscreen(render);
+@include panelscreen.panelscreen(render);
 
 #app.render {
   .sections .content .panels .panel.empty {

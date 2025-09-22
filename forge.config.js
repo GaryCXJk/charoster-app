@@ -2,7 +2,7 @@ module.exports = {
   packagerConfig: {
     // asar: true,
   },
-  electronRebuildConfig: {},
+  releaseEventsebuildConfig: {},
   makers: [
     {
       name: "@electron-forge/maker-squirrel",
@@ -27,9 +27,9 @@ module.exports = {
   ],
   plugins: [
     // ['@electron-forge/plugin-auto-unpack-natives'],
-    [
-      "@electron-forge/plugin-webpack",
-      {
+    {
+      name: "@electron-forge/plugin-webpack",
+      config: {
         mainConfig: "./webpack.main.config.js",
         renderer: {
           config: "./webpack.renderer.config.js",
@@ -45,6 +45,6 @@ module.exports = {
           ]
         }
       }
-    ]
+    }
   ]
 }
