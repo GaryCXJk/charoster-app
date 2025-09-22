@@ -477,6 +477,12 @@ export default ({
     className: 'preview',
   });
 
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'p' && e.ctrlKey) {
+      preview.element.style.display = preview.element.style.display === 'none' ? null : 'none';
+    }
+  });
+
   createPreviewElements(preview);
 
   const style = document.createElement('style');
