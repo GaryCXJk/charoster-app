@@ -160,6 +160,9 @@ const processCSSFilters = (filters) => {
     const { type, value } = filter;
     let processedValue = [];
     switch (type) {
+      case 'blur':
+        processedValue.push(value.radius);
+        break;
       case 'drop-shadow':
         processedValue.push(value.x, value.y);
         if (value.radius) {
@@ -304,11 +307,14 @@ const handleBorders = (border, imageFiles, styleObject = null, prefix = null) =>
     width: 'width',
     style: 'style',
     color: 'color',
+    radius: 'radius',
     left: handleBorders,
     right: handleBorders,
     top: handleBorders,
     bottom: handleBorders,
   };
+
+  console.log(border);
 
   if (typeof border === 'object') {
     const styleProps = {};
@@ -318,7 +324,7 @@ const handleBorders = (border, imageFiles, styleObject = null, prefix = null) =>
       const val = border[prop];
       if (val) {
         if (typeof mapTo === 'function') {
-          mapTo(val, imageFiles, styleProps, prop);
+          mapTo(val, imageFiles, styleProps, `${prefix ? `${prefix}-` : ''}${prop}`);
         } else {
           styleProps[`border-${prefix ? `${prefix}-` : ''}${mapTo}`] = val;
         }
@@ -499,7 +505,10 @@ const handleElement = (style, styleObject = null) => {
     right = null,
     top = null,
     bottom = null,
+    ratio = null,
     overlay = false,
+    onTop = false,
+    underlay = false,
     contain = false
   } = style;
 
@@ -521,8 +530,18 @@ const handleElement = (style, styleObject = null) => {
     newStyle.top = top ?? newStyle.top ?? 'auto';
     newStyle.bottom = bottom ?? newStyle.bottom ?? 'auto';
   }
+  if (ratio) {
+    newStyle.aspectRatio = ratio;
+  }
   if (overlay) {
     newStyle.position = 'absolute';
+  }
+  if (onTop) {
+    newStyle.zIndex = 1;
+  }
+  if (underlay) {
+    newStyle.position = 'absolute';
+    newStyle.zIndex = -1;
   }
   if (contain) {
     newStyle.overflow = 'hidden';
@@ -582,6 +601,20 @@ const handleContent = (content, imageFiles, styleObject = null) => (
   })
 );
 
+const handleBoxed = (val, styleObject = null) => {
+  const styleProps = {};
+  if (!val) {
+    styleProps['clip-path'] = 'none';
+  } else if (typeof val === 'string' && val.startsWith('clipPath:')) {
+    styleProps['clip-path'] = val.slice(9);
+  }
+
+  if (styleObject) {
+    Object.assign(styleObject, styleProps);
+  }
+  return styleProps;
+}
+
 const setCSSStyle = (style, imageFiles, styleObject = null) => {
   return handleStyle(style, imageFiles, styleObject, {
     background: (_props, val) => handleBackground(val, imageFiles, styleObject),
@@ -597,11 +630,7 @@ const setCSSStyle = (style, imageFiles, styleObject = null) => {
     boxShadow: (_props, val) => handleBoxShadow(val, styleObject),
     transform: (_props, val) => handleTransform(val, styleObject),
     element: (_props, val) => handleElement(val, styleObject),
-    boxed: (_props, val) => {
-      if (!val) {
-        styleObject['clip-path'] = 'none';
-      }
-    },
+    boxed: (_props, val) => handleBoxed(val, styleObject),
     font: (_props, val) => handleFont(val, imageFiles, styleObject),
     content: (_props, val) => handleContent(val, imageFiles, styleObject),
   });
@@ -637,6 +666,12 @@ export const createStylesheet = ({
   if (design.panels.background) {
     handleBackground(design.panels.background, imageFiles, combinedStyles['.panels .panel']);
   }
+  if (design.panels.boxShadow) {
+    handleBoxShadow(design.panels.boxShadow, combinedStyles['.panels .panel']);
+  }
+  if (design.panels.boxed) {
+    handleBoxed(design.panels.boxed, combinedStyles['.panels .panel']);
+  }
   combinedStyles['.panel-container'] = {
     width: rosterStyle.panels.width,
     height: rosterStyle.panels.height,
@@ -652,27 +687,136 @@ export const createStylesheet = ({
   if (design.panels.boxShadow) {
     handleBoxShadow(design.panels.boxShadow, combinedStyles['.sections .content .panels .panel']);
   }
- if (design.panels.element) {
-  handleElement(design.panels.element, combinedStyles['.sections .content .panels .panel']);
- }
-  (design.panels.layers ?? getDefaultPanelLayout()).forEach((layer, idx) => {
-    if (layer.style) {
-      const className = `.sections .content .panels .panel .layer.layer-${idx}`;
-      combinedStyles[className] = combinedStyles[className] ?? {};
-      setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-      types.forEach((type) => {
-        if (layer.style[type]) {
-          const typeClassName = `${className}.layer-${type}`;
-          combinedStyles[typeClassName] = combinedStyles[typeClassName] ?? {};
-          setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassName]);
+  if (design.panels.element) {
+    handleElement(design.panels.element, combinedStyles['.sections .content .panels .panel']);
+  }
+  if (design.panels.layers ?? getDefaultPanelLayout()) {
+    const panelLayers = [{
+      panelLayer: design.panels.layers ?? getDefaultPanelLayout(),
+      classPrefix: '',
+      depth: 0,
+    }];
+    while (panelLayers.length) {
+      const {
+        panelLayer,
+        classPrefix,
+        depth,
+      } = panelLayers.shift();
+      panelLayer.forEach((layer, elementIdx) => {
+        const baseClassName = `.sections .content .panels .panel${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`;
+        const activeClassName = `.sections .content .panels .panel.active${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`;
+        if (layer.style) {
+          combinedStyles[baseClassName] = combinedStyles[baseClassName] ?? {};
+          setCSSStyle(layer.style, imageFiles, combinedStyles[baseClassName]);
+          types.forEach((type) => {
+            if (layer.style[type]) {
+              const typeClassName = `${baseClassName}.layer-${type}`;
+              combinedStyles[typeClassName] = combinedStyles[typeClassName] ?? {};
+              setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassName]);
+              if (layer.style[type].active) {
+                const typeClassNameActive = `${activeClassName}.layer-${type}`;
+                combinedStyles[typeClassNameActive] = combinedStyles[typeClassNameActive] ?? {};
+                setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassNameActive]);
+              }
+            }
+          });
+          if (layer.style.font?.link) {
+            combinedStyles[`${baseClassName} a`] = [];
+            handleFont(layer.style.font.link, imageFiles, combinedStyles[`${baseClassName} a`]);
+          }
+          if (layer.style.active) {
+            combinedStyles[activeClassName] = combinedStyles[activeClassName] ?? {};
+            setCSSStyle(layer.style.active, imageFiles, combinedStyles[activeClassName]);
+            if (layer.style.active.font?.link) {
+              combinedStyles[`${activeClassName} a`] = [];
+              handleFont(layer.style.active.font.link, imageFiles, combinedStyles[`${activeClassName} a`]);
+            }
+          }
+        }
+        if (layer.layers) {
+          if (layer.type === 'container') {
+            panelLayers.push({
+              panelLayer: layer.layers,
+              classPrefix: `${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`,
+              depth: depth + 1,
+            });
+          } else {
+            // const previewLayers = [{
+            //   previewLayer: layout.layers,
+            //   layerClassPrefix: '',
+            //   layerDepth: 0,
+            // }];
+            // while (previewLayers.length) {
+            //   const {
+            //     previewLayer,
+            //     layerClassPrefix,
+            //     layerDepth,
+            //   } = previewLayers.shift();
+            //   previewLayer.forEach((layer, layerIdx) => {
+            //     if (layer.style) {
+            //       const className = `${baseClassName}${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`;
+            //       combinedStyles[className] = combinedStyles[className] ?? {};
+            //       setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+            //       types.forEach((type) => {
+            //         if (layer.style[type]) {
+            //           const subClassName = `${className}.layer-${type}`;
+            //           combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
+            //           setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
+            //         }
+            //       });
+            //       if (layer.style.font?.link) {
+            //         combinedStyles[`${className} a`] = [];
+            //         handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
+            //       }
+            //     }
+            //     if (layer.layers) {
+            //       previewLayers.push({
+            //         previewLayer: layer.layers,
+            //         layerClassPrefix: `${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`,
+            //         layerDepth: layerDepth + 1,
+            //       });
+            //     }
+            //   });
+            // }
+            /*
+            layout.layers.forEach((layer, layerIdx) => {
+              if (layer.style) {
+                const className = `${baseClassName} .layer.layer-${layerIdx}`;
+                combinedStyles[className] = combinedStyles[className] ?? {};
+                setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+                types.forEach((type) => {
+                  if (layer.style[type]) {
+                    const subClassName = `${className}.layer-${type}`;
+                    combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
+                    setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
+                  }
+                });
+              }
+            });
+            */
+          }
         }
       });
-      if (layer.style.font?.link) {
-        combinedStyles[`${className} a`] = [];
-        handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
-      }
     }
-  });
+  }
+  // (design.panels.layers ?? getDefaultPanelLayout()).forEach((layer, idx) => {
+  //   if (layer.style) {
+  //     const className = `.sections .content .panels .panel .layer.layer-${idx}`;
+  //     combinedStyles[className] = combinedStyles[className] ?? {};
+  //     setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
+  //     types.forEach((type) => {
+  //       if (layer.style[type]) {
+  //         const typeClassName = `${className}.layer-${type}`;
+  //         combinedStyles[typeClassName] = combinedStyles[typeClassName] ?? {};
+  //         setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassName]);
+  //       }
+  //     });
+  //     if (layer.style.font?.link) {
+  //       combinedStyles[`${className} a`] = [];
+  //       handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
+  //     }
+  //   }
+  // });
 
   const imageFontData = {
     size: '0.6em',
