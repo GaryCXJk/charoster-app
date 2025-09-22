@@ -81,5 +81,15 @@ export default (options = {}) => {
     titlebar.append(closeBtn);
   }
 
+  function toggleVisibility() {
+    titlebar.element.style.display = titlebar.element.style.display === 'none' ? null : 'none';
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'h' && e.ctrlKey) {
+      toggleVisibility();
+    }
+  });
+
   return titlebar;
 };
