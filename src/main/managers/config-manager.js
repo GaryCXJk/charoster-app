@@ -2,7 +2,7 @@ import { mkdir, mkdtempSync, rmSync } from 'fs';
 import { rm } from 'fs/promises';
 import createWaiter from '../../helpers/create-waiter';
 import { onAppReset } from '../helpers/manager-helper';
-import { notifyWindow } from './window-manager';
+import { getWindow, notifyWindow } from './window-manager';
 
 const { app, ipcMain, nativeTheme, dialog } = require('electron');
 const path = require('path');
@@ -12,6 +12,7 @@ const deepmerge = require('deepmerge');
 const workFolderWaiter = createWaiter();
 
 const defaultConfig = {
+  theme: '',
   darkMode: 'system',
   windowSize: {
     width: 800,
@@ -183,6 +184,8 @@ export const waitForWorkFolder = async () => {
   await workFolderWaiter;
 }
 
+ipcMain.handle('config:get', (_event, key = null) => getConfig(key));
+
 ipcMain.handle('dark-mode:check', () => nativeTheme.shouldUseDarkColors);
 ipcMain.handle('dark-mode:toggle', () => {
   setDarkMode(nativeTheme.shouldUseDarkColors ? 'light' : 'dark');
@@ -190,6 +193,10 @@ ipcMain.handle('dark-mode:toggle', () => {
 });
 ipcMain.handle('dark-mode:system', () => {
   setDarkMode('system');
+  return nativeTheme.shouldUseDarkColors;
+});
+ipcMain.handle('config:set-dark-mode', (_event, mode) => {
+  setDarkMode(mode);
   return nativeTheme.shouldUseDarkColors;
 });
 
@@ -241,6 +248,24 @@ ipcMain.handle('config:set-workfolder', async (_event, data) => {
   workFolderWaiter.resolve();
   saveConfig();
 });
+
+ipcMain.handle('config:get-window-size', () => getConfig('windowSize'));
+ipcMain.handle('config:set-window-size', async (_event, width, height) => {
+  const windowSize = getConfig('windowSize');
+
+  setConfig({
+    windowSize: {
+      ...windowSize,
+      width: +width,
+      height: +height,
+    },
+  });
+
+  const mainWindow = getWindow('main');
+
+  mainWindow.window.setSize(+width, +height);
+});
+
 
 onAppReset(() => {
   removeTempFiles(true);

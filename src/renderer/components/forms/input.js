@@ -37,6 +37,14 @@ export default ({
     input.on('input', callback);
   };
 
+  container.onKeydown = (callback) => {
+    input.on('keydown', callback);
+  }
+  
+  container.onBlur = (callback) => {
+    input.on('blur', callback);
+  };
+
   Object.defineProperties(container, {
     value: {
       get: () => input.element.value,

@@ -8,6 +8,7 @@ import initWorkspaceProperties from './workspace';
 import initRosterProperties from './roster';
 import initEntityProperties from './entity';
 import initExporterProperties from './exporter';
+import initSettingsProperties from './settings';
 
 const properties = {
   workspace: {},
@@ -34,6 +35,7 @@ const initProperties = async (container) => {
     roster: 'Roster',
     entity: '',
     exporter: 'Export',
+    settings: 'Settings',
   };
   const entityTypes = {
     characters: 'Character',
@@ -48,6 +50,7 @@ const initProperties = async (container) => {
     roster: await initRosterProperties(properties),
     entity: await initEntityProperties(properties),
     exporter: await initExporterProperties(properties),
+    settings: await initSettingsProperties(properties),
   };
 
   const tabPanels = new Block({
