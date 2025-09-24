@@ -44,10 +44,11 @@ export default async () => {
   });
   settingsPanel.append(form);
 
+  // Color scheme (Dark / Light Mode)
   const colorSchemeSelect = select({
     id: 'darkMode',
     label: 'Color scheme',
-    value: config.darkMode,
+    value: config.darkMode ?? 'system',
     options: [
       { id: 'system', label: 'System' },
       { id: 'light', label: 'Light' },
@@ -60,6 +61,20 @@ export default async () => {
     window.config.setDarkMode(colorSchemeSelect.value);
   });
 
+  // Theme
+  const themeSelect = select({
+    id: 'theme',
+    label: 'Theme',
+    value: config.theme ?? '',
+    options: await window.designs.getThemeDropdown(),
+  });
+  settingsPanel.append(themeSelect);
+
+  themeSelect.onInput(() => {
+    window.config.setTheme(themeSelect.value);
+  });
+
+  // Window size
   const sizeOptions = {
     '800x600': '800x600',
     '1024x768': '1024x768',

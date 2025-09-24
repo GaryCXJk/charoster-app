@@ -5,7 +5,7 @@ import { app, ipcMain } from "electron";
 import { isPlainObject } from 'is-plain-object';
 import createWaiter from "../../helpers/create-waiter";
 import traverse from "../../helpers/traverse";
-import { getConfig, getTempPath, setTempFile } from "./config-manager";
+import { getConfig, getTempPath, setTempFile, syncTheme } from "./config-manager";
 import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
 import { onAppReset } from '../helpers/manager-helper';
 import { clearObject } from '../../helpers/object-helper';
@@ -231,6 +231,7 @@ export const getDesignImage = async (imageId) => {
 }
 
 ipcMain.handle('designs:get', (_event, designId = null) => getDesign(designId));
+ipcMain.handle('designs:get-theme', async () => await syncTheme(getConfig('theme')));
 ipcMain.handle('designs:get-dropdown', async () => {
   await Promise.all(Object.values(waiting));
   const dropdown = [];
@@ -244,6 +245,30 @@ ipcMain.handle('designs:get-dropdown', async () => {
       id: designId,
       label: designs[designId].name ?? designId,
     });
+  });
+
+  return dropdown;
+});
+
+ipcMain.handle('designs:get-theme-dropdown', async () => {
+  await Promise.all(Object.values(waiting));
+  const dropdown = [];
+  dropdown.push({
+    id: '',
+    label: 'Default',
+  });
+
+  Object.keys(designs).forEach((designId) => {
+    const design = designs[designId];
+    if (design.themes) {
+      const designLabel = design.name ?? designId;
+      Object.keys(design.themes).forEach((themeId) => {
+        dropdown.push({
+          id: `${designId}>${themeId}`,
+          label: `${designLabel} - ${design.themes[themeId].name ?? themeId}`,
+        });
+      });
+    }
   });
 
   return dropdown;

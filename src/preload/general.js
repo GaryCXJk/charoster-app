@@ -5,6 +5,7 @@ export const ipcListeners = [
   'darkmode-switched',
   'reset-all',
   'sync-workspace',
+  'theme-changed',
 ];
 
 export const contextBridgePaths = {
@@ -18,11 +19,15 @@ export const contextBridgePaths = {
     toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
     system: () => ipcRenderer.invoke('dark-mode:system'),
   },
+  designs: {
+    getTheme: () => ipcRenderer.invoke('designs:get-theme'),
+  },
   config: {
     get: (key = null) => ipcRenderer.invoke('config:get', key),
     pickFolder: (choice) => ipcRenderer.invoke('config:pick-folder', params.id, choice),
     getWindowSize: () => ipcRenderer.invoke('config:get-window-size'),
     setWindowSize: (width, height) => ipcRenderer.invoke('config:set-window-size', width, height),
     setDarkMode: (mode) => ipcRenderer.invoke('config:set-dark-mode', mode),
+    setTheme: (theme) => ipcRenderer.invoke('config:set-theme', theme),
   },
 };

@@ -38,3 +38,31 @@ if (screens[screen]) {
   app.classList.add(screen);
   document.body.classList.add(screen);
 }
+
+const themeStyle = document.createElement('style');
+document.head.appendChild(themeStyle);
+
+function setTheme(theme) {
+  let styleArray = [];
+  if (theme.light) {
+    styleArray.push(':root {');
+    Object.keys(theme.light).forEach((variable) => {
+      styleArray.push(`${variable}: ${theme.light[variable]};`);
+    });
+    styleArray.push('}');
+  }
+  if (theme.dark) {
+    styleArray.push('@media (prefers-color-scheme: dark) {:root {');
+    Object.keys(theme.light).forEach((variable) => {
+      styleArray.push(`${variable}: ${theme.dark[variable]};`);
+    });
+    styleArray.push('}}');
+  }
+  themeStyle.innerHTML = styleArray.join('');
+}
+
+window.globalEventHandler.on('theme-changed', setTheme);
+
+(async () => {
+  setTheme(await window.designs.getTheme());
+})();
