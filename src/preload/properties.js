@@ -5,6 +5,7 @@ import * as entities from './managers/entities';
 
 export const ipcListeners = [
   'set-selection',
+  'window-resized',
 ];
 export const contextBridgePaths = deepmerge.all([
   definitions.contextBridgePaths,

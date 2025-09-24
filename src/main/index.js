@@ -104,6 +104,8 @@ app.on('ready', () => {
     disableF4(pickerWindow.window);
     disableF4(propertiesWindow.window);
 
+    let doSync = false;
+
     const storeResize = debounce(250, () => {
       const size = mainWindow.window.getSize();
       const fullscreen = mainWindow.window.isFullScreen();
@@ -114,10 +116,22 @@ app.on('ready', () => {
           fullscreen,
         },
       });
+      if (doSync) {
+        propertiesWindow.window.webContents.send('window-resized', {
+          width: size[0],
+          height: size[1],
+          fullscreen,
+        });
+        doSync = false;
+      }
     });
 
-    mainWindow.window.on('resize', () => {
-      storeResize();
+    mainWindow.window.on('will-resize', (e) => {
+      doSync = true;
+    });
+
+    mainWindow.window.on('resize', (e) => {
+      storeResize(true);
     });
 
     mainWindow.emitter.on('ready', () => {

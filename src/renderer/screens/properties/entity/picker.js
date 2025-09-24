@@ -85,6 +85,10 @@ export default ({
     currentValue = null;
     value = newValue;
 
+    if (!entity) {
+      return;
+    }
+
     const entityInfo = await getEntity(type, entity.entityId);
 
     const color = getComputedStyle(document.body).getPropertyValue('--main-color');
