@@ -3,6 +3,9 @@ import { rm } from 'fs/promises';
 import createWaiter from '../../helpers/create-waiter';
 import { onAppReset } from '../helpers/manager-helper';
 import { getWindow, notifyWindow } from './window-manager';
+import { getDesign } from './designs-manager';
+import { toKebabCase } from 'js-convert-case';
+import tinycolor from 'tinycolor2';
 
 const { app, ipcMain, nativeTheme, dialog } = require('electron');
 const path = require('path');
@@ -184,6 +187,75 @@ export const waitForWorkFolder = async () => {
   await workFolderWaiter;
 }
 
+export async function syncTheme(id, notify = false) {
+  const theme = {
+    light: {},
+    dark: {},
+  };
+  if (id) {
+    const themeSegments = id.split('>');
+    const designId = themeSegments.splice(0, 2).join('>');
+    const themeId = themeSegments.join('>');
+    const design = await getDesign(designId);
+    if (design) {
+      const themeInfo = design.themes?.[themeId] ?? {};
+      if (themeInfo.colors) {
+        const light = {
+          ...themeInfo.colors,
+          ...(themeInfo.colors.light ?? {}),
+        };
+        const dark = {
+          ...themeInfo.colors,
+          ...(themeInfo.colors.dark ?? {}),
+        };
+        const themeSchemes = {
+          light,
+          dark,
+        };
+        Object.keys(themeSchemes).forEach((scheme) => {
+          const themeScheme = themeSchemes[scheme];
+          Object.keys(themeScheme).forEach((color) => {
+            switch (color) {
+              case 'light':
+              case 'dark':
+                break;
+              case 'text': {
+                const colorValue = themeScheme[color];
+                const isDark = tinycolor(colorValue).isDark();
+                theme[scheme]['--main-color'] = theme[scheme]['--main-color'] ?? colorValue;
+                theme[scheme]['--disabled-color'] = theme[scheme]['--disabled-color'] ?? (isDark ? tinycolor(colorValue).lighten(25).toString() : tinycolor(colorValue).darken(25).toString());
+                theme[scheme]['--border-active-color'] = theme[scheme]['--border-active-color'] ?? colorValue;
+                break;
+              }
+              case 'background': {
+                const colorValue = themeScheme[color];
+                const isDark = tinycolor(colorValue).isDark();
+                theme[scheme]['--main-bg-color'] = theme[scheme]['--main-bg-color'] ?? colorValue;
+                theme[scheme]['--sub-bg-color'] = theme[scheme]['--sub-bg-color'] ?? (isDark ? tinycolor(colorValue).lighten(5).toString() : tinycolor(colorValue).darken(5).toString());
+                theme[scheme]['--elem-bg-color'] = theme[scheme]['--elem-bg-color'] ?? (isDark ? tinycolor(colorValue).lighten(2.5).toString() : tinycolor(colorValue).darken(2.5).toString());
+                theme[scheme]['--btn-hover-bg-color'] = theme[scheme]['--btn-hover-bg-color'] ?? (isDark ? tinycolor(colorValue).lighten(5).toString() : tinycolor(colorValue).darken(5).toString());
+                theme[scheme]['--btn-press-bg-color'] = theme[scheme]['--btn-press-bg-color'] ?? (isDark ? tinycolor(colorValue).lighten(10).toString() : tinycolor(colorValue).darken(10).toString());
+                theme[scheme]['--scrollbar-bg-color'] = theme[scheme]['--scrollbar-bg-color'] ?? (isDark ? tinycolor(colorValue).darken(25).setAlpha(0.5).toString() : tinycolor(colorValue).lighten(25).setAlpha(0.5).toString());
+                theme[scheme]['--sub-bg-color'] = theme[scheme]['--sub-bg-color'] ?? (isDark ? tinycolor(colorValue).lighten(25).toString() : tinycolor(colorValue).darken(25).toString());
+                theme[scheme]['--border-color'] = theme[scheme]['--border-color'] ?? colorValue;
+                break;
+              }
+              default:
+                theme[scheme][`--${toKebabCase(color)}`] = themeScheme[color];
+                break;
+            }
+          });
+        });
+      }
+    }
+  }
+  if (notify) {
+    notifyWindow('theme-changed', theme);
+  }
+
+  return theme;
+}
+
 ipcMain.handle('config:get', (_event, key = null) => getConfig(key));
 
 ipcMain.handle('dark-mode:check', () => nativeTheme.shouldUseDarkColors);
@@ -198,6 +270,13 @@ ipcMain.handle('dark-mode:system', () => {
 ipcMain.handle('config:set-dark-mode', (_event, mode) => {
   setDarkMode(mode);
   return nativeTheme.shouldUseDarkColors;
+});
+
+ipcMain.handle('config:set-theme', (_event, theme) => {
+  setConfig({
+    theme,
+  });
+  syncTheme(theme, true);
 });
 
 ipcMain.handle('config:get-workfolder', (_event, override) => getWorkFolder(override));

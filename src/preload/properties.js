@@ -21,6 +21,7 @@ export const contextBridgePaths = deepmerge.all([
     },
     designs: {
       getDropdown: () => ipcRenderer.invoke('designs:get-dropdown'),
-    }
-  }
+      getThemeDropdown: () => ipcRenderer.invoke('designs:get-theme-dropdown'),
+    },
+  },
 ]);
