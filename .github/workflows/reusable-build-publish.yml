@@ -21,6 +21,9 @@ on:
 jobs:
   build-and-publish:
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
