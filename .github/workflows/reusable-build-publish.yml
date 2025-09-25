@@ -17,9 +17,6 @@ on:
         required: false
         type: string
         default: '["ubuntu-latest","windows-latest"]'
-    secrets:
-      GITHUB_TOKEN:
-        required: false
 
 jobs:
   build-and-publish:
@@ -59,12 +56,12 @@ jobs:
       - name: Package (make)
         run: yarn make
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Publish (GitHub Release)
         run: yarn run publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload artifacts (dist)
         if: always()
