@@ -60,6 +60,6 @@
     "mime-types": "^3.0.1",
     "sharp": "^0.34.4",
     "simple-icons": "^15.16.0",
-    "throttle-debounce": "^3.0.1"
+    "throttle-debounce": "^5.0.2"
   }
 }
