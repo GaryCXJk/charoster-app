@@ -37,8 +37,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish (GitHub Release)
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
-        run: yarn publish --target=github
+        # Restrict publishing to tag pushes only; prevents accidental release attempts on main merges.
+        if: startsWith(github.ref, 'refs/tags/')
+        # Use the publish script (electron-forge publish). Using `yarn publish` (without run) would attempt an npm publish and fail without an npm token.
+        run: yarn run publish -- --target=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
