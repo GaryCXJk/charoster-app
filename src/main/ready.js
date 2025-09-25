@@ -30,7 +30,7 @@ export default () => {
         return notFoundResponse;
       }
       return new Response(buffer, {
-        mimeType: lookup(url),
+        mimeType: lookup(url) || 'application/octet-stream',
       });
     }
 
