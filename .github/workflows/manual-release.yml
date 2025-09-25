@@ -11,6 +11,10 @@ on:
         description: 'Override computed version (optional, e.g. 0.5.7)'
         required: false
         default: ''
+      delete_existing:
+        description: 'When used with force_version, delete existing tag v<force_version> before re-tagging'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -61,6 +65,7 @@ jobs:
           BRANCH="${{ steps.ctx.outputs.ref_name }}"
           DRY_RUN='${{ github.event.inputs.dry_run }}'
           FORCE_VERSION='${{ github.event.inputs.force_version }}'
+          DELETE_EXISTING='${{ github.event.inputs.delete_existing }}'
 
           # Helper to emit outputs
           out(){ echo "$1=$2" >> $GITHUB_OUTPUT; }
@@ -121,7 +126,11 @@ jobs:
           if git rev-parse "v$TARGET_VERSION" >/dev/null 2>&1; then
             echo "Tag v$TARGET_VERSION already exists.";
             if [ -n "$FORCE_VERSION" ]; then
-              echo "::error::force_version specified but tag already exists; choose another version."; exit 1;
+              if [ "$DELETE_EXISTING" = "true" ]; then
+                echo "force_version specified and delete_existing=true; will delete existing tag before re-tagging.";
+              else
+                echo "::error::force_version specified but tag already exists; either set delete_existing=true or choose another version."; exit 1;
+              fi
             fi
             if [ "$BRANCH" = "main" ] || [[ $BRANCH =~ $VALID_PATTERN_BASE ]]; then
               echo "Auto-incrementing patch due to duplicate tag on $( [ "$BRANCH" = "main" ] && echo main || echo version branch ).";
@@ -233,6 +242,24 @@ jobs:
         if: github.event.inputs.dry_run != 'true'
         run: |
           VERSION='${{ steps.derive.outputs.version }}'
+          # Optionally delete existing tag if user forced the version and asked to delete
+          if [ "${{ github.event.inputs.force_version }}" != '' ] && [ "${{ github.event.inputs.delete_existing }}" = 'true' ]; then
+            echo "delete_existing=true with force_version set; checking for existing tag v$VERSION"
+            # Ensure we have latest tags
+            git fetch --tags --force
+            if git show-ref --verify --quiet "refs/tags/v$VERSION"; then
+              echo "Deleting local tag v$VERSION"
+              git tag -d "v$VERSION" || true
+            else
+              echo "Local tag v$VERSION not present."
+            fi
+            if git ls-remote --tags origin "v$VERSION" | grep -q "refs/tags/v$VERSION"; then
+              echo "Deleting remote tag v$VERSION"
+              git push origin ":refs/tags/v$VERSION"
+            else
+              echo "Remote tag v$VERSION not present."
+            fi
+          fi
           if git rev-parse "v$VERSION" >/dev/null 2>&1; then
             echo "Tag v$VERSION already exists locally (race?)"; exit 1; fi
           git tag -a "v$VERSION" -m "Release v$VERSION"
