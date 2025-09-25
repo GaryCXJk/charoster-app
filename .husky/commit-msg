@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# commit-msg hook (husky v9+ without legacy shim)
+# Allow bypass with --no-verify
+npx --no-install commitlint --edit "$1"

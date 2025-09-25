@@ -13,7 +13,10 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 1",
+    "changelog:full": "conventional-changelog -p angular -i CHANGELOG.md -s",
+    "prepare": "husky install"
   },
   "keywords": [],
   "author": "GaryCXJk",
@@ -32,6 +35,10 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.9.0",
     "@electron-forge/plugin-webpack": "^7.9.0",
     "@vercel/webpack-asset-relocator-loader": "1.7.0",
+  "@commitlint/cli": "^19.4.0",
+  "@commitlint/config-conventional": "^19.4.0",
+  "conventional-changelog-cli": "^4.1.0",
+  "husky": "^9.0.0",
     "babel-loader": "^10.0.0",
     "copy-webpack-plugin": "^13.0.1",
     "css-loader": "^7.1.2",
