@@ -132,7 +132,8 @@ jobs:
                 echo "::error::force_version specified but tag already exists; either set delete_existing=true or choose another version."; exit 1;
               fi
             fi
-            if [ "$BRANCH" = "main" ] || [[ $BRANCH =~ $VALID_PATTERN_BASE ]]; then
+            # Only auto-increment when not forcing a specific version, or forcing without deletion
+            if { [ -z "$FORCE_VERSION" ] || [ "$DELETE_EXISTING" != "true" ]; } && { [ "$BRANCH" = "main" ] || [[ $BRANCH =~ $VALID_PATTERN_BASE ]]; }; then
               echo "Auto-incrementing patch due to duplicate tag on $( [ "$BRANCH" = "main" ] && echo main || echo version branch ).";
               BASE_MAJOR=$(echo "$TARGET_VERSION" | cut -d'.' -f1)
               BASE_MINOR=$(echo "$TARGET_VERSION" | cut -d'.' -f2)
