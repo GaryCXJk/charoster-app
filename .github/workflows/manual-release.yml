@@ -1,0 +1,222 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Set to true to simulate without pushing'
+        required: false
+        default: 'false'
+      force_version:
+        description: 'Override computed version (optional, e.g. 0.5.7)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    name: Prepare & Tag Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history & tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Commit message convention guard (recent 20)
+        run: |
+          echo "Checking recent commit messages for Conventional Commit compliance (feat|fix|chore|docs|refactor|perf|test|build|ci|revert)";
+          PATTERN='^(feat|fix|chore|docs|refactor|perf|test|build|ci|revert)(\(.+\))?!?: .+'
+          EXIT=0
+          git log -20 --pretty=format:%s | while IFS= read -r line; do
+            if echo "$line" | grep -Eq "$PATTERN"; then
+              echo "OK: $line"
+            else
+              echo "::warning::Non-conforming commit subject: $line"
+              EXIT=1
+            fi
+          done
+          if [ $EXIT -ne 0 ]; then
+            echo "::error::Found non-conforming commit messages. Amend or recommit with --no-verify if intentionally bypassing."; exit 1;
+          fi
+
+      - name: Detect branch
+        id: ctx
+        run: |
+          REF_NAME="${GITHUB_REF#refs/heads/}"
+          echo "ref_name=$REF_NAME" >> $GITHUB_OUTPUT
+          echo "Branch: $REF_NAME"
+
+      - name: Derive version from branch
+        id: derive
+        run: |
+          set -euo pipefail
+          BRANCH="${{ steps.ctx.outputs.ref_name }}"
+          DRY_RUN='${{ github.event.inputs.dry_run }}'
+          FORCE_VERSION='${{ github.event.inputs.force_version }}'
+
+          # Helper to emit outputs
+          out(){ echo "$1=$2" >> $GITHUB_OUTPUT; }
+
+          # Load current package version
+          PKG_VERSION=$(node -p "require('./package.json').version")
+
+            echo "Current package.json version: $PKG_VERSION";
+          echo "Branch name: $BRANCH"
+
+          VALID_PATTERN_DEV='^v([0-9]+)\.([0-9]+)\.([0-9]+)-dev$'
+          VALID_PATTERN_BASE='^v([0-9]+)\.([0-9]+)\.([0-9]+)$'
+
+          TARGET_VERSION=""
+          REASON=""
+
+          if [ -n "$FORCE_VERSION" ]; then
+            TARGET_VERSION="$FORCE_VERSION"
+            REASON="forced via input"
+          elif [[ $BRANCH =~ $VALID_PATTERN_DEV ]]; then
+            MAJOR="${BASH_REMATCH[1]}"; MINOR="${BASH_REMATCH[2]}"; PATCH="${BASH_REMATCH[3]}"
+            TARGET_VERSION="$MAJOR.$MINOR.$PATCH"
+            REASON="from -dev branch (strip -dev)"
+          elif [[ $BRANCH =~ $VALID_PATTERN_BASE ]]; then
+            MAJOR="${BASH_REMATCH[1]}"; MINOR="${BASH_REMATCH[2]}"; PATCH="${BASH_REMATCH[3]}"
+            # Only auto-increment if patch is 0 per specification
+            if [ "$PATCH" = "0" ]; then
+              echo "Scanning existing tags for v$MAJOR.$MINOR.*"
+              EXISTING=$(git tag --list "v$MAJOR.$MINOR.*" | sed -E 's/^v//' || true)
+              HIGHEST=$PATCH
+              if [ -n "$EXISTING" ]; then
+                # Extract patch numbers for matching major.minor
+                while read -r LINE; do
+                  [ -z "$LINE" ] && continue
+                  PMAJ=$(echo "$LINE" | cut -d'.' -f1); PMIN=$(echo "$LINE" | cut -d'.' -f2); PPATCH=$(echo "$LINE" | cut -d'.' -f3)
+                  if [ "$PMAJ" = "$MAJOR" ] && [ "$PMIN" = "$MINOR" ]; then
+                    if [ "$PPATCH" -gt "$HIGHEST" ]; then HIGHEST=$PPATCH; fi
+                  fi
+                done <<< "$EXISTING"
+                NEXT=$((HIGHEST+1))
+                TARGET_VERSION="$MAJOR.$MINOR.$NEXT"
+                REASON="auto-increment patch (highest existing $HIGHEST)"
+              else
+                TARGET_VERSION="$MAJOR.$MINOR.$PATCH"
+                REASON="no existing tags for series"
+              fi
+            else
+              TARGET_VERSION="$MAJOR.$MINOR.$PATCH"
+              REASON="branch exact version (non-zero patch)"
+            fi
+          else
+            echo "Branch does not match versioning patterns; will use existing package version $PKG_VERSION";
+            TARGET_VERSION="$PKG_VERSION"
+            REASON="unchanged (pattern not matched)"
+          fi
+
+          # Avoid duplicate tag creation
+          if git rev-parse "v$TARGET_VERSION" >/dev/null 2>&1; then
+            echo "Tag v$TARGET_VERSION already exists!";
+            if [ -z "$FORCE_VERSION" ]; then
+              echo "::error::Computed target version already tagged. Supply force_version to override or bump branch version.";
+              exit 1
+            fi
+          fi
+
+          echo "Chosen target version: $TARGET_VERSION ($REASON)"
+          out version "$TARGET_VERSION"
+          out reason "$REASON"
+          out changed "false"
+
+          if [ "$PKG_VERSION" != "$TARGET_VERSION" ]; then
+            # Update package.json
+            export TARGET_VERSION
+            node -e "const fs=require('fs');const f='package.json';const p=JSON.parse(fs.readFileSync(f,'utf8'));p.version=process.env.TARGET_VERSION;fs.writeFileSync(f,JSON.stringify(p,null,2)+'\\n');"
+            echo "Updated package.json version -> $TARGET_VERSION"
+            out changed "true"
+          else
+            echo "package.json version already matches target."
+          fi
+
+          out branch "$BRANCH"
+          out dry_run "$DRY_RUN"
+
+      - name: Show derived info
+        run: |
+          echo "Derived version: ${{ steps.derive.outputs.version }}"
+          echo "Reason: ${{ steps.derive.outputs.reason }}"
+          echo "Package changed: ${{ steps.derive.outputs.changed }}"
+          echo "Dry run: ${{ github.event.inputs.dry_run }}"
+
+      - name: Set up Node (for potential lockfile refresh)
+        if: steps.derive.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Refresh lockfile (yarn install)
+        if: steps.derive.outputs.changed == 'true'
+        run: yarn install --frozen-lockfile || yarn install
+
+      - name: Generate changelog (append latest section)
+        if: steps.derive.outputs.changed == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          yarn changelog || echo "Changelog generation returned non-zero; continuing"
+          grep -q "## \[${{ steps.derive.outputs.version }}\]" CHANGELOG.md || {
+            echo "Appending version header manually";
+            sed -i "1,/^## \[Unreleased\]/!b;//a\\n## [${{ steps.derive.outputs.version }}] - $(date +%Y-%m-%d)" CHANGELOG.md || true;
+          }
+
+      - name: Commit version bump
+        if: steps.derive.outputs.changed == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name 'github-actions'
+          git config user.email 'actions@users.noreply.github.com'
+          git add package.json yarn.lock CHANGELOG.md || true
+          if git diff --cached --quiet; then
+            echo "No staged changes to commit."
+          else
+            git commit -m "chore: set version ${{ steps.derive.outputs.version }} (branch ${{ steps.derive.outputs.branch }})"
+          fi
+
+      - name: Merge into main (if needed)
+        if: steps.derive.outputs.branch != 'main' && github.event.inputs.dry_run != 'true'
+        run: |
+          git fetch origin main --prune
+          git checkout main
+          git merge --no-ff ${{ steps.derive.outputs.branch }} -m "Merge branch '${{ steps.derive.outputs.branch }}' for release v${{ steps.derive.outputs.version }}" || {
+            echo '::error::Merge conflict encountered. Resolve manually.'; exit 1; }
+
+      - name: Push main (if merge happened or version changed on main)
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$CURRENT_BRANCH" = "main" ]; then
+            git push origin main
+          else
+            echo "Skipping main push (not on main)."
+          fi
+
+      - name: Create and push tag
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          VERSION='${{ steps.derive.outputs.version }}'
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists locally (race?)"; exit 1; fi
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dry run summary
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "Dry run complete. Would have tagged v${{ steps.derive.outputs.version }} and pushed to main if not dry."
+
+      - name: Final summary
+        run: |
+          echo "Release workflow finished.";
+          echo "Version: ${{ steps.derive.outputs.version }}";
+          echo "Changed: ${{ steps.derive.outputs.changed }}";
+          echo "Dry run: ${{ github.event.inputs.dry_run }}";
+          echo "Branch processed: ${{ steps.derive.outputs.branch }}";
