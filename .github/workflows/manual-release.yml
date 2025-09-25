@@ -119,8 +119,8 @@ jobs:
             if [ -n "$FORCE_VERSION" ]; then
               echo "::error::force_version specified but tag already exists; choose another version."; exit 1;
             fi
-            if [ "$BRANCH" = "main" ]; then
-              echo "Auto-incrementing patch on main.";
+            if [ "$BRANCH" = "main" ] || [[ $BRANCH =~ $VALID_PATTERN_BASE ]]; then
+              echo "Auto-incrementing patch due to duplicate tag on $( [ "$BRANCH" = "main" ] && echo main || echo version branch ).";
               BASE_MAJOR=$(echo "$TARGET_VERSION" | cut -d'.' -f1)
               BASE_MINOR=$(echo "$TARGET_VERSION" | cut -d'.' -f2)
               BASE_PATCH=$(echo "$TARGET_VERSION" | cut -d'.' -f3)
@@ -137,7 +137,7 @@ jobs:
               fi
               NEXT=$((HIGHEST+1))
               TARGET_VERSION="${BASE_MAJOR}.${BASE_MINOR}.${NEXT}"
-              REASON="auto-increment (duplicate existing tag on main)"
+              REASON="auto-increment (duplicate existing tag on ${BRANCH})"
               echo "New target version after increment: $TARGET_VERSION"
               # If extremely unlikely race, loop until free
               while git rev-parse "v$TARGET_VERSION" >/dev/null 2>&1; do
@@ -146,7 +146,7 @@ jobs:
                 echo "Tag still exists, bumping again -> $TARGET_VERSION"
               done
             else
-              echo "::error::Computed target version already tagged (non-main branch). Provide force_version or change branch version."; exit 1;
+              echo "::error::Computed target version already tagged (non-version feature branch). Provide force_version or change branch version."; exit 1;
             fi
           fi
 
