@@ -59,7 +59,7 @@
     "is-svg": "^6.1.0",
     "mime-types": "^3.0.1",
     "sharp": "^0.34.4",
-    "simple-icons": "^6.11.0",
+    "simple-icons": "^15.16.0",
     "throttle-debounce": "^3.0.1"
   }
 }
