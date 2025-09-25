@@ -128,11 +128,18 @@ jobs:
             if [ -n "$FORCE_VERSION" ]; then
               if [ "$DELETE_EXISTING" = "true" ]; then
                 echo "force_version specified and delete_existing=true; will delete existing tag before re-tagging.";
+                # Do not auto-increment or error; we'll delete the tag later and reuse this version
+                echo "Proceeding without changing TARGET_VERSION due to force+delete.";
+                out version "$TARGET_VERSION"
+                out reason "forced+delete_existing"
+                out branch "$BRANCH"
+                out dry_run "$DRY_RUN"
+                # Continue script to allow potential version bump of package.json if needed, but skip auto-increment/error paths
               else
                 echo "::error::force_version specified but tag already exists; either set delete_existing=true or choose another version."; exit 1;
               fi
             fi
-            # Only auto-increment when not forcing a specific version, or forcing without deletion
+            # Only auto-increment when not forcing a specific version (or forcing without deletion)
             if { [ -z "$FORCE_VERSION" ] || [ "$DELETE_EXISTING" != "true" ]; } && { [ "$BRANCH" = "main" ] || [[ $BRANCH =~ $VALID_PATTERN_BASE ]]; }; then
               echo "Auto-incrementing patch due to duplicate tag on $( [ "$BRANCH" = "main" ] && echo main || echo version branch ).";
               BASE_MAJOR=$(echo "$TARGET_VERSION" | cut -d'.' -f1)
@@ -160,7 +167,10 @@ jobs:
                 echo "Tag still exists, bumping again -> $TARGET_VERSION"
               done
             else
-              echo "::error::Computed target version already tagged (non-version feature branch). Provide force_version or change branch version."; exit 1;
+              # If we are in force_version+delete_existing=true case, we already handled above; otherwise, this is a non-version branch without force -> error
+              if [ -z "$FORCE_VERSION" ] || [ "$DELETE_EXISTING" != "true" ]; then
+                echo "::error::Computed target version already tagged (non-version feature branch). Provide force_version or change branch version."; exit 1;
+              fi
             fi
           fi
 
