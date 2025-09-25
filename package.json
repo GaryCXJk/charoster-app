@@ -1,7 +1,7 @@
 {
   "name": "charoster-app",
   "productName": "charoster-app",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "An extendible roster maker for any purpose.",
   "main": ".webpack/main",
   "repository": {
@@ -28,6 +28,7 @@
     "@electron-forge/maker-rpm": "^7.9.0",
     "@electron-forge/maker-squirrel": "^7.9.0",
     "@electron-forge/maker-zip": "^7.9.0",
+    "@electron-forge/publisher-github": "^7.9.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.9.0",
     "@electron-forge/plugin-webpack": "^7.9.0",
     "@vercel/webpack-asset-relocator-loader": "1.7.0",
