@@ -113,12 +113,40 @@ jobs:
             REASON="unchanged (pattern not matched)"
           fi
 
-          # Avoid duplicate tag creation
+          # Handle duplicate tag scenario
           if git rev-parse "v$TARGET_VERSION" >/dev/null 2>&1; then
-            echo "Tag v$TARGET_VERSION already exists!";
-            if [ -z "$FORCE_VERSION" ]; then
-              echo "::error::Computed target version already tagged. Supply force_version to override or bump branch version.";
-              exit 1
+            echo "Tag v$TARGET_VERSION already exists.";
+            if [ -n "$FORCE_VERSION" ]; then
+              echo "::error::force_version specified but tag already exists; choose another version."; exit 1;
+            fi
+            if [ "$BRANCH" = "main" ]; then
+              echo "Auto-incrementing patch on main.";
+              BASE_MAJOR=$(echo "$TARGET_VERSION" | cut -d'.' -f1)
+              BASE_MINOR=$(echo "$TARGET_VERSION" | cut -d'.' -f2)
+              BASE_PATCH=$(echo "$TARGET_VERSION" | cut -d'.' -f3)
+              EXISTING=$(git tag --list "v${BASE_MAJOR}.${BASE_MINOR}.*" | sed -E 's/^v//' || true)
+              HIGHEST=$BASE_PATCH
+              if [ -n "$EXISTING" ]; then
+                while read -r LINE; do
+                  [ -z "$LINE" ] && continue
+                  PMAJ=$(echo "$LINE" | cut -d'.' -f1); PMIN=$(echo "$LINE" | cut -d'.' -f2); PPATCH=$(echo "$LINE" | cut -d'.' -f3)
+                  if [ "$PMAJ" = "$BASE_MAJOR" ] && [ "$PMIN" = "$BASE_MINOR" ]; then
+                    if [ "$PPATCH" -gt "$HIGHEST" ]; then HIGHEST=$PPATCH; fi
+                  fi
+                done <<< "$EXISTING"
+              fi
+              NEXT=$((HIGHEST+1))
+              TARGET_VERSION="${BASE_MAJOR}.${BASE_MINOR}.${NEXT}"
+              REASON="auto-increment (duplicate existing tag on main)"
+              echo "New target version after increment: $TARGET_VERSION"
+              # If extremely unlikely race, loop until free
+              while git rev-parse "v$TARGET_VERSION" >/dev/null 2>&1; do
+                NEXT=$((NEXT+1))
+                TARGET_VERSION="${BASE_MAJOR}.${BASE_MINOR}.${NEXT}"
+                echo "Tag still exists, bumping again -> $TARGET_VERSION"
+              done
+            else
+              echo "::error::Computed target version already tagged (non-main branch). Provide force_version or change branch version."; exit 1;
             fi
           fi
 
