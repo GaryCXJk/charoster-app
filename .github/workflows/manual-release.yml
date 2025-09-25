@@ -34,6 +34,12 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Configure Git user
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name 'github-actions'
+          git config user.email 'actions@users.noreply.github.com'
+
       - name: Commit message convention guard (recent 20)
         run: |
           echo "Checking recent commit messages for Conventional Commit compliance (feat|fix|chore|docs|refactor|perf|test|build|ci|revert)";
