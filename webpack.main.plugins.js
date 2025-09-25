@@ -8,14 +8,9 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const SHARP_NODE_MODULES_TO_COPY = [
   'sharp',
-  'color',
-  'color-convert',
-  'color-name',
-  'color-string',
   'detect-libc',
-  'is-arrayish',
-  'simple-swizzle',
   'semver',
+  '@img/colour',
 ];
 const NODE_MODULES_BASE_PATH = path.resolve(__dirname, 'node_modules');
 const NODE_MODULES_TARGET_PATH = path.join('.', 'node_modules');

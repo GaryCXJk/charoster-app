@@ -25,6 +25,19 @@ module.exports = {
       config: {}
     }
   ],
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'GaryCXJk',
+          name: 'charoster-app'
+        },
+        prerelease: true,
+        draft: true
+      }
+    }
+  ],
   plugins: [
     // ['@electron-forge/plugin-auto-unpack-natives'],
     {

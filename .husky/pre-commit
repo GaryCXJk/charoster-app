@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# pre-commit hook (husky v9+ without legacy shim)
+# Placeholder for future tasks (lint, tests). Currently fast exit.
+exit 0

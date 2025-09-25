@@ -1,0 +1,75 @@
+name: Reusable Build and Publish
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version number (e.g. 0.4.0)
+        required: true
+        type: string
+      ref:
+        description: Git ref to checkout (e.g. v0.4.0); defaults to v<version>
+        required: false
+        type: string
+        default: ''
+      os:
+        description: JSON array of runners, e.g. ["ubuntu-latest","windows-latest"]
+        required: false
+        type: string
+        default: '["ubuntu-latest","windows-latest"]'
+
+jobs:
+  build-and-publish:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.os) }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: ${{ inputs.ref != '' && inputs.ref || format('v{0}', inputs.version) }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile || yarn install
+
+      - name: Version guard (package.json matches input)
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          INP='${{ inputs.version }}'
+          echo "package.json: $PKG_VERSION"; echo "input: $INP"
+          if [ "$PKG_VERSION" != "$INP" ]; then
+            echo "::error::Version mismatch: package.json=$PKG_VERSION input=$INP"; exit 1;
+          fi
+
+      - name: Package (make)
+        run: yarn make
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Publish (GitHub Release)
+        run: yarn run publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Upload artifacts (dist)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-out-${{ matrix.os }}
+          path: out/
+          if-no-files-found: warn

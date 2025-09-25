@@ -1,0 +1,126 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+    permissions:
+      contents: write
+    steps:
+      - name: Extract tag version
+        id: ver
+        run: |
+          if [ -z "${GITHUB_REF}" ] || [[ ! "${GITHUB_REF}" =~ refs/tags/ ]]; then
+            echo "::error::No tag ref found"; exit 1; fi
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+
+  call-reusable:
+    needs: build-and-publish
+    uses: ./.github/workflows/reusable-build-publish.yml
+    with:
+      version: ${{ needs.build-and-publish.outputs.version }}
+      ref: ${{ needs.build-and-publish.outputs.tag }}
+      os: '["ubuntu-latest","windows-latest"]'
+    secrets: inherit
+
+  promote-release:
+    name: Promote Release (stable / rc)
+    needs: call-reusable
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Set tag vars
+        id: classify
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          BASE_VERSION=${TAG#v}
+          RELEASE_TYPE="prerelease-draft"
+          PROMOTE="false"
+          FINAL_PRERELEASE="false"
+          if [[ "$BASE_VERSION" == *-rc.* ]]; then
+            RELEASE_TYPE="rc"
+            PROMOTE="true"
+            FINAL_PRERELEASE="true"
+          elif [[ "$BASE_VERSION" != *-* ]]; then
+            RELEASE_TYPE="stable"
+            PROMOTE="true"
+            FINAL_PRERELEASE="false"
+          fi
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "BASE_VERSION=$BASE_VERSION" >> $GITHUB_ENV
+          echo "RELEASE_TYPE=$RELEASE_TYPE" >> $GITHUB_ENV
+          echo "PROMOTE=$PROMOTE" >> $GITHUB_ENV
+          echo "FINAL_PRERELEASE=$FINAL_PRERELEASE" >> $GITHUB_ENV
+          echo "promote=$PROMOTE" >> $GITHUB_OUTPUT
+          echo "final_prerelease=$FINAL_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+
+      - name: Inspect release state
+        run: |
+          echo "Tag: $TAG"; echo "Base version: $BASE_VERSION";
+          echo "PROMOTE=$PROMOTE"; echo "FINAL_PRERELEASE=$FINAL_PRERELEASE"; echo "RELEASE_TYPE=$RELEASE_TYPE";
+
+      - name: Checkout (for changelog)
+        if: ${{ steps.classify.outputs.promote == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract changelog section
+        if: ${{ steps.classify.outputs.promote == 'true' }}
+        id: changelog
+        run: |
+          if [ ! -f CHANGELOG.md ]; then echo "changelog_missing=true" >> $GITHUB_OUTPUT; exit 0; fi
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          # Extract lines between the version header and next version header / EOF
+          awk -v ver="$VERSION" 'BEGIN{IGNORECASE=0} /^## \[/ { if (found && $0 !~ ver) exit } { if ($0 ~ "^## \[" ver "\\]") found=1; if(found) print }' CHANGELOG.md > _section.txt || true
+          if [ ! -s _section.txt ]; then echo "changelog_empty=true" >> $GITHUB_OUTPUT; else echo "changelog_empty=false" >> $GITHUB_OUTPUT; fi
+          echo '--- Extracted Section ---'
+          cat _section.txt || true
+          echo '------------------------'
+          SECTION=$(sed "s/'/'"'"'"'"/g" _section.txt | tr '\n' '\r' )
+          echo "section_present=true" >> $GITHUB_OUTPUT
+          # We won't pass huge body as output (GitHub size limit), instead keep file for next step.
+
+      - name: Promote GitHub release
+        if: ${{ steps.classify.outputs.promote == 'true' }}
+        run: |
+          # gh CLI is available on ubuntu-latest; if not, we could install it.
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "Installing gh CLI";
+            sudo apt-get update -y && sudo apt-get install -y gh;
+          fi
+          FLAGS="--draft=false"
+          if [ "$FINAL_PRERELEASE" = "true" ]; then
+            FLAGS="$FLAGS --prerelease=true"
+          else
+            FLAGS="$FLAGS --prerelease=false"
+          fi
+          echo "Promoting release $TAG with flags: $FLAGS"
+          gh release edit "$TAG" $FLAGS
+          if [ -f _section.txt ] && [ -s _section.txt ]; then
+            echo "Appending changelog section to release notes"
+            # Fetch existing notes
+            EXISTING=$(gh release view "$TAG" --json body -q .body || echo "")
+            printf '%s\n\n%s\n' "$EXISTING" "$(cat _section.txt)" > _new_notes.txt
+            gh release edit "$TAG" --notes-file _new_notes.txt
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Leave as draft (no promotion for beta/alpha)
+        if: ${{ steps.classify.outputs.promote != 'true' }}
+        run: |
+          echo "Leaving release $TAG as draft (type: $RELEASE_TYPE)."
