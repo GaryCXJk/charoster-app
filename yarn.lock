@@ -5622,10 +5622,10 @@ signal-exit@^4.1.0:
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-4.1.0.tgz#952188c1cbd546070e2dd20d0f41c0ae0530cb04"
   integrity sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==
 
-simple-icons@^6.11.0:
-  version "6.23.0"
-  resolved "https://registry.yarnpkg.com/simple-icons/-/simple-icons-6.23.0.tgz#6e3bcec7537b0765d245f3ec9be3115fcd48c429"
-  integrity sha512-9ql+6OdW5Dnfx1/z5z8MYO2y+OM4Oj4XBvQY5Nlye4eW+Nf5igHzHIKKtTmFkvCmR0lrddZpe1F/89chgoUXhg==
+simple-icons@^15.16.0:
+  version "15.16.0"
+  resolved "https://registry.yarnpkg.com/simple-icons/-/simple-icons-15.16.0.tgz#215adc76432749f4f4a0849a6e6ebd06c469a092"
+  integrity sha512-AeyYdQ5BsFe7ONruVRClZ+2921tQIEcHuP9AZdNUR0in1jFeakH0pA9Rkjj0T/RkTH7Icx2jprXxWWY3aaCDJQ==
 
 slice-ansi@^5.0.0:
   version "5.0.0"

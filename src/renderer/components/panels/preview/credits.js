@@ -1,7 +1,7 @@
 import Block from "../../base/Block"
 import { getImageId } from "../funcs/image-id";
 import { getEntity } from "../processing/entities";
-import { siArtstation, siDeviantart, siImgur, siTwitter, siYoutube } from 'simple-icons/icons';
+import { siArtstation, siDeviantart, siImgur, siX, siYoutube } from 'simple-icons/icons';
 import mdiPublic from '@material-design-icons/svg/two-tone/public.svg';
 import mdi from "../../../../helpers/mdi";
 import si from "../../../../helpers/si";
@@ -15,7 +15,8 @@ const brandMapping = {
   'artstation.com': siArtstation,
   'deviantart.com': siDeviantart,
   'imgur.com': siImgur,
-  'twitter.com': siTwitter,
+  'twitter.com': siX,
+  'x.com': siX,
   'youtu.be': siYoutube,
   'youtube.com': siYoutube,
 };
