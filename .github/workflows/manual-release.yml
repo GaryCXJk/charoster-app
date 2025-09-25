@@ -19,6 +19,10 @@ jobs:
   prepare-release:
     name: Prepare & Tag Release
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.derive.outputs.version }}
+      branch: ${{ steps.ctx.outputs.ref_name }}
+      dry_run: ${{ github.event.inputs.dry_run }}
     steps:
       - name: Checkout (full history & tags)
         uses: actions/checkout@v4
@@ -248,3 +252,14 @@ jobs:
           echo "Changed: ${{ steps.derive.outputs.changed }}";
           echo "Dry run: ${{ github.event.inputs.dry_run }}";
           echo "Branch processed: ${{ steps.derive.outputs.branch }}";
+
+  build-and-publish:
+    name: Build and Publish (manual)
+    needs: prepare-release
+    if: needs.prepare-release.outputs.dry_run != 'true'
+    uses: ./.github/workflows/reusable-build-publish.yml
+    with:
+      version: ${{ needs.prepare-release.outputs.version }}
+      ref: v${{ needs.prepare-release.outputs.version }}
+      os: '["ubuntu-latest","windows-latest"]'
+    secrets: inherit
