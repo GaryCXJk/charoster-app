@@ -9,7 +9,6 @@ import { getDesign } from "../panelscreen";
 import { getDefaultPanelLayout } from "../panel";
 import retrieveImports from "../../../../global/helpers/retrieveImports";
 import defaultPreviewLayout from "./defaultLayout";
-import { convertImageDataArray } from "../processing/image-helpers";
 
 const brandMapping = {
   'artstation.com': siArtstation,
@@ -217,7 +216,7 @@ const getLinkIcon = (href) => {
   }
 }
 
-const createCreditsBlock = (creditsLabel, links) => {
+const createCreditsBlock = (creditsLabel, links, source = null) => {
   if (!creditsLabel && !links.length) {
     return null;
   }
@@ -234,7 +233,7 @@ const createCreditsBlock = (creditsLabel, links) => {
     block.append(label);
   }
 
-  if (links) {
+  if (links && links.length) {
     links.forEach((link) => {
       let href = null;
       let textContent = null;
@@ -289,6 +288,26 @@ const createCreditsBlock = (creditsLabel, links) => {
         block.append(a);
       }
     });
+  } else if (source) {
+    switch (source.toLowerCase()) {
+      case 'smashwiki':
+        const a = new Block({
+          element: 'a',
+          className: 'credits-link',
+          href: 'https://www.ssbwiki.com/Main_Page',
+          target: '_blank',
+        });
+        a.append(new Block({
+          element: 'img',
+          src: '/assets/images/smashwiki.png',
+          className: 'credits-link-icon',
+        }));
+        a.append('https://www.ssbwiki.com');
+        block.append(a);
+        break;
+      default:
+        break;
+    }
   }
 
   return block;
@@ -305,7 +324,7 @@ export const createPreviewCreditsBlock = (creditsData, content) => {
 
   if (creditsData.credits) {
     creditsData.credits.forEach((credit) => {
-      const block = createCreditsBlock(credit.artist ?? null, credit.artistUrls ?? []);
+      const block = createCreditsBlock(credit.artist ?? credit.source ?? null, credit.artistUrls ?? [], credit.source);
 
       if (block) {
         content.append(block);
