@@ -19,6 +19,9 @@ export const contextBridgePaths = {
     toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
     system: () => ipcRenderer.invoke('dark-mode:system'),
   },
+  app: {
+    recreateMainWindow: () => ipcRenderer.invoke('app:recreate-main-window'),
+  },
   designs: {
     getTheme: () => ipcRenderer.invoke('designs:get-theme'),
   },

@@ -119,6 +119,21 @@ export const getWindow = (id) => {
   return null;
 }
 
+export const destroyWindow = async (id) => {
+  const window = getWindow(id);
+  if (!window?.window || window.window.isDestroyed()) {
+    return false;
+  }
+
+  const waiter = createWaiter();
+  window.emitter.once('closed', () => {
+    waiter.resolve(true);
+  });
+  window.window.destroy();
+
+  return await waiter;
+};
+
 export const notifyWindow = (message, payload = {}, id = null) => {
   if (!id) {
     Object.keys(windowInstances).forEach((windowId) => {
