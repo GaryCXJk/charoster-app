@@ -32,5 +32,6 @@ export const contextBridgePaths = {
     setWindowSize: (width, height) => ipcRenderer.invoke('config:set-window-size', width, height),
     setDarkMode: (mode) => ipcRenderer.invoke('config:set-dark-mode', mode),
     setTheme: (theme) => ipcRenderer.invoke('config:set-theme', theme),
+    setRoundedCorners: (rounded) => ipcRenderer.invoke('config:set-rounded-corners', rounded),
   },
 };

@@ -13,7 +13,8 @@ let propertiesWindow;
 let renderWindow;
 
 const createMainWindow = (position = null) => {
-  const { width = 800, height = 600, fullscreen = false, roundedCorners = true } = getConfig('windowSize');
+  const { width = 800, height = 600, fullscreen = false } = getConfig('windowSize');
+  const roundedCorners = getConfig('roundedCorners') ?? true;
 
   const window = createWindow('main', {
     width,
