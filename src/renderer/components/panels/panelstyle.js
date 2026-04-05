@@ -2,6 +2,7 @@ import params from '../../../helpers/params';
 import traverse from '../../../helpers/traverse';
 import { getDefaultPanelLayout } from './panel';
 import dynamicStyle from './panelstyle/dynamic';
+import { handleBackground, handleBackgroundImages, handleStyle } from './panelstyle/handlers';
 
 const overrideWebkit = {
   webkitBackgroundClip: '-webkit-background-clip',
@@ -203,105 +204,6 @@ const createStyleString = (styles) => {
   return lines.join('\n');
 };
 
-const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage') => {
-  if (Array.isArray(val)) {
-    const bgImages = [];
-
-    val.forEach((item) => {
-      const tempProps = {};
-      handleBackgroundImages(tempProps, item, imageFiles, prop);
-      if (tempProps[prop]) {
-        bgImages.push(tempProps[prop]);
-      }
-    });
-
-    props[prop] = bgImages.join(', ');
-    return props;
-  }
-  if (typeof val === 'object') {
-    switch (val.type) {
-      case 'file':
-      case 'url':
-        if (!val.file || !imageFiles[val.file]) {
-          return null;
-        }
-        const fileInfo = imageFiles[val.file].raw;
-        props[prop] = `url(${fileInfo.file ?? fileInfo.data})`;
-        break;
-      case 'gradient':
-        const validGradients = ['linear-gradient', 'repeating-linear-gradient', 'radial-gradient', 'repeating-radial-gradient', 'conic-gradient'];
-        if (!val.gradientType || !validGradients.includes(val.gradientType) || !val.value) {
-          return null;
-        }
-        props[prop] = `${val.gradientType}(${val.value})`;
-        break;
-      default:
-        return null;
-    }
-    return props;
-  } else if (typeof val === 'string' && val && imageFiles[val]) {
-    const fileInfo = imageFiles[val];
-    props[prop] = `url(${fileInfo.file ?? fileInfo.data})`;
-    return props;
-  }
-  return null;
-};
-
-const handleStyle = (style, imageFiles, styleObject = null, styleMap = {}) => {
-  if (typeof style !== 'object') {
-    return null;
-  }
-  const styleProps = {};
-
-  Object.keys(styleMap).forEach((prop) => {
-    const mapTo = styleMap[prop];
-    const val = style[prop];
-    if (typeof val !== 'undefined') {
-      if (typeof mapTo === 'function') {
-        mapTo(styleProps, val, imageFiles);
-      } else {
-        styleProps[mapTo] = val;
-      }
-    }
-  });
-
-  if (styleObject) {
-    Object.assign(styleObject, styleProps);
-  }
-
-  return styleProps;
-}
-
-const handleBackground = (background, imageFiles, styleObject = null, bgMap = {
-  color: 'backgroundColor',
-  size: 'backgroundSize',
-  position: 'backgroundPosition',
-  repeat: 'backgroundRepeat',
-  image: handleBackgroundImages,
-  clip: (props, val) => {
-    Object.assign(props, {
-      webkitBackgroundClip: val,
-      backgroundClip: val,
-    });
-  },
-}, backgroundKey = 'background') => {
-
-  if (typeof background === 'object') {
-    return handleStyle(background, imageFiles, styleObject, bgMap);
-  } else if (typeof background === 'string') {
-    const styleProps = {
-      [backgroundKey]: background,
-    };
-
-    if (styleObject) {
-      Object.assign(styleObject, styleProps);
-    }
-
-    return styleProps;
-  }
-  return null;
-}
-
 const handleBorders = (border, imageFiles, styleObject = null, prefix = null) => {
   const bMap = {
     width: 'width',
@@ -313,8 +215,6 @@ const handleBorders = (border, imageFiles, styleObject = null, prefix = null) =>
     top: handleBorders,
     bottom: handleBorders,
   };
-
-  console.log(border);
 
   if (typeof border === 'object') {
     const styleProps = {};
@@ -530,6 +430,14 @@ const handleElement = (style, styleObject = null) => {
     newStyle.top = top ?? newStyle.top ?? 'auto';
     newStyle.bottom = bottom ?? newStyle.bottom ?? 'auto';
   }
+  if (newStyle.left === newStyle.right && newStyle.top === newStyle.bottom && newStyle.left === newStyle.top) {
+    newStyle.inset = newStyle.left;
+    delete newStyle.left;
+    delete newStyle.right;
+    delete newStyle.top;
+    delete newStyle.bottom;
+  }
+  
   if (ratio) {
     newStyle.aspectRatio = ratio;
   }

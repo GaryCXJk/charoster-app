@@ -107,11 +107,22 @@ export const getWorkspace = () => workspace;
 
 createWorkspace();
 
+const waitForStablePaint = async (win) => {
+  await new Promise(r => setTimeout(r, 50));
+  await win.webContents.executeJavaScript(`
+    new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+  `);
+  await win.webContents.executeJavaScript(`
+    (document.fonts?.ready ?? Promise.resolve()).then(() => new Promise(r => setTimeout(r, 25)))
+  `);
+};
+
 const exportImage = async (screen, options = {}) => {
   const window = getWindow('render');
-  const [width, height] = window.window.getSize();
+  const [width, height] = window.window.getContentSize();
   if (options.size) {
-    window.window.setSize(options.size.width ?? width, options.size.height ?? height);
+    window.window.setContentSize(options.size.width ?? width, options.size.height ?? height);
+    await waitForStablePaint(window.window);
   }
 
   if (options.includeCredits) {
@@ -121,12 +132,13 @@ const exportImage = async (screen, options = {}) => {
     const [ addedHeight ] = reply;
 
     if (addedHeight) {
-      const [currentWidth, currentHeight] = window.window.getSize();
-      window.window.setSize(currentWidth, currentHeight + addedHeight);
+      const [currentWidth, currentHeight] = window.window.getContentSize();
+      window.window.setContentSize(currentWidth, currentHeight + addedHeight);
+      await waitForStablePaint(window.window);
     }
   }
 
-  const [imageWidth, imageHeight] = window.window.getSize();
+  const [imageWidth, imageHeight] = window.window.getContentSize();
   const image = Sharp({
     create: {
       width: imageWidth,
@@ -171,7 +183,7 @@ const exportImage = async (screen, options = {}) => {
     ],
     properties: [],
   });
-  window.window.setSize(width, height);
+  window.window.setContentSize(width, height);
 
   if (options.includeCredits) {
     notifyWindow('cleanup-credits', {}, 'render');
