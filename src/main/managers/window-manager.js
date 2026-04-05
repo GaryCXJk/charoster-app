@@ -49,6 +49,11 @@ export const createWindow = (id, options = {}) => {
 
   window.loadURL(`${MAIN_WINDOW_WEBPACK_ENTRY}?id=${id}&screen=${screen ?? id}`);
 
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
   window.on('closed', () => {
     emitter.emit('closed');
     windowInstances[id] = null;
@@ -87,6 +92,13 @@ export const createWindow = (id, options = {}) => {
   window.webContents.on('new-window', (event, url) => {
     event.preventDefault();
     shell.openExternal(url);
+  });
+
+  window.webContents.on('will-navigate', (event, url) => {
+    if (url !== window.webContents.getURL()) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   windowInstances[id] = {
