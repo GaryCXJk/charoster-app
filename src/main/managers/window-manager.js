@@ -32,7 +32,6 @@ export const createWindow = (id, options = {}) => {
     show: false,
     parent: parent ? parent.window : null,
     roundedCorners,
-    frame: roundedCorners,
     ...browserWindowOptions,
     webPreferences: {
       nodeIntegration: true,

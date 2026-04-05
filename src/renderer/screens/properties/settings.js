@@ -34,7 +34,6 @@ const createRowCols = ({
 
 export default async () => {
   const config = await window.config.get();
-  console.log(config);
 
   const settingsPanel = new Block({
     className: 'tab-panel tab-panel-settings',
