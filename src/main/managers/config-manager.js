@@ -279,6 +279,12 @@ ipcMain.handle('config:set-theme', (_event, theme) => {
   syncTheme(theme, true);
 });
 
+ipcMain.handle('config:set-rounded-corners', (_event, rounded) => {
+  setConfig({
+    roundedCorners: rounded,
+  });
+});
+
 ipcMain.handle('config:get-workfolder', (_event, override) => getWorkFolder(override));
 ipcMain.handle('config:pick-folder', async (_event, id, choice) => {
   const defaultPath = choice || path.join(app.getPath('documents'), app.name);

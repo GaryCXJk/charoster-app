@@ -1,6 +1,7 @@
 import Block from "../../components/base/Block";
 import input from '../../components/forms/input';
 import select from '../../components/forms/select';
+import switchEl from '../../components/forms/switch';
 
 const createRowCols = ({
   label,
@@ -164,6 +165,18 @@ export default async () => {
 
   window.globalEventHandler.on('window-resized', ({ width, height }) => {
     syncWindowSize(width, height, true);
+  });
+
+  const roundedCornersToggle = switchEl({
+    id: 'roundedCorners',
+    label: 'Rounded corners on main window',
+    checked: config.roundedCorners ?? true,
+  });
+  settingsPanel.append(roundedCornersToggle);
+
+  roundedCornersToggle.onInput(() => {
+    window.config.setRoundedCorners(roundedCornersToggle.checked);
+    window.app.recreateMainWindow();
   });
 
   return settingsPanel;

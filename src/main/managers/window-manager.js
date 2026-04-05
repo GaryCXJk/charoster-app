@@ -19,6 +19,7 @@ export const createWindow = (id, options = {}) => {
     screen = null,
     showWindow = true,
     parent = null,
+    roundedCorners = true,
     ...browserWindowOptions
   } = options;
 
@@ -30,6 +31,8 @@ export const createWindow = (id, options = {}) => {
     fullscreenable: false,
     show: false,
     parent: parent ? parent.window : null,
+    roundedCorners,
+    frame: roundedCorners,
     ...browserWindowOptions,
     webPreferences: {
       nodeIntegration: true,
