@@ -8,6 +8,34 @@ let applyEvents = globalAppReset(() => {
   clearImageLabels();
 });
 
+const filterLayers = (layers, type, entity) => layers.map((layer) => {
+  if (layer.exclude && layer.exclude.includes(type)) {
+    return null;
+  }
+  if (layer.include && !layer.include.includes(type)) {
+    return null;
+  }
+  if (layer.filter && Array.isArray(layer.filter)) {
+    for (let idx = 0; idx < layer.filter.length; idx += 1) {
+      const filter = layer.filter[idx];
+      const comparison = filter.comparison ?? 'equals';
+      switch (filter.type) {
+        case 'meta':
+          if (comparison === 'equals' && entity?.meta?.[filter.field] !== filter.value) {
+            return null;
+          }
+          if (comparison === 'not-equals' && entity?.meta?.[filter.field] === filter.value) {
+            return null;
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  return layer;
+});
+
 const imageContent = async (block, layerInfo, {
   type,
   entityId,
@@ -116,8 +144,13 @@ const containerContent = async (panel, layerInfo, {
   } = layerInfo;
   const blockPromises = [];
 
-  for (let idx = 0; idx < layers.length; idx += 1) {
-    const layer = layers[idx];
+  const filteredLayers = filterLayers(layers, contentProps.type, contentProps.entity);
+
+  for (let idx = 0; idx < filteredLayers.length; idx += 1) {
+    const layer = filteredLayers[idx];
+    if (!layer) {
+      continue;
+    }
     const contentInfo = {
       shown: true,
       className: layer.type,
@@ -210,7 +243,7 @@ const setPanelContent = async ({
   if (designPromise) {
     design = await designPromise;
   }
-  const layers = design?.panels?.layers ?? getDefaultPanelLayout();
+  const layers = design?.panels?.layers ?? getDefaultPanelLayout() ?? [];
 
   let entity = null;
 
