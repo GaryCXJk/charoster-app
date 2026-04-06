@@ -26,18 +26,21 @@ export const getLabelText = async (allCaps = false, ...labels) => {
 };
 
 export const getLabel = async (type, entity, imageId = null, allCaps = true) => {
+  const safeEntity = entity ?? {};
   let displayLabel;
   if (imageId) {
     const imageInfo = await window.packs.getImageInfo(type, imageId);
-    displayLabel = displayLabel ?? await getLabelText(
-      allCaps,
-      (caps) => caps ? imageInfo.allCapsDisplayName : null,
-      imageInfo.displayName,
-    );
+    if (imageInfo) {
+      displayLabel = displayLabel ?? await getLabelText(
+        allCaps,
+        (caps) => caps ? imageInfo.allCapsDisplayName : null,
+        imageInfo.displayName,
+      );
+    }
     if (!displayLabel) {
       const imageIdGroup = imageId.split('>').slice(0, -1).join('>');
-      if (entity.imageMap[imageIdGroup]) {
-        const imageGroup = entity.imageMap[imageIdGroup];
+      if (safeEntity.imageMap?.[imageIdGroup]) {
+        const imageGroup = safeEntity.imageMap[imageIdGroup];
         displayLabel = displayLabel ?? await getLabelText(
           allCaps,
           (caps) => caps ? imageGroup.allCapsDisplayName : null,
@@ -48,11 +51,11 @@ export const getLabel = async (type, entity, imageId = null, allCaps = true) => 
   }
   displayLabel = displayLabel ?? await getLabelText(
     allCaps,
-    (caps) => caps ? entity.allCapsDisplayName : null,
-    entity.displayName,
-    (caps) => caps ? entity.allCapsName : null,
-    entity.name,
-    entity.id,
+    (caps) => caps ? safeEntity.allCapsDisplayName : null,
+    safeEntity.displayName,
+    (caps) => caps ? safeEntity.allCapsName : null,
+    safeEntity.name,
+    safeEntity.id,
   );
   return displayLabel;
 };
