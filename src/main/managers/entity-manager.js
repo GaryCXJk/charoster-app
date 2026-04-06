@@ -311,6 +311,13 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
   const designId = workspace.rosters[workspace.displayRoster].theme ?? workspace.theme ?? null;
   const designKey = designId ?? '';
   const imageCache = entityData.images;
+  const setImageCacheValue = (value) => {
+    if (!renderer) {
+      imageCache[designKey] = imageCache[designKey] ?? {};
+      imageCache[designKey][imageId] = imageCache[designKey][imageId] ?? {};
+      imageCache[designKey][imageId][size] = value;
+    }
+  };
   if (!renderer) {
     let currentImageCache = imageCache[designKey]?.[imageId]?.[size];
     if (currentImageCache) {
@@ -325,16 +332,12 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
     }
   }
   const waiter = createWaiter();
-  if (!renderer) {
-    imageCache[designKey] = imageCache[designKey] ?? {};
-    imageCache[designKey][imageId] = imageCache[designKey][imageId] ?? {};
-    imageCache[designKey][imageId][size] = waiter;
-  }
+  setImageCacheValue(waiter);
   const [folder, entityId, altId, index] = imageId.split('>');
   const alt = await getAltImageInfo(type, imageId, true);
 
   if (!alt) {
-    imageCache[designKey][imageId][size] = null;
+    setImageCacheValue(null);
     waiter.resolve();
     return null;
   }
@@ -342,7 +345,7 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
   const imageInfo = alt.images[index];
 
   if (!imageInfo) {
-    imageCache[designKey][imageId][size] = null;
+    setImageCacheValue(null);
     waiter.resolve();
     return null;
   }
@@ -357,8 +360,17 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
 
   const heightRatio = await getSize(type, size, designId);
 
-  const sharpImage = new Sharp(await readFile(altPath)); // We'll read from file buffer, to not lock up files in Windows.
-  const sharpMeta = await sharpImage.metadata();
+  let sharpImage;
+  let sharpMeta;
+  try {
+    sharpImage = new Sharp(await readFile(altPath)); // We'll read from file buffer, to not lock up files in Windows.
+    sharpMeta = await sharpImage.metadata();
+  } catch (e) {
+    setImageCacheValue(null);
+    waiter.resolve();
+    console.log(e);
+    return null;
+  }
   let sizeData = null;
   if (imageInfo.sizes) {
     if (!Number.isNaN(+imageInfo.sizes)) {
@@ -475,9 +487,9 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
     const writePath = path.join(getTempPath(), outFile);
     await writeFile(writePath, imageBuffer);
     setTempFile(outFile);
-    imageCache[designKey][imageId][size] = writePath;
+    setImageCacheValue(writePath);
   } catch (_e) {
-    imageCache[designKey][imageId][size] = imageBuffer;
+    setImageCacheValue(imageBuffer);
   }
 
   waiter.resolve();

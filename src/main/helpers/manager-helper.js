@@ -10,7 +10,13 @@ export const onAppReset = (callback) => {
   managerEmitter.on('app-reset', callback);
 }
 
-ipcMain.handle('app:reset', () => {
-  managerEmitter.emit('app-reset');
+const runAppReset = async () => {
+  const listeners = managerEmitter.listeners('app-reset');
+  await Promise.allSettled(listeners.map((listener) => Promise.resolve().then(() => listener())));
+};
+
+ipcMain.handle('app:reset', async () => {
+  await runAppReset();
   notifyWindow('reset-all');
+  return true;
 });
