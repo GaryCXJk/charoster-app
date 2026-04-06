@@ -81,19 +81,73 @@ const loadIntoParent = async (type, entityInfo, callback) => {
   return parentInfo;
 }
 
+const getMergedAltImages = (alt, sourceInfo, targetInfo) => {
+  const sameSource = sourceInfo.pack === targetInfo.pack && sourceInfo.entityId === targetInfo.entityId;
+
+  return (alt.images ?? []).map((imageInfo) => {
+    if (sameSource) {
+      return typeof imageInfo === 'object' ? deepmerge({}, imageInfo) : imageInfo;
+    }
+    if (typeof imageInfo === 'string') {
+      return {
+        image: imageInfo,
+        pack: sourceInfo.pack,
+        entityId: sourceInfo.entityId,
+        altId: alt.id,
+      };
+    }
+    return {
+      ...deepmerge({}, imageInfo),
+      pack: imageInfo.pack ?? sourceInfo.pack,
+      entityId: imageInfo.entityId ?? sourceInfo.entityId,
+      altId: imageInfo.altId ?? alt.id,
+    };
+  });
+};
+
+const mergeAddonImages = (parentInfo, entityInfo) => {
+  parentInfo.images = parentInfo.images ?? [];
+  parentInfo.imageMap = parentInfo.imageMap ?? {};
+
+  entityInfo.images.forEach((alt) => {
+    const existingAlt = parentInfo.images.find((parentAlt) => parentAlt.id === alt.id);
+    const mergedImages = getMergedAltImages(alt, {
+      pack: entityInfo.pack,
+      entityId: entityInfo.id,
+    }, {
+      pack: parentInfo.pack,
+      entityId: parentInfo.id,
+    });
+
+    if (existingAlt) {
+      const mergedAlt = deepmerge(existingAlt, {
+        ...deepmerge({}, alt),
+        fullId: existingAlt.fullId,
+        images: mergedImages,
+      });
+      Object.assign(existingAlt, mergedAlt);
+      parentInfo.imageMap[existingAlt.fullId] = existingAlt;
+      return;
+    }
+
+    const newAlt = deepmerge({}, alt);
+    newAlt.images = mergedImages;
+    parentInfo.images.push(newAlt);
+    parentInfo.imageMap[newAlt.fullId] = newAlt;
+  });
+};
+
 const loadAddon = async (type, entityInfo) => {
   return await loadIntoParent(type, entityInfo, async (parentInfo) => {
     if (entityInfo.images) {
-      parentInfo.images.push(...entityInfo.images);
-      Object.assign(parentInfo.imageMap, entityInfo.imageMap);
+      mergeAddonImages(parentInfo, entityInfo);
     }
     if (entityInfo.groups) {
-      parentInfo.groups = parentInfo.groups ?? {};
-      Object.assign(parentInfo.groups, entityInfo.groups);
+      parentInfo.groups = deepmerge(parentInfo.groups ?? {}, entityInfo.groups);
     }
 
     if (entityInfo.meta) {
-      Object.assign(parentInfo.meta, entityInfo.meta);
+      parentInfo.meta = deepmerge(parentInfo.meta ?? {}, entityInfo.meta);
     }
 
     const props = checkArrayables(entityInfo);
@@ -294,9 +348,12 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
   }
 
   const image = (typeof imageInfo === 'string' ? imageInfo : imageInfo.image ?? imageInfo.file);
+  const sourcePack = typeof imageInfo === 'object' ? imageInfo.pack ?? folder : folder;
+  const sourceEntityId = typeof imageInfo === 'object' ? imageInfo.entityId ?? entityId : entityId;
+  const sourceAltId = typeof imageInfo === 'object' ? imageInfo.altId ?? altId : altId;
 
   const workFolder = getConfig('workFolder');
-  const altPath = path.join(workFolder, 'packs', folder, type, entityId, altId, image);
+  const altPath = path.join(workFolder, 'packs', sourcePack, type, sourceEntityId, sourceAltId, image);
 
   const heightRatio = await getSize(type, size, designId);
 
