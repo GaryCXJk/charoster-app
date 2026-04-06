@@ -229,6 +229,58 @@ export default () => {
     onAddPanel: (panel) => {
       panel.prop('draggable', true);
 
+      let doRemovePanel = false;
+
+      const removePanelFromRoster = () => {
+        const panelIndex = panel.container.index();
+        if (panelIndex < 0) {
+          return;
+        }
+
+        const currentRoster = getCurrentRoster();
+        const roster = getRoster();
+        roster.splice(panelIndex, 1);
+        setRoster(roster);
+        currentRoster.roster.splice(panelIndex, 1);
+
+        if (placeholder === panel.container) {
+          placeholder = null;
+          placeholderRoster = null;
+          dragInfo = null;
+        }
+
+        clearSelection();
+        storeWorkspace();
+        resetRoster();
+      };
+
+      panel.on('mousedown', (e) => {
+        if (e.button !== 1) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        doRemovePanel = true;
+      });
+
+      panel.on('mouseleave', () => {
+        doRemovePanel = false;
+      });
+
+      panel.on('mouseup', (e) => {
+        if (e.button !== 1) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!doRemovePanel) {
+          return;
+        }
+        doRemovePanel = false;
+        removePanelFromRoster();
+      });
+      
       panel.on('dragstart', () => {
         const {
           entityId: panelId = null,
