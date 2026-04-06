@@ -11,12 +11,15 @@ const imageQueue = [];
 const urlBuffer = {};
 
 let queueRunning = false;
+let queueVersion = 0;
 
 const applyEvents = globalAppReset(() => {
   clearObject(imageCache);
   clearObject(imageWaiters);
   clearObject(urlBuffer);
   imageQueue.splice(0, imageQueue.length);
+  queueRunning = false;
+  queueVersion += 1;
   releaseURLs();
 });
 
@@ -30,13 +33,20 @@ const runImageQueue = async () => {
     return;
   }
   queueRunning = true;
+  const currentQueueVersion = queueVersion;
 
-  while (imageQueue.length) {
+  while (currentQueueVersion === queueVersion && imageQueue.length) {
     const [designId, type, imageId] = imageQueue.shift();
 
     const imageData = await window.packs.getImages(type, imageId, imageFilters[type]);
-    imageWaiters[designId][type][imageId].resolve(imageData);
-    imageQueue[`${designId},${type}:${imageId}`] = imageData;
+    if (currentQueueVersion !== queueVersion) {
+      break;
+    }
+    const waiter = imageWaiters[designId]?.[type]?.[imageId] ?? null;
+    if (waiter) {
+      waiter.resolve(imageData);
+    }
+    imageCache[`${designId},${type}:${imageId}`] = imageData;
   }
 
   queueRunning = false;
