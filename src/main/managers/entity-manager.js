@@ -43,11 +43,124 @@ const getEntityData = (type) => {
   return entities[type];
 }
 
+const cloneImageMeta = (value) => {
+  if (typeof value === 'undefined' || value === null) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneImageMeta(item));
+  }
+  if (typeof value === 'object') {
+    return deepmerge({}, value);
+  }
+  return value;
+};
+
+const getDefaultSizeData = (value) => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return cloneImageMeta(value[0] ?? null);
+  }
+  return cloneImageMeta(value);
+};
+
+const getImageSizeData = (value, groupSizes = null) => {
+  if (typeof value === 'undefined' || value === null) {
+    return null;
+  }
+  if (!Number.isNaN(+value)) {
+    if (Array.isArray(groupSizes)) {
+      return cloneImageMeta(groupSizes[+value] ?? null);
+    }
+    return null;
+  }
+  if (typeof value === 'object') {
+    return cloneImageMeta(value);
+  }
+  return null;
+};
+
+const mergeSizeData = (...values) => {
+  const merged = values.reduce((out, value) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return deepmerge(out, cloneImageMeta(value));
+    }
+    return out;
+  }, {});
+
+  return Object.keys(merged).length ? merged : null;
+};
+
+const pickMostSpecificMeta = (...values) => {
+  for (let idx = 0; idx < values.length; idx += 1) {
+    const value = values[idx];
+    if (typeof value !== 'undefined' && value !== null) {
+      return cloneImageMeta(value);
+    }
+  }
+  return null;
+};
+
+const normalizeEntityImages = (entityInfo) => {
+  if (!entityInfo.images) {
+    return;
+  }
+
+  const globalSizes = getDefaultSizeData(entityInfo.sizes);
+  const globalCredits = cloneImageMeta(entityInfo.credits);
+  const altMetaMap = {};
+
+  entityInfo.images = entityInfo.images.filter((alt) => alt?.id).map((alt) => {
+    const normalizedAlt = deepmerge({}, alt);
+    altMetaMap[normalizedAlt.id] = {
+      credits: cloneImageMeta(normalizedAlt.credits),
+    };
+    return normalizedAlt;
+  });
+
+  entityInfo.images.forEach((alt) => {
+    const groupSizes = getDefaultSizeData(alt.sizes);
+    const groupCredits = cloneImageMeta(alt.credits);
+    const baseId = alt.imageBase?.split('>').slice(-1)[0] ?? null;
+    const baseCredits = baseId ? cloneImageMeta(altMetaMap[baseId]?.credits) : null;
+
+    alt.images = (alt.images ?? []).map((image) => {
+      const normalizedImage = typeof image === 'string' ? { image } : deepmerge({}, image);
+      const imageSizes = getImageSizeData(normalizedImage.sizes, alt.sizes);
+      const mergedSizes = mergeSizeData(globalSizes, groupSizes, imageSizes);
+      const mergedCredits = pickMostSpecificMeta(normalizedImage.credits, groupCredits, baseCredits, globalCredits);
+
+      if (mergedSizes) {
+        normalizedImage.sizes = mergedSizes;
+      } else {
+        delete normalizedImage.sizes;
+      }
+
+      if (mergedCredits) {
+        normalizedImage.credits = mergedCredits;
+      } else {
+        delete normalizedImage.credits;
+      }
+
+      return normalizedImage;
+    });
+
+    delete alt.sizes;
+    delete alt.credits;
+  });
+
+  delete entityInfo.sizes;
+  delete entityInfo.credits;
+};
+
 const prepareEntityData = (type, entityInfo, id) => {
   const [folder] = id.split('>');
   const entityData = getEntityData(type);
   entityInfo.fullId = id;
   entityInfo.pack = folder;
+  normalizeEntityImages(entityInfo);
   if (entityInfo.images) {
     const { images: altList } = entityInfo;
     entityInfo.imageMap = {};
@@ -108,6 +221,7 @@ const getMergedAltImages = (alt, sourceInfo, targetInfo) => {
 const mergeAddonImages = (parentInfo, entityInfo) => {
   parentInfo.images = parentInfo.images ?? [];
   parentInfo.imageMap = parentInfo.imageMap ?? {};
+  parentInfo.groups = parentInfo.groups ?? {};
 
   entityInfo.images.forEach((alt) => {
     const existingAlt = parentInfo.images.find((parentAlt) => parentAlt.id === alt.id);
@@ -118,6 +232,13 @@ const mergeAddonImages = (parentInfo, entityInfo) => {
       pack: parentInfo.pack,
       entityId: parentInfo.id,
     });
+
+    if (alt.id) {
+      if (!parentInfo.groups[alt.id]) {
+        parentInfo.groups[alt.id] = alt.name ?? alt.id;
+      }
+      alt.group = alt.id;
+    }
 
     if (existingAlt) {
       const mergedAlt = deepmerge(existingAlt, {
