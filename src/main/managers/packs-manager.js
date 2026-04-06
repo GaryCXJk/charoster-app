@@ -56,6 +56,7 @@ export const fetchPack = async (folder) => {
     notifyWindow('pack-loading', deepmerge({}, packInfo));
 
     const entityTypes = getEntityTypes();
+    const entityLoaders = [];
     for (let idx = 0; idx < entityTypes.length; idx += 1) {
       const entityType = entityTypes[idx];
 
@@ -67,33 +68,38 @@ export const fetchPack = async (folder) => {
             queueEntity(entityType, entityId);
           });
 
-          awaitQueue(entityType, entities).then((values) => {
-            packInfo[entityType] = [];
-            const addons = [];
-            values.forEach((value) => {
-              if (value.value.type === entityType.replace(/s$/, '')) {
-                packInfo[entityType].push(value.value.fullId);
-              } else {
-                addons.push(`${entityType}>${value.value.type}:${value.value.fullId}`);
+          entityLoaders.push(
+            awaitQueue(entityType, entities).then((values) => {
+              packInfo[entityType] = [];
+              const addons = [];
+              values.forEach((value) => {
+                if (value.value.type === entityType.replace(/s$/, '')) {
+                  packInfo[entityType].push(value.value.fullId);
+                } else {
+                  addons.push(`${entityType}>${value.value.type}:${value.value.fullId}`);
+                }
+              });
+              if (addons.length) {
+                packInfo.addons = packInfo.addons ?? [];
+                packInfo.addons.push(...addons);
               }
-            });
-            if (addons.length) {
-              packInfo.addons = packInfo.addons ?? [];
-              packInfo.addons.push(...addons);
-            }
-            notifyWindow('pack-entity-list-ready', {
-              type: entityType,
-              packId: packInfo.id,
-              entityList: packInfo[entityType],
-            });
-          }).catch(() => {
-            // Do nothing
-          });
+              notifyWindow('pack-entity-list-ready', {
+                type: entityType,
+                packId: packInfo.id,
+                entityList: packInfo[entityType],
+              });
+            }).catch(() => {
+              // Do nothing
+            })
+          );
+        } else {
+          packInfo[entityType] = [];
         }
       } else {
         packInfo[entityType] = false;
       }
     }
+    await Promise.allSettled(entityLoaders);
     if (packInfo.designs) {
       const designs = await fetchDesigns(folder);
 
@@ -173,10 +179,10 @@ ipcMain.handle('packs:get-image-info', (_event, type, imageId) => {
   return imageInfoReaders[type](imageId);
 });
 
-onAppReset(() => {
+onAppReset(async () => {
   packDiscoveryPromise = createWaiter();
   Object.keys(packs).forEach((packId) => {
     delete packs[packId];
   });
-  discoverPacks();
+  await discoverPacks();
 });
