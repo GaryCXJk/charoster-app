@@ -204,12 +204,41 @@ const createStyleString = (styles) => {
   return lines.join('\n');
 };
 
+const handleRadiuses = (radius, _imageFiles, styleObject = null, prefix = 'radius') => {
+  const styleProps = {};
+  switch (prefix) {
+    case 'top-radius':
+    case 'bottom-radius': {
+      const side = prefix.slice(0, -7);
+      styleProps[`border-${side}-left-radius`] = radius;
+      styleProps[`border-${side}-right-radius`] = radius;
+      break;
+    }
+    case 'left-radius':
+    case 'right-radius': {
+      const side = prefix.slice(0, -7);
+      styleProps[`border-top-${side}-radius`] = radius;
+      styleProps[`border-bottom-${side}-radius`] = radius;
+      break;
+    }
+    default:
+      styleProps[`border-${prefix}`] = radius;
+      break;
+  }
+
+  if (styleObject) {
+    Object.assign(styleObject, styleProps)
+  }
+
+  return styleProps;
+}
+
 const handleBorders = (border, imageFiles, styleObject = null, prefix = null) => {
   const bMap = {
     width: 'width',
     style: 'style',
     color: 'color',
-    radius: 'radius',
+    radius: handleRadiuses,
     left: handleBorders,
     right: handleBorders,
     top: handleBorders,
