@@ -299,7 +299,7 @@ const createPackBlock = (packId) => {
     const entity = await getEntity(entityType, elementId);
     panel.entity = entity;
 
-    const panels = getPanelGroup(entity.group ?? '');
+    const panels = getPanelGroup(entity?.group ?? '');
 
     panels.append(panel);
     panel.eventTarget.dispatchEvent(new Event('entityLoaded'));
