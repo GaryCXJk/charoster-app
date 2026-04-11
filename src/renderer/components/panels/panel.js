@@ -3,37 +3,10 @@ import { globalAppReset } from '../../../helpers/global-on';
 import Block from "../base/Block";
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 import { clearImageLabels, getLabel, getLabelText, imageLabel } from './processing/layers/label';
+import filterLayers from '../../common/filterLayers';
 
 let applyEvents = globalAppReset(() => {
   clearImageLabels();
-});
-
-const filterLayers = (layers, type, entity) => layers.map((layer) => {
-  if (layer.exclude && layer.exclude.includes(type)) {
-    return null;
-  }
-  if (layer.include && !layer.include.includes(type)) {
-    return null;
-  }
-  if (layer.filter && Array.isArray(layer.filter)) {
-    for (let idx = 0; idx < layer.filter.length; idx += 1) {
-      const filter = layer.filter[idx];
-      const comparison = filter.comparison ?? 'equals';
-      switch (filter.type) {
-        case 'meta':
-          if (comparison === 'equals' && entity?.meta?.[filter.field] !== filter.value) {
-            return null;
-          }
-          if (comparison === 'not-equals' && entity?.meta?.[filter.field] === filter.value) {
-            return null;
-          }
-          break;
-        default:
-          break;
-      }
-    }
-  }
-  return layer;
 });
 
 const imageContent = async (block, layerInfo, {
@@ -104,10 +77,11 @@ const labelContent = async (block, layerInfo, {
       layerInfo.caps ?? true,
       label,
       (caps) => caps ? (
-        (panelEntity?.allCapsName ?? null)
+        (layerInfo.text ? layerInfo.text.toUpperCase() : null)
+        ?? (panelEntity?.allCapsName ?? null)
         ?? (panelEntity?.displayName ? panelEntity.displayName.toUpperCase() : null)
       ) : (
-        panelEntity?.displayName ?? null
+        layerInfo.text ?? panelEntity?.displayName ?? null
       ),
       async (caps) => await getLabel(type, entity, imageId, caps)
     );
@@ -144,7 +118,7 @@ const containerContent = async (panel, layerInfo, {
   } = layerInfo;
   const blockPromises = [];
 
-  const filteredLayers = filterLayers(layers, contentProps.type, contentProps.entity);
+  const filteredLayers = filterLayers(layers, contentProps.type, contentProps.entity, contentProps.panelEntity, contentProps.design?.panels?.properties ?? {});
 
   for (let idx = 0; idx < filteredLayers.length; idx += 1) {
     const layer = filteredLayers[idx];
@@ -201,9 +175,45 @@ export const getDefaultPanelLayout = () => ([
   {
     type: 'label',
     display: 'image',
+    filter: [
+      {
+        type: 'or',
+        filters: [
+          {
+            type: 'window',
+            comparison: 'is',
+            value: 'picker',
+          },
+          {
+            type: 'meta',
+            field: 'label',
+            comparison: 'not-equals',
+            value: false,
+          },
+        ],
+      }
+    ],
   },
   {
     type: "image",
+    filter: [
+      {
+        type: 'or',
+        filters: [
+          {
+            type: 'window',
+            comparison: 'is',
+            value: 'picker',
+          },
+          {
+            type: 'meta',
+            field: 'label',
+            comparison: 'not-equals',
+            value: false,
+          },
+        ],
+      }
+    ],
     from: {
       definition: 'franchise',
       field: 'symbols',
