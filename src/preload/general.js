@@ -24,6 +24,7 @@ export const contextBridgePaths = {
   },
   designs: {
     getTheme: () => ipcRenderer.invoke('designs:get-theme'),
+    getThemePanelProperties: (theme) => ipcRenderer.invoke('designs:get-theme-panel-properties', theme),
   },
   config: {
     get: (key = null) => ipcRenderer.invoke('config:get', key),
