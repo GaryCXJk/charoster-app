@@ -1,6 +1,9 @@
 import Block from "../../components/base/Block";
 import input from "../../components/forms/input";
+import switchEl from "../../components/forms/switch";
 import picker from "./entity/picker";
+import { getEntity } from "../../components/panels/processing/entities";
+import getPanelProps, { extractDefaultValue } from "../../common/getPanelProps";
 
 const setEntityData = (type, entity, elements, properties) => {
   elements.displayName.value = entity.displayName ?? '';
@@ -17,6 +20,10 @@ const setEntityData = (type, entity, elements, properties) => {
     } else {
       fieldBlock.value = entity[key] ?? '';
     }
+  });
+  elements.properties.reset({
+    type,
+    entity,
   });
 };
 
@@ -65,6 +72,91 @@ const makeEntityFields = async ({
   });
 }
 
+const makeProperties = ({
+  container,
+  getCurrentRoster,
+  getIndex,
+  properties,
+}) => {
+  const block = new Block({
+    className: 'properties',
+  });
+  container.append(block);
+  block.reset = async ({
+    type,
+    entity,
+  }) => {
+    block.empty();
+    const entityInfo = await getEntity(type, entity.entityId);
+    const designProperties = await window.designs.getThemePanelProperties(properties?.workspace?.theme);
+    if (designProperties) {
+      const filteredProperties = Object.keys(designProperties).reduce((acc, prop) => {
+        if (designProperties[prop]?.include.includes(type)) {
+          return {
+            ...acc,
+            [prop]: designProperties[prop],
+          };
+        }
+        return acc;
+      }, {});
+      Object.keys(filteredProperties).forEach((prop) => {
+        const propData = filteredProperties[prop];
+        let propElement = null;
+        switch (propData.type) {
+          case 'boolean':
+            propElement = switchEl({
+              id: `property-${prop}`,
+              label: propData.label ?? prop,
+            });
+            break;
+          default:
+            propElement = input({
+              id: `property-${prop}`,
+              label: propData.label ?? prop,
+              placeholder: propData.placeholder ?? '',
+            });
+            break;
+        }
+        let propValue = getPanelProps(entity, entityInfo, prop, propData);
+        if (propValue !== null) {
+          switch (propData.type) {
+            case 'boolean':
+              propElement.checked = !!propValue;
+              break;
+            default:
+              propElement.value = propValue;
+              break;
+          }
+        }
+        propElement.onInput(() => {
+          const currentRoster = getCurrentRoster();
+          const newEntity = currentRoster.roster[getIndex()];
+          if (!newEntity.properties) {
+            newEntity.properties = {};
+          }
+          switch (propData.type) {
+            case 'boolean':
+              newEntity.properties[prop] = !!propElement.checked;
+              if (newEntity.properties[prop] === extractDefaultValue(propData, entityInfo)) {
+                delete newEntity.properties[prop];
+              }
+              break;
+            default:
+              newEntity.properties[prop] = propElement.value;
+              if (!newEntity.properties[prop]) {
+                delete newEntity.properties[prop];
+              }
+              break;
+          }
+          properties.doUpdate();
+        });
+        block.append(propElement);
+      });
+    }
+  }
+  return block;
+}
+
 export default async (properties) => {
   const { doUpdate } = properties;
 
@@ -101,6 +193,14 @@ export default async (properties) => {
     getIndex,
     properties,
   });
+
+  elements.properties = makeProperties({
+    container,
+    getCurrentRoster,
+    getIndex,
+    properties,
+  });
+  container.append(elements.properties);
 
   properties.eventTarget.addEventListener('sync-entity', (event) => {
     const { detail } = event;

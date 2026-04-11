@@ -274,6 +274,14 @@ ipcMain.handle('designs:get-theme-dropdown', async () => {
   return dropdown;
 });
 
+ipcMain.handle('designs:get-theme-panel-properties', async (_event, designId) => {
+  const design = await getDesign(designId);
+  if (design?.panels?.properties) {
+    return design.panels.properties;
+  }
+  return null;
+});
+
 onAppReset(() => {
   clearObject(designs);
   clearObject(waiting);
