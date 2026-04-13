@@ -237,7 +237,7 @@ export async function syncTheme(id, notify = false) {
                 theme[scheme]['--btn-press-bg-color'] = theme[scheme]['--btn-press-bg-color'] ?? (isDark ? tinycolor(colorValue).lighten(10).toString() : tinycolor(colorValue).darken(10).toString());
                 theme[scheme]['--scrollbar-bg-color'] = theme[scheme]['--scrollbar-bg-color'] ?? (isDark ? tinycolor(colorValue).darken(25).setAlpha(0.5).toString() : tinycolor(colorValue).lighten(25).setAlpha(0.5).toString());
                 theme[scheme]['--sub-bg-color'] = theme[scheme]['--sub-bg-color'] ?? (isDark ? tinycolor(colorValue).lighten(25).toString() : tinycolor(colorValue).darken(25).toString());
-                theme[scheme]['--border-color'] = theme[scheme]['--border-color'] ?? colorValue;
+                theme[scheme]['--border-color'] = theme[scheme]['--border-color'] ?? (isDark ? tinycolor(colorValue).lighten(25).toString() : tinycolor(colorValue).darken(25).toString());
                 break;
               }
               default:
