@@ -53,24 +53,29 @@ const filterByLayer = ({
         }
         break;
       case 'property':
-        const level = filter.level ?? 'panel';
-        const panelPropertyValue = getPanelProps(panelEntity, entity, filter.field, panelProperties?.[filter.field]);
+        let propertyValue = null;
+        switch (filter.level ?? 'panel') {
+          case 'panel':
+          default:
+            propertyValue = getPanelProps(panelEntity, entity, filter.field, panelProperties?.[filter.field]);
+            break;
+        }
         switch (comparison) {
           case 'is':
           case 'equals':
-            combineReturns(panelPropertyValue === filter.value);
+            combineReturns(propertyValue === filter.value);
             break;
           case 'not-is':
           case 'not-equals':
           case 'is-not':
-            combineReturns(panelPropertyValue !== filter.value);
+            combineReturns(propertyValue !== filter.value);
             break;
           case 'has':
-            combineReturns(!!panelPropertyValue);
+            combineReturns(!!propertyValue);
             break;
           case 'has-not':
           case 'not-has':
-            combineReturns(!panelPropertyValue);
+            combineReturns(!propertyValue);
             break;
           default:
             break;
