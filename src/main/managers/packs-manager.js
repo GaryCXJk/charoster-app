@@ -179,6 +179,13 @@ ipcMain.handle('packs:get-image-info', (_event, type, imageId) => {
   return imageInfoReaders[type](imageId);
 });
 
+ipcMain.handle('packs:refresh', async (_event, packId) => {
+  // TODO: Refreshing a single pack
+  await fetchPack(packId);
+  notifyWindow('refresh-pack', packId);
+  return true;
+});
+
 onAppReset(async () => {
   packDiscoveryPromise = createWaiter();
   Object.keys(packs).forEach((packId) => {
