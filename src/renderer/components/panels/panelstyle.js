@@ -2,7 +2,14 @@ import params from '../../../helpers/params';
 import traverse from '../../../helpers/traverse';
 import { getDefaultPanelLayout } from './panel';
 import dynamicStyle from './panelstyle/dynamic';
-import { handleBackground, handleBackgroundImages, handleStyle } from './panelstyle/handlers';
+import {
+  getColorValue,
+  handleBackground,
+  handleBackgroundImages,
+  handleColor,
+  handleFont,
+  handleStyle
+} from './panelstyle/handlers';
 
 const overrideWebkit = {
   webkitBackgroundClip: '-webkit-background-clip',
@@ -11,6 +18,8 @@ const overrideWebkit = {
 const stylePropTransforms = {
   dynamic: dynamicStyle,
 };
+
+const types = ['characters', 'stages', 'items'];
 
 const checkFileImages = (found, queue) => {
   if (found) {
@@ -169,8 +178,8 @@ const processCSSFilters = (filters) => {
         if (value.radius) {
           processedValue.push(value.radius);
         }
-        if (value.color) {
-          processedValue.push(value.color);
+        if (getColorValue(value.color)) {
+          processedValue.push(getColorValue(value.color));
         }
         break;
       default:
@@ -237,7 +246,7 @@ const handleBorders = (border, imageFiles, styleObject = null, prefix = null) =>
   const bMap = {
     width: 'width',
     style: 'style',
-    color: 'color',
+    color: (val, _imageFiles, props, prop) => handleColor(props, val, prop),
     radius: handleRadiuses,
     left: handleBorders,
     right: handleBorders,
@@ -355,36 +364,6 @@ const handleMask = (mask, imageFiles, styleObject = null) => {
   return returnObject;
 };
 
-const handleFont = (font, imageFiles, styleObject = null) => (
-  handleStyle(font, imageFiles, styleObject, {
-    size: 'fontSize',
-    family: 'fontFamily',
-    weight: 'fontWeight',
-    style: 'fontStyle',
-    decoration: 'textDecoration',
-    color: 'color',
-    alignment: 'textAlign',
-    stroke: (props, val) => {
-      if (typeof val === 'object') {
-        handleStyle({
-          order: 'stroke',
-          ...val
-        }, imageFiles, props, {
-          width: 'webkitTextStrokeWidth',
-          color: 'webkitTextStrokeColor',
-          order: 'paintOrder',
-        });
-      } else if (typeof val === 'string') {
-        props['webkitTextStroke'] = val;
-        props['paintOrder'] = 'stroke';
-      }
-      if (font.color) {
-        props['webkitTextFillColor'] = font.color;
-      }
-    }
-  })
-);
-
 const handleTransform = (style, styleObject = null) => {
   const newStyle = {};
 
@@ -466,7 +445,7 @@ const handleElement = (style, styleObject = null) => {
     delete newStyle.top;
     delete newStyle.bottom;
   }
-  
+
   if (ratio) {
     newStyle.aspectRatio = ratio;
   }
@@ -503,7 +482,7 @@ const handleBoxShadow = (style, styleObject = null) => {
     } = style;
 
     const styleProps = {
-      ['box-shadow']: `${inset ? 'inset ' : ''}${x} ${y} ${blur} ${spread} ${color}`,
+      ['box-shadow']: `${inset ? 'inset ' : ''}${x} ${y} ${blur} ${spread} ${getColorValue(color)}`,
     };
 
     if (styleObject) {
@@ -573,6 +552,47 @@ const setCSSStyle = (style, imageFiles, styleObject = null) => {
   });
 }
 
+/**
+ * Process layers, setting their styles.
+ * @param {*} layer
+ * @param {*} imageFiles
+ * @param {*} baseClass
+ * @param {*} stateClasses
+ * @param {*} styleObject
+ */
+const processLayer = (layer, imageFiles, baseClass, stateClasses = {}, styleObject = null) => {
+  if (layer.style) {
+    styleObject[baseClass] = styleObject[baseClass] ?? {};
+    setCSSStyle(layer.style, imageFiles, styleObject[baseClass]);
+    [...types, ''].forEach((type) => {
+      if (!type || layer.style[type]) {
+        const typeClass = type ? `.layer-${type}` : '';
+        const typeClassName = `${baseClass}${typeClass}`;
+        styleObject[typeClassName] = styleObject[typeClassName] ?? {};
+        const style = type ? layer.style[type] : layer.style;
+        if (type) {
+          setCSSStyle(style, imageFiles, styleObject[typeClassName]);
+        }
+        if (style.font?.link) {
+          styleObject[`${typeClassName} a`] = {};
+          handleFont(style.font.link, imageFiles, styleObject[`${typeClassName} a`]);
+        }
+        Object.keys(stateClasses).forEach((state) => {
+          if (style[state]) {
+            const stateClassName = `${stateClasses[state]}${typeClass}`;
+            styleObject[stateClassName] = styleObject[stateClassName] ?? {};
+            setCSSStyle(style[state], imageFiles, styleObject[stateClassName]);
+            if (style[state].font?.link) {
+              styleObject[`${stateClassName} a`] = {};
+              handleFont(style[state].font.link, imageFiles, styleObject[`${stateClassName} a`]);
+            }
+          }
+        });
+      }
+    });
+  }
+};
+
 export const createStylesheet = ({
   design,
   currentRoster,
@@ -580,7 +600,6 @@ export const createStylesheet = ({
   imageFiles,
 }) => {
   const rosterStyle = getStyleProperties(currentRoster, roster);
-  const types = ['characters', 'stages', 'items'];
 
   const panelImageFilters = processCSSFilters(design.panels.image?.filters);
 
@@ -642,34 +661,7 @@ export const createStylesheet = ({
       panelLayer.forEach((layer, elementIdx) => {
         const baseClassName = `.sections .content .panels .panel${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`;
         const activeClassName = `.sections .content .panels .panel.active${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`;
-        if (layer.style) {
-          combinedStyles[baseClassName] = combinedStyles[baseClassName] ?? {};
-          setCSSStyle(layer.style, imageFiles, combinedStyles[baseClassName]);
-          types.forEach((type) => {
-            if (layer.style[type]) {
-              const typeClassName = `${baseClassName}.layer-${type}`;
-              combinedStyles[typeClassName] = combinedStyles[typeClassName] ?? {};
-              setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassName]);
-              if (layer.style[type].active) {
-                const typeClassNameActive = `${activeClassName}.layer-${type}`;
-                combinedStyles[typeClassNameActive] = combinedStyles[typeClassNameActive] ?? {};
-                setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassNameActive]);
-              }
-            }
-          });
-          if (layer.style.font?.link) {
-            combinedStyles[`${baseClassName} a`] = [];
-            handleFont(layer.style.font.link, imageFiles, combinedStyles[`${baseClassName} a`]);
-          }
-          if (layer.style.active) {
-            combinedStyles[activeClassName] = combinedStyles[activeClassName] ?? {};
-            setCSSStyle(layer.style.active, imageFiles, combinedStyles[activeClassName]);
-            if (layer.style.active.font?.link) {
-              combinedStyles[`${activeClassName} a`] = [];
-              handleFont(layer.style.active.font.link, imageFiles, combinedStyles[`${activeClassName} a`]);
-            }
-          }
-        }
+        processLayer(layer, imageFiles, baseClassName, { active: activeClassName }, combinedStyles);
         if (layer.layers) {
           if (layer.type === 'container') {
             panelLayers.push({
@@ -677,83 +669,11 @@ export const createStylesheet = ({
               classPrefix: `${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`,
               depth: depth + 1,
             });
-          } else {
-            // const previewLayers = [{
-            //   previewLayer: layout.layers,
-            //   layerClassPrefix: '',
-            //   layerDepth: 0,
-            // }];
-            // while (previewLayers.length) {
-            //   const {
-            //     previewLayer,
-            //     layerClassPrefix,
-            //     layerDepth,
-            //   } = previewLayers.shift();
-            //   previewLayer.forEach((layer, layerIdx) => {
-            //     if (layer.style) {
-            //       const className = `${baseClassName}${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`;
-            //       combinedStyles[className] = combinedStyles[className] ?? {};
-            //       setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-            //       types.forEach((type) => {
-            //         if (layer.style[type]) {
-            //           const subClassName = `${className}.layer-${type}`;
-            //           combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
-            //           setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
-            //         }
-            //       });
-            //       if (layer.style.font?.link) {
-            //         combinedStyles[`${className} a`] = [];
-            //         handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
-            //       }
-            //     }
-            //     if (layer.layers) {
-            //       previewLayers.push({
-            //         previewLayer: layer.layers,
-            //         layerClassPrefix: `${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`,
-            //         layerDepth: layerDepth + 1,
-            //       });
-            //     }
-            //   });
-            // }
-            /*
-            layout.layers.forEach((layer, layerIdx) => {
-              if (layer.style) {
-                const className = `${baseClassName} .layer.layer-${layerIdx}`;
-                combinedStyles[className] = combinedStyles[className] ?? {};
-                setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-                types.forEach((type) => {
-                  if (layer.style[type]) {
-                    const subClassName = `${className}.layer-${type}`;
-                    combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
-                    setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
-                  }
-                });
-              }
-            });
-            */
           }
         }
       });
     }
   }
-  // (design.panels.layers ?? getDefaultPanelLayout()).forEach((layer, idx) => {
-  //   if (layer.style) {
-  //     const className = `.sections .content .panels .panel .layer.layer-${idx}`;
-  //     combinedStyles[className] = combinedStyles[className] ?? {};
-  //     setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-  //     types.forEach((type) => {
-  //       if (layer.style[type]) {
-  //         const typeClassName = `${className}.layer-${type}`;
-  //         combinedStyles[typeClassName] = combinedStyles[typeClassName] ?? {};
-  //         setCSSStyle(layer.style[type], imageFiles, combinedStyles[typeClassName]);
-  //       }
-  //     });
-  //     if (layer.style.font?.link) {
-  //       combinedStyles[`${className} a`] = [];
-  //       handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
-  //     }
-  //   }
-  // });
 
   const imageFontData = {
     size: '0.6em',
@@ -868,14 +788,7 @@ export const createStylesheet = ({
       } = previewLayouts.shift();
       previewLayout.forEach((layout, elementIdx) => {
         const baseClassName = `.sections .preview${classPrefix} .element.element-${elementIdx}.element-depth-${depth}`;
-        if (layout.style) {
-          combinedStyles[baseClassName] = combinedStyles[baseClassName] ?? {};
-          setCSSStyle(layout.style, imageFiles, combinedStyles[baseClassName]);
-          if (layout.style.font?.link) {
-            combinedStyles[`${baseClassName} a`] = [];
-            handleFont(layout.style.font.link, imageFiles, combinedStyles[`${baseClassName} a`]);
-          }
-        }
+        processLayer(layout, imageFiles, baseClassName, {}, combinedStyles);
         if (layout.layers) {
           if (layout.type === 'container') {
             previewLayouts.push({
@@ -896,22 +809,8 @@ export const createStylesheet = ({
                 layerDepth,
               } = previewLayers.shift();
               previewLayer.forEach((layer, layerIdx) => {
-                if (layer.style) {
-                  const className = `${baseClassName}${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`;
-                  combinedStyles[className] = combinedStyles[className] ?? {};
-                  setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-                  types.forEach((type) => {
-                    if (layer.style[type]) {
-                      const subClassName = `${className}.layer-${type}`;
-                      combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
-                      setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
-                    }
-                  });
-                  if (layer.style.font?.link) {
-                    combinedStyles[`${className} a`] = [];
-                    handleFont(layer.style.font.link, imageFiles, combinedStyles[`${className} a`]);
-                  }
-                }
+                const className = `${baseClassName}${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`;
+                processLayer(layer, imageFiles, className, {}, combinedStyles);
                 if (layer.layers) {
                   previewLayers.push({
                     previewLayer: layer.layers,
@@ -921,22 +820,6 @@ export const createStylesheet = ({
                 }
               });
             }
-            /*
-            layout.layers.forEach((layer, layerIdx) => {
-              if (layer.style) {
-                const className = `${baseClassName} .layer.layer-${layerIdx}`;
-                combinedStyles[className] = combinedStyles[className] ?? {};
-                setCSSStyle(layer.style, imageFiles, combinedStyles[className]);
-                types.forEach((type) => {
-                  if (layer.style[type]) {
-                    const subClassName = `${className}.layer-${type}`;
-                    combinedStyles[subClassName] = combinedStyles[subClassName] ?? {};
-                    setCSSStyle(layer.style[type], imageFiles, combinedStyles[subClassName]);
-                  }
-                });
-              }
-            });
-            */
           }
         }
       });

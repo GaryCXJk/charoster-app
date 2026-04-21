@@ -1,4 +1,31 @@
+import { handleColor } from "./color";
 import { handleStyle } from "./style";
+
+export const handleBackgroundSize = (props, val) => {
+  if (typeof val === 'object') {
+    const { width, height } = val;
+    props.backgroundSize = `${width} ${height}`;
+  } else if (typeof val === 'string') {
+    props.backgroundSize = val;
+  }
+
+  return props;
+};
+
+export const handleBackgroundPosition = (props, val) => {
+  if (typeof val === 'object') {
+    const { x, y } = val;
+    props.backgroundPosition = `${x} ${y}`;
+  } else if (typeof val === 'string') {
+    props.backgroundPosition = val;
+  }
+
+  return props;
+};
+
+export const handleBackgroundGradient = (props, val, imageFiles) => {
+  // TODO: implementation for gradient background
+};
 
 export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroundImage') => {
   if (Array.isArray(val)) {
@@ -45,9 +72,9 @@ export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroun
 };
 
 export const handleBackground = (background, imageFiles, styleObject = null, bgMap = {
-  color: 'backgroundColor',
-  size: 'backgroundSize',
-  position: 'backgroundPosition',
+  color: (props, val) => handleColor(props, val, 'backgroundColor'),
+  size: handleBackgroundSize,
+  position: handleBackgroundPosition,
   repeat: 'backgroundRepeat',
   image: handleBackgroundImages,
   clip: (props, val) => {

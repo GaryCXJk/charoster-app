@@ -1,3 +1,11 @@
+/**
+ * Combines several style rules into one object.
+ * @param {*} style
+ * @param {*} imageFiles
+ * @param {*} styleObject
+ * @param {*} styleMap
+ * @returns An object with all the style properties
+ */
 export const handleStyle = (style, imageFiles, styleObject = null, styleMap = {}) => {
   if (typeof style !== 'object') {
     return null;
