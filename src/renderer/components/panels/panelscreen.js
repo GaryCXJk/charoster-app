@@ -10,6 +10,7 @@ import createPreviewInformationContainerElement from './preview/information';
 import { debounce } from 'throttle-debounce';
 import { getLabel, getLabelText, imageLabel } from './processing/layers/label';
 import defaultLayout from './preview/defaultLayout';
+import filterLayers from '../../common/filterLayers';
 
 let workspace = {};
 const entities = getEntityObject();
@@ -202,11 +203,9 @@ const createPreviewImageContainerElement = async (data, monitorElements, depth =
   });
 
   if (data.layers) {
-    data.layers.forEach((layer, idx) => {
-      if (layer.exclude && layer.exclude.includes(entityType)) {
-        return;
-      }
-      if (layer.include && !layer.include.includes(entityType)) {
+    const filteredLayers = filterLayers(data.layers, entityType, null, null, getDesign()?.panels?.properties ?? {});
+    filteredLayers.forEach((layer, idx) => {
+      if (!layer) {
         return;
       }
       let element;

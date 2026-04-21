@@ -1,7 +1,14 @@
 import params from "../../helpers/params";
 import getPanelProps from "./getPanelProps";
 
-const filterByLayer = (filters, entity, panelEntity, type, panelProperties = {}, mode = 'and') => {
+const filterByLayer = ({
+  filters,
+  entity,
+  panelEntity,
+  type,
+  panelProperties = {},
+  mode = 'and',
+}) => {
   let m = ['and', 'or'].includes(mode.toLowerCase()) ? mode.toLowerCase() : 'and';
   let returnValue = m === 'and' ? true : false;
   const combineReturns = {
@@ -18,7 +25,14 @@ const filterByLayer = (filters, entity, panelEntity, type, panelProperties = {},
     switch (filter.type) {
       case 'and':
       case 'or':
-        combineReturns(filterByLayer(filter.filters ?? [], entity, panelEntity, type, panelProperties, filter.type));
+        combineReturns(filterByLayer({
+          filters: filter.filters ?? [],
+          entity,
+          panelEntity,
+          type,
+          panelProperties,
+          mode: filter.type
+        }));
         break;
       case 'meta':
         switch (comparison) {
@@ -39,24 +53,29 @@ const filterByLayer = (filters, entity, panelEntity, type, panelProperties = {},
         }
         break;
       case 'property':
-        const panelPropertyValue = getPanelProps(panelEntity, entity, filter.field, panelProperties?.[filter.field]);
-        console.log(panelEntity, panelPropertyValue);
+        let propertyValue = null;
+        switch (filter.level ?? 'panel') {
+          case 'panel':
+          default:
+            propertyValue = getPanelProps(panelEntity, entity, filter.field, panelProperties?.[filter.field]);
+            break;
+        }
         switch (comparison) {
           case 'is':
           case 'equals':
-            combineReturns(panelPropertyValue === filter.value);
+            combineReturns(propertyValue === filter.value);
             break;
           case 'not-is':
           case 'not-equals':
           case 'is-not':
-            combineReturns(panelPropertyValue !== filter.value);
+            combineReturns(propertyValue !== filter.value);
             break;
           case 'has':
-            combineReturns(!!panelPropertyValue);
+            combineReturns(!!propertyValue);
             break;
           case 'has-not':
           case 'not-has':
-            combineReturns(!panelPropertyValue);
+            combineReturns(!propertyValue);
             break;
           default:
             break;
@@ -106,7 +125,14 @@ const filterLayers = (layers, type, entity, panelEntity, panelProperties = {}) =
     return null;
   }
   if (layer.filter && Array.isArray(layer.filter)) {
-    if (!filterByLayer(layer.filter, entity, panelEntity, type, panelProperties, layer.filterMode)) {
+    if (!filterByLayer({
+      filters: layer.filter,
+      entity,
+      panelEntity,
+      type,
+      panelProperties,
+      mode: layer.filterMode
+    })) {
       return null;
     }
   }

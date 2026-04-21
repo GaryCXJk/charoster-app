@@ -46,8 +46,7 @@ const setHandlers = () => {
       packWaiters[packId] = createWaiter();
       await packWaiters[packId];
     }
-    packs[packId][type] = packs[packId][type] ?? [];
-    if (packs[packId][type] === true) {
+    if (!Array.isArray(packs[packId][type])) {
       packs[packId][type] = [];
     }
     const filteredList = entityList.filter((entityId) => !packs[packId][type].includes(entityId));
