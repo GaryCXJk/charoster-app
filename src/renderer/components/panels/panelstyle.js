@@ -2,12 +2,17 @@ import params from '../../../helpers/params';
 import traverse from '../../../helpers/traverse';
 import { getDefaultPanelLayout } from './panel';
 import dynamicStyle from './panelstyle/dynamic';
+import tiledStyle from './panelstyle/tiled';
 import {
   getColorValue,
   handleBackground,
   handleBackgroundImages,
+  handleBorders,
+  handleBoxed,
   handleColor,
+  handleElement,
   handleFont,
+  handleSpacing,
   handleStyle
 } from './panelstyle/handlers';
 
@@ -17,6 +22,7 @@ const overrideWebkit = {
 
 const stylePropTransforms = {
   dynamic: dynamicStyle,
+  tiled: tiledStyle,
 };
 
 const types = ['characters', 'stages', 'items'];
@@ -213,135 +219,6 @@ const createStyleString = (styles) => {
   return lines.join('\n');
 };
 
-const handleRadiuses = (radius, _imageFiles, styleObject = null, prefix = 'radius') => {
-  const styleProps = {};
-  switch (prefix) {
-    case 'top-radius':
-    case 'bottom-radius': {
-      const side = prefix.slice(0, -7);
-      styleProps[`border-${side}-left-radius`] = radius;
-      styleProps[`border-${side}-right-radius`] = radius;
-      break;
-    }
-    case 'left-radius':
-    case 'right-radius': {
-      const side = prefix.slice(0, -7);
-      styleProps[`border-top-${side}-radius`] = radius;
-      styleProps[`border-bottom-${side}-radius`] = radius;
-      break;
-    }
-    default:
-      styleProps[`border-${prefix}`] = radius;
-      break;
-  }
-
-  if (styleObject) {
-    Object.assign(styleObject, styleProps)
-  }
-
-  return styleProps;
-}
-
-const handleBorders = (border, imageFiles, styleObject = null, prefix = null) => {
-  const bMap = {
-    width: 'width',
-    style: 'style',
-    color: (val, _imageFiles, props, prop) => handleColor(props, val, prop),
-    radius: handleRadiuses,
-    left: handleBorders,
-    right: handleBorders,
-    top: handleBorders,
-    bottom: handleBorders,
-  };
-
-  if (typeof border === 'object') {
-    const styleProps = {};
-
-    Object.keys(bMap).forEach((prop) => {
-      const mapTo = bMap[prop];
-      const val = border[prop];
-      if (val) {
-        if (typeof mapTo === 'function') {
-          mapTo(val, imageFiles, styleProps, `${prefix ? `${prefix}-` : ''}${prop}`);
-        } else {
-          styleProps[`border-${prefix ? `${prefix}-` : ''}${mapTo}`] = val;
-        }
-      }
-    });
-
-    if (styleObject) {
-      Object.assign(styleObject, styleProps);
-    }
-
-    return styleProps;
-  } else if (typeof border === 'string') {
-    const styleProps = {
-      [`border${prefix ? `-${prefix}` : ''}`]: border,
-    };
-
-    if (styleObject) {
-      Object.assign(styleObject, styleProps)
-    }
-
-    return styleProps;
-  }
-  return null;
-}
-
-const handleSpacing = (spacing, imageFiles, styleObject = null, prefix = null) => {
-  const allowedDirections = ['left', 'right', 'top', 'bottom'];
-  const allowedSpacing = ['padding', 'margin'];
-
-  if (prefix && !allowedSpacing.includes(prefix)) {
-    return null;
-  }
-
-  if (typeof spacing === 'object') {
-    const styleProps = {};
-
-    if (prefix) {
-      allowedDirections.forEach((direction) => {
-        const val = spacing[direction];
-        if (val && typeof val === 'string') {
-          styleProps[`${prefix}-${direction}`] = val;
-        }
-      });
-    } else {
-      allowedSpacing.forEach((spacingProp) => {
-        const val = spacing[spacingProp];
-        if (val) {
-          if (typeof val === 'object') {
-            const newProps = handleSpacing(val, imageFiles, null, spacingProp);
-            if (newProps) {
-              Object.assign(styleProps, newProps);
-            }
-          } else if (typeof val === 'string') {
-            styleProps[spacingProp] = val;
-          }
-        }
-      });
-    }
-    if (styleObject) {
-      Object.assign(styleObject, styleProps);
-    }
-
-    return styleProps;
-  } else if (typeof spacing === 'string') {
-    if (!prefix) {
-      return null;
-    }
-    const styleProps = {
-      [prefix]: spacing,
-    };
-
-    if (styleObject) {
-      Object.assign(styleObject, styleProps)
-    }
-
-    return styleProps;
-  }
-}
-
 const handleMask = (mask, imageFiles, styleObject = null) => {
   const returnObject = handleBackground(mask, imageFiles, styleObject, {
     size: 'maskSize',
@@ -405,71 +282,6 @@ const handleTransform = (style, styleObject = null) => {
   return newStyle;
 };
 
-const handleElement = (style, styleObject = null) => {
-  const {
-    width = null,
-    height = null,
-    left = null,
-    right = null,
-    top = null,
-    bottom = null,
-    ratio = null,
-    overlay = false,
-    onTop = false,
-    underlay = false,
-    contain = false
-  } = style;
-
-  const newStyle = {};
-
-  if (width !== null || height !== null) {
-    newStyle.width = width;
-    newStyle.height = height;
-    newStyle.left = 'auto';
-    newStyle.right = 'auto';
-    newStyle.top = 'auto';
-    newStyle.bottom = 'auto';
-  }
-  if (left !== null || right !== null) {
-    newStyle.left = left ?? newStyle.left ?? 'auto';
-    newStyle.right = right ?? newStyle.right ?? 'auto';
-  }
-  if (top !== null || bottom !== null) {
-    newStyle.top = top ?? newStyle.top ?? 'auto';
-    newStyle.bottom = bottom ?? newStyle.bottom ?? 'auto';
-  }
-  if (newStyle.left === newStyle.right && newStyle.top === newStyle.bottom && newStyle.left === newStyle.top) {
-    newStyle.inset = newStyle.left;
-    delete newStyle.left;
-    delete newStyle.right;
-    delete newStyle.top;
-    delete newStyle.bottom;
-  }
-
-  if (ratio) {
-    newStyle.aspectRatio = ratio;
-  }
-  if (overlay) {
-    newStyle.position = 'absolute';
-  }
-  if (onTop) {
-    newStyle.zIndex = 1;
-  }
-  if (underlay) {
-    newStyle.position = 'absolute';
-    newStyle.zIndex = -1;
-  }
-  if (contain) {
-    newStyle.overflow = 'hidden';
-  }
-
-  if (styleObject) {
-    Object.assign(styleObject, newStyle);
-  }
-
-  return newStyle;
-}
-
 const handleBoxShadow = (style, styleObject = null) => {
   if (typeof style === 'object') {
     const {
@@ -516,20 +328,6 @@ const handleContent = (content, imageFiles, styleObject = null) => (
     gap: 'gap',
   })
 );
-
-const handleBoxed = (val, styleObject = null) => {
-  const styleProps = {};
-  if (!val) {
-    styleProps['clip-path'] = 'none';
-  } else if (typeof val === 'string' && val.startsWith('clipPath:')) {
-    styleProps['clip-path'] = val.slice(9);
-  }
-
-  if (styleObject) {
-    Object.assign(styleObject, styleProps);
-  }
-  return styleProps;
-}
 
 const setCSSStyle = (style, imageFiles, styleObject = null) => {
   return handleStyle(style, imageFiles, styleObject, {
@@ -610,6 +408,13 @@ export const createStylesheet = ({
   combinedStyles['.content'] = {
     padding: design.panels.margin,
   };
+  // If scroll is enabled, allow scrolling but hide the scrollbar.
+  // TODO: Implement custom scrollbars using the layer system, allowing the end user to style / theme them.
+  if (rosterStyle.panels?.scroll) {
+    combinedStyles['.content'].overflow = 'auto';
+    combinedStyles['.content'].scrollbarGutter = 'stable both-edges';
+    combinedStyles['.content'].scrollbarWidth = 'none';
+  }
   if (design.panels.container?.background) {
     handleBackground(design.panels.container.background, imageFiles, combinedStyles['.content']);
   }

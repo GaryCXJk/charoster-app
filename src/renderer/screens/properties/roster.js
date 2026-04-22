@@ -120,10 +120,11 @@ export default async (properties) => {
     value: currentRoster.mode,
     options: [
       { id: 'dynamic', label: 'Dynamic' },
+      { id: 'tiled', label: 'Tiled' },
     ],
   });
   rosterPanel.append(modeSelect);
-  typeSelect.onInput(() => {
+  modeSelect.onInput(() => {
     currentRoster.mode = modeSelect.value;
     doUpdate();
   });
