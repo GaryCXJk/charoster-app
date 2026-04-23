@@ -5,7 +5,7 @@ import { app, ipcMain } from "electron";
 import { isPlainObject } from 'is-plain-object';
 import createWaiter from "../../helpers/create-waiter";
 import traverse from "../../helpers/traverse";
-import { getConfig, getTempPath, setTempFile, syncTheme } from "./config-manager";
+import { getConfig, syncTheme } from "./config-manager";
 import { fetchEntities, loadEntity, queueEntity } from "./file-manager";
 import { onAppReset } from '../helpers/manager-helper';
 import { clearObject } from '../../helpers/object-helper';
@@ -16,6 +16,7 @@ const designs = {};
 const designQueue = [];
 const waiting = {};
 const images = {};
+const imageMap = {};
 
 let queueIsRunning = null;
 
@@ -186,7 +187,28 @@ export const queueDesign = (designId) => {
   runDesignQueue();
 }
 
-export const getDesignImage = async (imageId) => {
+export const getDesignImageUrls = (imageId, _filterSizes = null, renderer = false) => {
+  const maxRenderWidth = 'max';
+  const fileKey = `designs/${imageId}/raw/${maxRenderWidth}/${renderer ? 'renderer' : 'main'}`;
+  if (!imageMap[fileKey]) {
+    const time = (new Date()).getTime();
+    imageMap[fileKey] = {
+      file: `designs/${encodeURIComponent(imageId)}/raw/${maxRenderWidth}/${time}.webp`,
+      time,
+    };
+  }
+
+  const fileUrl = `${app.name}${renderer ? '-renderer' : ''}://${imageMap[fileKey].file}`;
+
+  return {
+    raw: {
+      file: fileUrl,
+    },
+    file: fileUrl,
+  };
+}
+
+export const getDesignImageBuffer = async (imageId) => {
   let currentImageCache = images[imageId];
   if (currentImageCache) {
     if (currentImageCache instanceof Promise) {
@@ -197,37 +219,29 @@ export const getDesignImage = async (imageId) => {
   }
   const waiter = createWaiter();
   images[imageId] = waiter;
-  const [folder, designId, image] = imageId.split('>');
+  const [folder, designId, ...imageSegments] = imageId.split('>');
+  const image = imageSegments.join('>');
   const workFolder = getConfig('workFolder');
   const designPath = path.join(workFolder, 'packs', folder, 'designs', designId, image);
 
-  const sharpImage = new Sharp(await readFile(designPath)); // We'll read from file buffer, to not lock up files in Windows.
-
-  await sharpImage
-    .webp({ lossless: true });
-
   try {
-    const outFile = `design--${imageId.replace(/\>/g, '--')}--raw--${(new Date()).getTime()}.webp`;
-    const writePath = path.join(getTempPath(), outFile);
-    const info = await sharpImage.toFile(writePath);
-    const fileUrl = `${app.name}://${outFile}`;
-    images[imageId] = {
-      file: fileUrl,
-      ...info,
-    };
-    setTempFile(outFile);
-  } catch (_e) {
-    console.log(_e);
+    const sharpImage = new Sharp(await readFile(designPath)); // We'll read from file buffer, to not lock up files in Windows.
+
+    await sharpImage
+      .webp({ lossless: true });
+
     const buffer = await sharpImage
       .toBuffer();
 
-    images[imageId] = {
-      buffer,
-      data: `data:image/webp;base64,${buffer.toString('base64')}`,
-    };
+    images[imageId] = buffer;
+    waiter.resolve(buffer);
+    return buffer;
+  } catch (e) {
+    console.log(e);
+    images[imageId] = null;
+    waiter.resolve();
+    return null;
   }
-  waiter.resolve();
-  return images[imageId];
 }
 
 ipcMain.handle('designs:get', (_event, designId = null) => getDesign(designId));
@@ -286,5 +300,6 @@ onAppReset(() => {
   clearObject(designs);
   clearObject(waiting);
   clearObject(images);
+  clearObject(imageMap);
   designQueue.splice(0, designQueue.length);
 });

@@ -2,6 +2,7 @@ import { app, protocol, session } from "electron";
 import * as path from 'path';
 import { lookup } from 'mime-types';
 import { getTempPath } from "./managers/config-manager";
+import { getDesignImageBuffer } from './managers/designs-manager';
 import { getAltImage } from './managers/entity-manager';
 import { getFileBuffer, setBufferWaiter } from './managers/file-manager';
 
@@ -22,7 +23,7 @@ export default () => {
 
   protocol.handle(app.name, async (request) => {
     const url = request.url.slice(app.name.length + 3);
-    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/%\.]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
     if (!match) {
       const file = path.join(getTempPath(), url.replace(/\//g, '--'));
       const buffer = await getFileBuffer(file);
@@ -37,7 +38,11 @@ export default () => {
     let buffer;
     await setBufferWaiter(url, async () => {
       try {
-        buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3]);
+        if (match[1] === 'designs') {
+          buffer = await getDesignImageBuffer(decodeURIComponent(match[2]));
+        } else {
+          buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3]);
+        }
       } catch (e) {
         console.log(e);
       }
@@ -52,14 +57,18 @@ export default () => {
 
   protocol.handle(`${app.name}-renderer`, async (request) => {
     const url = request.url.slice(app.name.length + 12);
-    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
+    const match = url.match(/^([\w\d\-]+?)\/([\w\d\-\/%\.]+)\/([\w\d\-]+)\/(\d+|max)\/(\d+)\.(png|jpg|jpeg|webp)$/);
 
     if (!match) {
       return notFoundResponse;
     }
     let buffer;
     try {
-      buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3], true);
+      if (match[1] === 'designs') {
+        buffer = await getDesignImageBuffer(decodeURIComponent(match[2]));
+      } else {
+        buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3], true);
+      }
     } catch (e) {
       console.log(e);
     }

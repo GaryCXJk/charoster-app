@@ -7,7 +7,7 @@ import { onAppReset } from '../helpers/manager-helper';
 import { awaitCharacterQueue, fetchCharacters, getCostumeImageInfo, getCostumeImages, queueCharacter } from './characters-manager';
 import { getConfig, waitForWorkFolder } from './config-manager';
 import { addDefinition, autoDiscoverDefinitions } from './definitions-manager';
-import { fetchDesigns, getDesignImage, queueDesign } from './designs-manager';
+import { fetchDesigns, getDesignImageUrls, queueDesign } from './designs-manager';
 import { awaitQueue, fetchEntities, getAltImageInfo, getAltImageUrls, getEntityTypes, queueEntity } from './entity-manager';
 import { notifyWindow } from './window-manager';
 
@@ -19,7 +19,7 @@ export const awaitPackDiscovery = async () => await packDiscoveryPromise;
 
 const imageReaders = {
   characters: getCostumeImages,
-  designs: getDesignImage,
+  designs: getDesignImageUrls,
 };
 const imageInfoReaders = {
   characters: getCostumeImageInfo,
