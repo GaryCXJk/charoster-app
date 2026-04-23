@@ -15,6 +15,7 @@ import {
   handleSpacing,
   handleStyle
 } from './panelstyle/handlers';
+import deepmerge from 'deepmerge';
 
 const overrideWebkit = {
   webkitBackgroundClip: '-webkit-background-clip',
@@ -69,6 +70,9 @@ export const createDesignQueue = (design) => {
     'panels.background.image',
     'panels.active.background.image',
     'panels.container.background.image',
+    'panels.style.background.image',
+    'panels.style.backdrop.background.image',
+    'panels.style.empty.background.image',
     'preview.background.image',
     'preview.image.background.image',
     'preview.image.characters.background.image',
@@ -351,23 +355,23 @@ const setCSSStyle = (style, imageFiles, styleObject = null) => {
 }
 
 /**
- * Process layers, setting their styles.
+ * Process a style object and apply it to the specified elements.
  * @param {*} layer
  * @param {*} imageFiles
  * @param {*} baseClass
  * @param {*} stateClasses
  * @param {*} styleObject
  */
-const processLayer = (layer, imageFiles, baseClass, stateClasses = {}, styleObject = null) => {
-  if (layer.style) {
+const processStyle = (styleObj, imageFiles, baseClass, stateClasses = {}, styleObject = null) => {
+  if (styleObj) {
     styleObject[baseClass] = styleObject[baseClass] ?? {};
-    setCSSStyle(layer.style, imageFiles, styleObject[baseClass]);
+    setCSSStyle(styleObj, imageFiles, styleObject[baseClass]);
     [...types, ''].forEach((type) => {
-      if (!type || layer.style[type]) {
+      if (!type || styleObj[type]) {
         const typeClass = type ? `.layer-${type}` : '';
         const typeClassName = `${baseClass}${typeClass}`;
         styleObject[typeClassName] = styleObject[typeClassName] ?? {};
-        const style = type ? layer.style[type] : layer.style;
+        const style = type ? styleObj[type] : styleObj;
         if (type) {
           setCSSStyle(style, imageFiles, styleObject[typeClassName]);
         }
@@ -415,8 +419,12 @@ export const createStylesheet = ({
     combinedStyles['.content'].scrollbarGutter = 'stable both-edges';
     combinedStyles['.content'].scrollbarWidth = 'none';
   }
-  if (design.panels.container?.background) {
-    handleBackground(design.panels.container.background, imageFiles, combinedStyles['.content']);
+  
+  const panelsStyle = deepmerge({}, design.panels.style ?? {});
+
+  if (design.panels.container?.background && !panelsStyle.backdrop?.background) {
+    panelsStyle.backdrop = panelsStyle.backdrop ?? {};
+    panelsStyle.backdrop.background = design.panels.container.background;
   }
 
   combinedStyles['.panels'] = {
@@ -439,17 +447,32 @@ export const createStylesheet = ({
     padding: design.panels.gap,
   };
   combinedStyles['.sections .content .panels .panel'] = {};
-  if (design.panels.border) {
-    handleBorders(design.panels.border, imageFiles, combinedStyles['.sections .content .panels .panel']);
+  combinedStyles['.sections .content .panels .panel.empty'] = {};
+  if (design.panels.border && !panelsStyle.border) {
+    panelsStyle.border = design.panels.border;
   }
-  if (design.panels.transform) {
-    handleTransform(design.panels.transform, combinedStyles['.sections .content .panels .panel']);
+  if (design.panels.transform && !panelsStyle.transform) {
+    panelsStyle.transform = design.panels.transform;
   }
-  if (design.panels.boxShadow) {
-    handleBoxShadow(design.panels.boxShadow, combinedStyles['.sections .content .panels .panel']);
+  if (design.panels.boxShadow && !panelsStyle.boxShadow) {
+    panelsStyle.boxShadow = design.panels.boxShadow;
   }
-  if (design.panels.element) {
-    handleElement(design.panels.element, combinedStyles['.sections .content .panels .panel']);
+  if (design.panels.element && !panelsStyle.element) {
+    panelsStyle.element = design.panels.element;
+  }
+  processStyle(panelsStyle, imageFiles, '.sections .content .panels .panel', {
+    empty: '.sections .content .panels .panel.empty',
+    backdrop: '.content',
+  }, combinedStyles);
+  if (Object.values(combinedStyles['.sections .content .panels .panel.empty']).filter((val) => val).length === 0) {
+    combinedStyles['.sections .content .panels .panel.empty'] = params.screen === 'main' ? {
+      background: 'none',
+      borderStyle: 'dashed',
+      borderWidth: '0.5em',
+    } : {
+      background: 'none',
+      borderStyle: 'none',
+    };
   }
   if (design.panels.layers ?? getDefaultPanelLayout()) {
     const panelLayers = [{
@@ -466,7 +489,7 @@ export const createStylesheet = ({
       panelLayer.forEach((layer, elementIdx) => {
         const baseClassName = `.sections .content .panels .panel${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`;
         const activeClassName = `.sections .content .panels .panel.active${classPrefix} .layer.layer-${elementIdx}.layer-depth-${depth}`;
-        processLayer(layer, imageFiles, baseClassName, { active: activeClassName }, combinedStyles);
+        processStyle(layer.style, imageFiles, baseClassName, { active: activeClassName }, combinedStyles);
         if (layer.layers) {
           if (layer.type === 'container') {
             panelLayers.push({
@@ -593,7 +616,7 @@ export const createStylesheet = ({
       } = previewLayouts.shift();
       previewLayout.forEach((layout, elementIdx) => {
         const baseClassName = `.sections .preview${classPrefix} .element.element-${elementIdx}.element-depth-${depth}`;
-        processLayer(layout, imageFiles, baseClassName, {}, combinedStyles);
+        processStyle(layout.style, imageFiles, baseClassName, {}, combinedStyles);
         if (layout.layers) {
           if (layout.type === 'container') {
             previewLayouts.push({
@@ -615,7 +638,7 @@ export const createStylesheet = ({
               } = previewLayers.shift();
               previewLayer.forEach((layer, layerIdx) => {
                 const className = `${baseClassName}${layerClassPrefix} .layer.layer-${layerIdx}.layer-depth-${layerDepth}`;
-                processLayer(layer, imageFiles, className, {}, combinedStyles);
+                processStyle(layer.style, imageFiles, className, {}, combinedStyles);
                 if (layer.layers) {
                   previewLayers.push({
                     previewLayer: layer.layers,
