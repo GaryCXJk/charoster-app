@@ -326,6 +326,19 @@ const handleContent = (content, imageFiles, styleObject = null) => (
       });
     },
     gap: 'gap',
+    scroll: (_props, val) => {
+      if (val) {
+        Object.assign(styleObject, {
+          overflow: 'auto',
+          scrollbarGutter: 'stable both-edges',
+          scrollbarWidth: 'none',
+        });
+      } else {
+        styleObject.overflow = null;
+        styleObject.scrollbarGutter = null;
+        styleObject.scrollbarWidth = null;
+      }
+    },
   })
 );
 
