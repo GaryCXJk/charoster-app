@@ -4,6 +4,8 @@ import Button from "../../components/base/Button";
 import input from "../../components/forms/input";
 import select from "../../components/forms/select";
 import mdiAdd from '@material-design-icons/svg/two-tone/add.svg';
+import mdiArrowDown from '@material-design-icons/svg/two-tone/arrow_downward.svg';
+import mdiArrowUp from '@material-design-icons/svg/two-tone/arrow_upward.svg';
 import mdiRemove from '@material-design-icons/svg/two-tone/remove.svg';
 
 const getCurrentRoster = (properties) => properties.workspace.rosters[properties.workspace.displayRoster];
@@ -73,8 +75,22 @@ export default async (properties) => {
     rmvBtn.prop('disabled', true);
   }
 
+  const mvUpBtn = new Button();
+  mvUpBtn.append(mdi(mdiArrowUp));
+  if (+properties.workspace.displayRoster === 0) {
+    mvUpBtn.prop('disabled', true);
+  }
+
+  const mvDownBtn = new Button();
+  mvDownBtn.append(mdi(mdiArrowDown));
+  if (+properties.workspace.displayRoster === properties.workspace.rosters.length - 1) {
+    mvDownBtn.prop('disabled', true);
+  }
+
   btnGroup.append(addBtn);
   btnGroup.append(rmvBtn);
+  btnGroup.append(mvUpBtn);
+  btnGroup.append(mvDownBtn);
 
   const nameInput = input({
     id: 'name',
@@ -206,6 +222,8 @@ export default async (properties) => {
 
     rosterSelect.value = properties.workspace.displayRoster;
     rmvBtn.prop('disabled', properties.workspace.rosters.length <= 1);
+    mvUpBtn.prop('disabled', +properties.workspace.displayRoster === 0);
+    mvDownBtn.prop('disabled', +properties.workspace.displayRoster === properties.workspace.rosters.length - 1);
 
     currentRoster = getCurrentRoster(properties);
 
@@ -240,11 +258,33 @@ export default async (properties) => {
     doUpdate();
   });
 
+  const moveRoster = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= properties.workspace.rosters.length) {
+      return;
+    }
+    const selectedRoster = properties.workspace.rosters[fromIndex];
+    const rosters = [...properties.workspace.rosters];
+    rosters.splice(fromIndex, 1);
+    rosters.splice(toIndex, 0, selectedRoster);
+    properties.workspace.rosters = rosters;
+    properties.workspace.displayRoster = toIndex;
+    resetRosterProperties();
+    doUpdate();
+  };
+
   rmvBtn.on('click', () => {
     properties.workspace.rosters.splice(properties.workspace.displayRoster, 1);
     properties.workspace.displayRoster = Math.max(0, properties.workspace.displayRoster - 1);
     resetRosterProperties();
     doUpdate();
+  });
+
+  mvUpBtn.on('click', () => {
+    moveRoster(properties.workspace.displayRoster, properties.workspace.displayRoster - 1);
+  });
+  
+  mvDownBtn.on('click', () => {
+    moveRoster(properties.workspace.displayRoster, properties.workspace.displayRoster + 1);
   });
 
   rosterSelect.onInput(() => {
