@@ -6,7 +6,7 @@ import mdiPublic from '@material-design-icons/svg/two-tone/public.svg';
 import mdi from "../../../../helpers/mdi";
 import si from "../../../../helpers/si";
 import { getDesign } from "../panelscreen";
-import { getDefaultPanelLayout } from "../panel";
+import { getDefaultPanelLayout } from "../../../../global/styles/layouts/panels";
 import retrieveImports from "../../../../global/helpers/retrieveImports";
 import defaultPreviewLayout from "./defaultLayout";
 

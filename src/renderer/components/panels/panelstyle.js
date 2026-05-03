@@ -1,8 +1,9 @@
 import params from '../../../helpers/params';
 import traverse from '../../../helpers/traverse';
-import { getDefaultPanelLayout } from './panel';
-import dynamicStyle from './panelstyle/dynamic';
-import tiledStyle from './panelstyle/tiled';
+import { getDefaultPanelLayout } from '../../../global/styles/layouts/panels';
+import dynamicStyle from '../../../global/styles/panelStyles/dynamic';
+import tiledStyle from '../../../global/styles/panelStyles/tiled';
+import { createStyleString } from '../../../global/styles/compiler';
 import {
   getColorValue,
   handleBackground,
@@ -14,7 +15,7 @@ import {
   handleFont,
   handleSpacing,
   handleStyle
-} from './panelstyle/handlers';
+} from '../../../global/styles/handlers';
 import deepmerge from 'deepmerge';
 
 const overrideWebkit = {
@@ -26,7 +27,7 @@ const stylePropTransforms = {
   tiled: tiledStyle,
 };
 
-const types = ['characters', 'stages', 'items'];
+const types = ['characters', 'stages', 'items', 'media', 'other'];
 
 const checkFileImages = (found, queue) => {
   if (found) {
@@ -79,7 +80,7 @@ export const createDesignQueue = (design) => {
     'preview.image.stages.background.image',
     'preview.image.mask.image',
   ];
-  const types = ['images', 'stages', 'items'];
+  const types = ['images', 'stages', 'items', 'media', 'other'];
   checks.forEach((check) => {
     const found = traverse(check.split('.'), design);
     checkFileImages(found, queue);
@@ -200,7 +201,7 @@ const processCSSFilters = (filters) => {
   return processedFilters.join(' ');
 };
 
-const createStyleString = (styles) => {
+const createStyleStringLegacy = (styles) => {
   const screen = params.screen;
   const dummy = document.createElement('div');
   const lines = [];
@@ -667,5 +668,5 @@ export const createStylesheet = ({
     }
   }
 
-  return createStyleString(combinedStyles);
+  return createStyleString(combinedStyles, params.screen);
 };

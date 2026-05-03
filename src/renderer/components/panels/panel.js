@@ -1,5 +1,6 @@
 import deepmerge from 'deepmerge';
 import { globalAppReset } from '../../../helpers/global-on';
+import { getDefaultPanelLayout } from '../../../global/styles/layouts/panels';
 import Block from "../base/Block";
 import { getImage, processImageDefinitionLayer } from './processing/layers/image';
 import { clearImageLabels, getLabel, getLabelText, imageLabel } from './processing/layers/label';
@@ -166,69 +167,6 @@ const preContentFuncs = {
     shown: showLabel,
   }),
 };
-
-export const getDefaultPanelLayout = () => ([
-  {
-    type: 'image',
-    size: ['panel', 'preview'],
-  },
-  {
-    type: 'label',
-    display: 'image',
-    filter: [
-      {
-        type: 'or',
-        filters: [
-          {
-            type: 'window',
-            comparison: 'is',
-            value: 'picker',
-          },
-          {
-            type: 'meta',
-            field: 'label',
-            comparison: 'not-equals',
-            value: false,
-          },
-        ],
-      }
-    ],
-  },
-  {
-    type: "image",
-    filter: [
-      {
-        type: 'or',
-        filters: [
-          {
-            type: 'window',
-            comparison: 'is',
-            value: 'picker',
-          },
-          {
-            type: 'meta',
-            field: 'label',
-            comparison: 'not-equals',
-            value: false,
-          },
-        ],
-      }
-    ],
-    from: {
-      definition: 'franchise',
-      field: 'symbols',
-    },
-    color: '#fff',
-    style: {
-      element: {
-        width: '2em',
-        height: '2em',
-        right: '-0.75em',
-        bottom: '-0.75em',
-      },
-    },
-  },
-]);
 
 const contentFuncs = {
   image: imageContent,
