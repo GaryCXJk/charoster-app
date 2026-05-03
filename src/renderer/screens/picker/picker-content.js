@@ -301,6 +301,7 @@ const createPackBlock = (packId) => {
     const panels = getPanelGroup(entity?.group ?? '');
 
     panels.append(panel);
+    block.refreshGroupVisibility();
     panel.eventTarget.dispatchEvent(new Event('entityLoaded'));
   };
 
@@ -313,8 +314,19 @@ const createPackBlock = (packId) => {
   block.pack = pack;
   block.off = new Block();
   block.panels = panelGroups;
+  block.refreshGroupVisibility = () => {
+    Object.keys(panelGroups).forEach((groupId) => {
+      if (!groupId) {
+        return;
+      }
+      const group = panelGroups[groupId];
+      const hasPanels = !!group.element.querySelector('.panel');
+      group.element.style.display = hasPanels ? '' : 'none';
+    });
+  };
   block.setVisibility = () => {
     if (!pack[entityType] || pack[entityType] === true) {
+      block.refreshGroupVisibility();
       return;
     }
     block.visible.splice(0, block.visible.length);
@@ -331,6 +343,7 @@ const createPackBlock = (packId) => {
         const addToPanel = () => {
           panel.eventTarget.removeEventListener('entityLoaded', addToPanel);
           getPanelGroup(panel.entity?.group ?? '').append(panel);
+          block.refreshGroupVisibility();
         }
         if (!panel.entity) {
           panel.eventTarget.addEventListener('entityLoaded', addToPanel);
@@ -344,6 +357,7 @@ const createPackBlock = (packId) => {
         block.visible.push(entityId);
       }
     });
+    block.refreshGroupVisibility();
   };
 
   return block;
