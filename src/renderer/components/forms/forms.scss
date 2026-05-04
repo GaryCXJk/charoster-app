@@ -1,3 +1,8 @@
+:root {
+  --switch-label-off: "Off";
+  --switch-label-on: "On";
+}
+
 .form-element {
   padding: 1rem;
 
@@ -26,10 +31,30 @@
       border: 1px solid var(--main-color);
 
       .form-switch-toggle {
+        position: relative;
         height: 100%;
         width: 50%;
         background-color: var(--main-color);
+        
+        &::before {
+          content: var(--switch-label-off);
+          position: absolute;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          right: 0;
+          font-size: 0.75em;
+          color: var(--main-bg-color);
+        }
+
       }
+    }
+    
+    input:checked + .form-switch-container .form-switch-toggle::before {
+      content: var(--switch-label-on);
     }
   }
 }
