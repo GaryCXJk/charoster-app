@@ -74,6 +74,51 @@ export default async () => {
     window.config.setTheme(themeSelect.value);
   });
 
+  const getImageQualityPreset = () => {
+    if (['low', 'medium', 'high', 'best'].includes(config.imageQualityPreset)) {
+      return config.imageQualityPreset;
+    }
+    const quality = +config.imageQuality;
+    if (!Number.isFinite(quality)) {
+      return 'high';
+    }
+    if (quality <= 60) {
+      return 'low';
+    }
+    if (quality <= 75) {
+      return 'medium';
+    }
+    if (quality <= 90) {
+      return 'high';
+    }
+    return 'best';
+  };
+
+  const imageQualitySelect = select({
+    id: 'imageQualityPreset',
+    label: 'Image quality (main window)',
+    value: getImageQualityPreset(),
+    options: [
+      { id: 'low', label: 'Low' },
+      { id: 'medium', label: 'Medium' },
+      { id: 'high', label: 'High' },
+      { id: 'best', label: 'Best (lossless)' },
+    ],
+  });
+  settingsPanel.append(imageQualitySelect);
+
+  const imageQualityDescription = new Block({
+    element: 'p',
+    className: 'small',
+    textContent: 'This does not affect the exporter\'s quality. Refresh for changes to take effect.',
+  });
+  settingsPanel.append(imageQualityDescription);
+
+  imageQualitySelect.onInput(async () => {
+    const newValue = await window.config.setImageQualityPreset(imageQualitySelect.value);
+    imageQualitySelect.value = newValue;
+  });
+
   // Window size
   const sizeOptions = {
     '800x600': '800x600',

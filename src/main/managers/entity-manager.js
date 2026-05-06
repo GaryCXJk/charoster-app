@@ -12,6 +12,14 @@ import { getSize, getSizeKeys } from './designs-manager';
 import { clearObject } from '../../helpers/object-helper';
 import createWaiter from '../../helpers/create-waiter';
 import { readFile, writeFile } from 'fs/promises';
+import {
+  applyImageModifiers,
+  createEncodeWebpModifier,
+  createEnsureExtractBoundsModifier,
+  createExtractModifier,
+  createResizeToMaxWidthModifier,
+  getWebpOptions,
+} from '../helpers/image-helper';
 
 const createEntityData = () => {
   return {
@@ -528,64 +536,28 @@ export const getAltImage = async (type, imageId, size, renderer = false) => {
 
   if (heightRatio) {
     sizeData.height = Math.round(sizeData.width / heightRatio);
-
-    if (sizeData.x < 0 || sizeData.y < 0 || sizeData.x + sizeData.width > sharpMeta.width || sizeData.y + sizeData.height > sharpMeta.height) {
-      const newSize = {
-        width: sharpMeta.width,
-        height: sharpMeta.height,
-      };
-
-      const extendData = {
-        background: {
-          r: 0,
-          g: 0,
-          b: 0,
-          alpha: 0,
-        },
-      };
-
-      if (sizeData.x < 0) {
-        extendData.left = Math.abs(sizeData.x);
-        sizeData.width -= extendData.left;
-        sizeData.x = 0;
-      }
-      if (sizeData.y < 0) {
-        extendData.top = Math.abs(sizeData.y);
-        sizeData.height -= extendData.top;
-        sizeData.y = 0;
-      }
-      if (sizeData.x + sizeData.width > newSize.width) {
-        extendData.right = sizeData.x + sizeData.width - newSize.width;
-        sizeData.width -= extendData.right;
-      }
-      if (sizeData.y + sizeData.height > newSize.height) {
-        extendData.bottom = sizeData.y + sizeData.height - newSize.height;
-        sizeData.height -= extendData.bottom;
-      }
-
-      await sharpImage.extend(extendData);
-    }
   }
 
-  await sharpImage
-    .extract({
-      left: sizeData.x,
-      top: sizeData.y,
-      width: sizeData.width,
-      height: sizeData.height,
-    })
-    .webp({ lossless: true });
+  const configuredQuality = getConfig('imageQualityPreset') ?? getConfig('imageQuality') ?? 85;
+  const mainWebpOptions = getWebpOptions(configuredQuality);
+
+  const webpOptions = renderer
+    ? { lossless: true }
+    : mainWebpOptions;
+
+  await applyImageModifiers(sharpImage, [
+    createEnsureExtractBoundsModifier(sizeData, sharpMeta),
+    createExtractModifier(sizeData),
+    createEncodeWebpModifier(webpOptions),
+  ]);
 
   const finalPass = new Sharp(await sharpImage.toBuffer());
-  const fpMeta = await finalPass.metadata();
 
   const maxRenderWidth = getConfig('maxRenderWidth');
-  if (!renderer && maxRenderWidth[type] && fpMeta.width > maxRenderWidth[type]) {
-    await finalPass.resize({
-      width: maxRenderWidth[type],
-    });
-  }
-  await finalPass.webp({ lossless: true });
+  await applyImageModifiers(finalPass, [
+    !renderer ? createResizeToMaxWidthModifier(maxRenderWidth[type] ?? null) : null,
+    createEncodeWebpModifier(webpOptions),
+  ]);
 
   const imageBuffer = await finalPass.toBuffer();
 

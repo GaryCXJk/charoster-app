@@ -34,5 +34,7 @@ export const contextBridgePaths = {
     setDarkMode: (mode) => ipcRenderer.invoke('config:set-dark-mode', mode),
     setTheme: (theme) => ipcRenderer.invoke('config:set-theme', theme),
     setRoundedCorners: (rounded) => ipcRenderer.invoke('config:set-rounded-corners', rounded),
+    setImageQuality: (quality) => ipcRenderer.invoke('config:set-image-quality', quality),
+    setImageQualityPreset: (preset) => ipcRenderer.invoke('config:set-image-quality-preset', preset),
   },
 };

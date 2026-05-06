@@ -17,6 +17,8 @@ const workFolderWaiter = createWaiter();
 const defaultConfig = {
   theme: '',
   darkMode: 'system',
+  imageQualityPreset: 'high',
+  imageQuality: 85,
   windowSize: {
     width: 800,
     height: 600,
@@ -283,6 +285,32 @@ ipcMain.handle('config:set-rounded-corners', (_event, rounded) => {
   setConfig({
     roundedCorners: rounded,
   });
+});
+
+ipcMain.handle('config:set-image-quality', (_event, quality) => {
+  const numericQuality = +quality;
+  const safeQuality = Number.isFinite(numericQuality)
+    ? Math.max(1, Math.min(100, Math.round(numericQuality)))
+    : defaultConfig.imageQuality;
+
+  setConfig({
+    imageQuality: safeQuality,
+  });
+
+  return safeQuality;
+});
+
+ipcMain.handle('config:set-image-quality-preset', (_event, preset) => {
+  const validPresets = ['low', 'medium', 'high', 'best'];
+  const safePreset = validPresets.includes(preset)
+    ? preset
+    : defaultConfig.imageQualityPreset;
+
+  setConfig({
+    imageQualityPreset: safePreset,
+  });
+
+  return safePreset;
 });
 
 ipcMain.handle('config:get-workfolder', (_event, override) => getWorkFolder(override));

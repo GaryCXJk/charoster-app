@@ -39,7 +39,7 @@ export default () => {
     await setBufferWaiter(url, async () => {
       try {
         if (match[1] === 'designs') {
-          buffer = await getDesignImageBuffer(decodeURIComponent(match[2]));
+          buffer = await getDesignImageBuffer(decodeURIComponent(match[2]), false);
         } else {
           buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3]);
         }
@@ -65,7 +65,7 @@ export default () => {
     let buffer;
     try {
       if (match[1] === 'designs') {
-        buffer = await getDesignImageBuffer(decodeURIComponent(match[2]));
+        buffer = await getDesignImageBuffer(decodeURIComponent(match[2]), true);
       } else {
         buffer = await getAltImage(match[1], match[2].replace(/\//g, '>'), match[3], true);
       }

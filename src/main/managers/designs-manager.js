@@ -11,6 +11,7 @@ import { onAppReset } from '../helpers/manager-helper';
 import { clearObject } from '../../helpers/object-helper';
 import { readFile } from 'fs/promises';
 import retrieveImports from '../../global/helpers/retrieveImports';
+import { applyImageModifiers, createEncodeWebpModifier, getWebpOptions } from '../helpers/image-helper';
 
 const designs = {};
 const designQueue = [];
@@ -208,17 +209,18 @@ export const getDesignImageUrls = (imageId, _filterSizes = null, renderer = fals
   };
 }
 
-export const getDesignImageBuffer = async (imageId) => {
-  let currentImageCache = images[imageId];
+export const getDesignImageBuffer = async (imageId, renderer = false) => {
+  const imageCacheKey = `${renderer ? 'renderer' : 'main'}:${imageId}`;
+  let currentImageCache = images[imageCacheKey];
   if (currentImageCache) {
     if (currentImageCache instanceof Promise) {
       await currentImageCache;
-      currentImageCache = images[imageId] ?? null;
+      currentImageCache = images[imageCacheKey] ?? null;
     }
     return currentImageCache;
   }
   const waiter = createWaiter();
-  images[imageId] = waiter;
+  images[imageCacheKey] = waiter;
   const [folder, designId, ...imageSegments] = imageId.split('>');
   const image = imageSegments.join('>');
   const workFolder = getConfig('workFolder');
@@ -227,18 +229,23 @@ export const getDesignImageBuffer = async (imageId) => {
   try {
     const sharpImage = new Sharp(await readFile(designPath)); // We'll read from file buffer, to not lock up files in Windows.
 
-    await sharpImage
-      .webp({ lossless: true });
+    const configuredQuality = getConfig('imageQualityPreset') ?? getConfig('imageQuality') ?? 85;
+    const mainWebpOptions = getWebpOptions(configuredQuality);
+    const webpOptions = renderer ? { lossless: true } : mainWebpOptions;
+
+    await applyImageModifiers(sharpImage, [
+      createEncodeWebpModifier(webpOptions),
+    ]);
 
     const buffer = await sharpImage
       .toBuffer();
 
-    images[imageId] = buffer;
+    images[imageCacheKey] = buffer;
     waiter.resolve(buffer);
     return buffer;
   } catch (e) {
     console.log(e);
-    images[imageId] = null;
+    images[imageCacheKey] = null;
     waiter.resolve();
     return null;
   }
