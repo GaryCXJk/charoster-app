@@ -10,15 +10,17 @@ const imageWaiters = {};
 const imageQueue = [];
 const urlBuffer = {};
 
-let queueRunning = false;
+let activeQueueWorkers = 0;
 let queueVersion = 0;
+
+const queueLimit = 10;
 
 const applyEvents = globalAppReset(() => {
   clearObject(imageCache);
   clearObject(imageWaiters);
   clearObject(urlBuffer);
   imageQueue.splice(0, imageQueue.length);
-  queueRunning = false;
+  activeQueueWorkers = 0;
   queueVersion += 1;
   releaseURLs();
 });
@@ -28,28 +30,38 @@ const imageFilters = {
   stages: ['preview'],
 };
 
-const runImageQueue = async () => {
-  if (queueRunning) {
+const runImageQueue = () => {
+  if (activeQueueWorkers >= queueLimit || !imageQueue.length) {
     return;
   }
-  queueRunning = true;
   const currentQueueVersion = queueVersion;
 
-  while (currentQueueVersion === queueVersion && imageQueue.length) {
-    const [designId, type, imageId] = imageQueue.shift();
+  while (currentQueueVersion === queueVersion && activeQueueWorkers < queueLimit && imageQueue.length) {
+    activeQueueWorkers += 1;
 
-    const imageData = await window.packs.getImages(type, imageId, imageFilters[type]);
-    if (currentQueueVersion !== queueVersion) {
-      break;
-    }
-    const waiter = imageWaiters[designId]?.[type]?.[imageId] ?? null;
-    if (waiter) {
-      waiter.resolve(imageData);
-    }
-    imageCache[`${designId},${type}:${imageId}`] = imageData;
+    Promise.resolve().then(async () => {
+      try {
+        while (currentQueueVersion === queueVersion && imageQueue.length) {
+          const [designId, type, imageId] = imageQueue.shift();
+
+          const imageData = await window.packs.getImages(type, imageId, imageFilters[type]);
+          if (currentQueueVersion !== queueVersion) {
+            break;
+          }
+          const waiter = imageWaiters[designId]?.[type]?.[imageId] ?? null;
+          if (waiter) {
+            waiter.resolve(imageData);
+          }
+          imageCache[`${designId},${type}:${imageId}`] = imageData;
+        }
+      } finally {
+        activeQueueWorkers -= 1;
+        if (currentQueueVersion === queueVersion && imageQueue.length) {
+          runImageQueue();
+        }
+      }
+    });
   }
-
-  queueRunning = false;
 };
 
 const queueImage = (type, imageId, designId = '', prioritize = false) => {
