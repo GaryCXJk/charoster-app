@@ -4,10 +4,6 @@ import dynamicStyle from "./panelStyles/dynamic";
 import tiledStyle from "./panelStyles/tiled";
 import { getDefaultPanelLayout } from "./layouts/panels";
 
-const overrideWebkit = {
-  webkitBackgroundClip: '-webkit-background-clip',
-};
-
 const stylePropTransforms = {
   dynamic: dynamicStyle,
   tiled: tiledStyle,
@@ -192,7 +188,10 @@ const styleToString = (style) => {
         if (style[key] === null || style[key] === undefined) {
           return acc;
         }
-        const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+        let cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+        if (cssKey.startsWith('webkit')) {
+          cssKey = `-${cssKey}`;
+        }
         return `${acc}${cssKey}: ${style[key]}; `;
       }, '');
 };
@@ -202,11 +201,6 @@ export const createStyleString = (styles, screen) => {
 
   Object.keys(styles).forEach((selector) => {
     const style = deepmerge({}, styles[selector]);
-    Object.keys(overrideWebkit).forEach((prop) => {
-      if (style[prop]) {
-        style[overrideWebkit[prop]] = style[prop];
-      }
-    });
     const ruleStr = styleToString(style);
     if (ruleStr)  {
       lines.push(`#app.${screen} ${selector} { ${ruleStr} }`);
