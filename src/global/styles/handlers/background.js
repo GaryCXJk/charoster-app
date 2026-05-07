@@ -136,7 +136,7 @@ export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroun
   if (typeof val === 'object') {
     switch (val.type) {
       case 'file':
-      case 'url':
+      case 'url': {
         if (!val.file || !imageFiles[val.file]) {
           return null;
         }
@@ -144,15 +144,17 @@ export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroun
         const fileUrl = fileInfo.file ?? fileInfo.data;
         props[prop] = processImageUrl(fileUrl);
         break;
-      case 'gradient':
+      }
+      case 'gradient': {
         const validGradients = ['linear-gradient', 'repeating-linear-gradient', 'radial-gradient', 'repeating-radial-gradient', 'conic-gradient'];
         if (!val.gradientType || !validGradients.includes(val.gradientType) || !val.value) {
           return null;
         }
         props[prop] = `${val.gradientType}(${val.value})`;
         break;
+      }
       case '9slice':
-      case '9-slice':
+      case '9-slice': {
         // Only run this if the prop is backgroundImage, as it should only apply to this.
         if (prop !== 'backgroundImage') {
           return null;
@@ -188,6 +190,7 @@ export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroun
           }
         }
         break;
+      }
       default:
         return null;
     }
