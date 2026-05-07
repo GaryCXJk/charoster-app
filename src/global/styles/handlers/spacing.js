@@ -1,3 +1,16 @@
+export const getPositionString = (val) => {
+  if (typeof val === 'object') {
+    let { top = 0, left = null, bottom = null, right = null } = val;
+    left = left ?? top;
+    bottom = bottom ?? top;
+    right = right ?? left;
+    return `${top} ${right} ${bottom} ${left}`;
+  } else if (typeof val === 'string' || typeof val === 'number') {
+    return `${val}`;
+  }
+  return null;
+};
+
 export const handleSpacing = (spacing, imageFiles, styleObject = null, prefix = null) => {
   const allowedDirections = ['left', 'right', 'top', 'bottom'];
   const allowedSpacing = ['padding', 'margin'];

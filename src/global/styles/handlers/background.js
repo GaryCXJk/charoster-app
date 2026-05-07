@@ -1,4 +1,5 @@
 import { getColorValue, handleColor } from "./color";
+import { getPositionString } from "./spacing";
 import { handleStyle } from "./style";
 
 const processImageUrl = (url) => {
@@ -19,23 +20,43 @@ const processImageUrl = (url) => {
   return `url("${processedUrl}")`;
 };
 
-export const handleBackgroundSize = (props, val) => {
+export const handleBackgroundSize = (props, val, prop = 'backgroundSize') => {
   if (typeof val === 'object') {
     const { width, height } = val;
-    props.backgroundSize = `${width} ${height}`;
+    props[prop] = `${width} ${height}`;
   } else if (typeof val === 'string') {
-    props.backgroundSize = val;
+    props[prop] = val;
   }
 
   return props;
 };
 
-export const handleBackgroundPosition = (props, val) => {
+export const handleBackgroundPosition = (props, val, prop = 'backgroundPosition') => {
   if (typeof val === 'object') {
     const { x, y } = val;
-    props.backgroundPosition = `${x} ${y}`;
+    props[prop] = `${x} ${y}`;
   } else if (typeof val === 'string') {
-    props.backgroundPosition = val;
+    props[prop] = val;
+  }
+
+  return props;
+};
+
+export const handleBackgroundRepeat = (props, val, prop = 'backgroundRepeat', validValues = ['repeat', 'no-repeat', 'round', 'space'], fallback = 'repeat') => {
+  if (typeof val === 'object') {
+    let { x, y } = val;
+    ['x', 'y'].forEach((axis) => {
+      if (val[axis] && !validValues.includes(val[axis])) {
+        if (fallback) {
+          val[axis] = fallback;
+        }
+      } else if (!val[axis]) {
+        val[axis] = val.x ??fallback;
+      }
+    });
+    props[prop] = `${x} ${y}`;
+  } else if (typeof val === 'string') {
+    props[prop] = val;
   }
 
   return props;
@@ -131,8 +152,9 @@ export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroun
         props[prop] = `${val.gradientType}(${val.value})`;
         break;
       case '9slice':
-        // TODO: Implement 9-slice scaling, using border-image-slice.
-        if (props !== 'backgroundImage') {
+      case '9-slice':
+        // Only run this if the prop is backgroundImage, as it should only apply to this.
+        if (prop !== 'backgroundImage') {
           return null;
         }
         if (!val.file || !imageFiles[val.file]) {
@@ -140,17 +162,31 @@ export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroun
         }
         const fileInfo = imageFiles[val.file].raw;
         const fileUrl = fileInfo.file ?? fileInfo.data;
-        const size = props.backgroundSize || 'auto';
-        const repeat = props.backgroundRepeat || 'stretch';
 
         delete props.backgroundSize;
         delete props.backgroundRepeat;
-        
-        const valid9SliceTypes = ['stretch', 'repeat', 'round', 'space'];
-        const sliceType = val.sliceType && valid9SliceTypes.includes(val.sliceType) ? val.sliceType : 'stretch';
+        delete props.backgroundPosition;
         
         props.borderImageSource = processImageUrl(fileUrl);
-        props.borderImageSlice = val.slice.join(' ');
+        const sliceString = getPositionString(val.slice);
+        if (sliceString) {
+          props.borderImageSlice = `${sliceString} fill`;
+        }
+        if (val.repeat) {
+          handleBackgroundRepeat(props, val.repeat, 'borderImageRepeat', ['stretch', 'repeat', 'round', 'space'], 'stretch');
+        }
+        if (val.width) {
+          const widthString = getPositionString(val.width);
+          if (widthString) {
+            props.borderImageWidth = widthString;
+          }
+        }
+        if (val.outset) {
+          const outsetString = getPositionString(val.outset);
+          if (outsetString) {
+            props.borderImageOutset = outsetString;
+          }
+        }
         break;
       default:
         return null;
@@ -169,7 +205,7 @@ export const handleBackground = (background, imageFiles, styleObject = null, bgM
   color: (props, val) => handleColor(props, val, 'backgroundColor'),
   size: handleBackgroundSize,
   position: handleBackgroundPosition,
-  repeat: 'backgroundRepeat',
+  repeat: handleBackgroundRepeat,
   clip: (props, val) => {
     Object.assign(props, {
       webkitBackgroundClip: val,
