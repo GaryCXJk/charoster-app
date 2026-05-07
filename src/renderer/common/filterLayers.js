@@ -8,6 +8,7 @@ const filterByLayer = ({
   type,
   panelProperties = {},
   mode = 'and',
+  layerOptions = {},
 }) => {
   let m = ['and', 'or'].includes(mode.toLowerCase()) ? mode.toLowerCase() : 'and';
   let returnValue = m === 'and' ? true : false;
@@ -31,8 +32,12 @@ const filterByLayer = ({
           panelEntity,
           type,
           panelProperties,
-          mode: filter.type
+          mode: filter.type,
+          layerOptions,
         }));
+        break;
+      case 'option':
+        combineReturns(layerOptions?.[filter.field] === filter.value);
         break;
       case 'meta':
         switch (comparison) {
@@ -57,7 +62,7 @@ const filterByLayer = ({
         switch (filter.level ?? 'panel') {
           case 'panel':
           default:
-            propertyValue = getPanelProps(panelEntity, entity, filter.field, panelProperties?.[filter.field]);
+            propertyValue = getPanelProps(panelEntity, entity, filter.field, panelProperties?.[filter.field], layerOptions);
             break;
         }
         switch (comparison) {
@@ -96,6 +101,7 @@ const filterByLayer = ({
           default:
             break;
         }
+        break;
       case 'window':
         switch (comparison) {
           case 'is':
@@ -110,6 +116,7 @@ const filterByLayer = ({
           default:
             break;
         }
+        break;
       default:
         break;
     }
@@ -117,21 +124,23 @@ const filterByLayer = ({
   return returnValue;
 };
 
-const filterLayers = (layers, type, entity, panelEntity, panelProperties = {}) => layers.map((layer) => {
+const filterLayers = (layers, type, entity, panelEntity, panelProperties = {}, layerOptions = {}) => layers.map((layer) => {
   if (layer.exclude && layer.exclude.includes(type)) {
     return null;
   }
   if (layer.include && !layer.include.includes(type)) {
     return null;
   }
-  if (layer.filter && Array.isArray(layer.filter)) {
+  const layerFilters = Array.isArray(layer.filters) ? layer.filters : layer.filter;
+  if (Array.isArray(layerFilters)) {
     if (!filterByLayer({
-      filters: layer.filter,
+      filters: layerFilters,
       entity,
       panelEntity,
       type,
       panelProperties,
-      mode: layer.filterMode
+      mode: layer.filterMode,
+      layerOptions,
     })) {
       return null;
     }

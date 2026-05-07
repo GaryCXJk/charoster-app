@@ -6,7 +6,7 @@ export const getDefaultPanelLayout = () => ([
   {
     type: 'label',
     display: 'image',
-    filter: [
+    filters: [
       {
         type: 'or',
         filters: [
@@ -27,7 +27,7 @@ export const getDefaultPanelLayout = () => ([
   },
   {
     type: "image",
-    filter: [
+    filters: [
       {
         type: 'or',
         filters: [
