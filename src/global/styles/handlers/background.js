@@ -130,6 +130,28 @@ export const handleBackgroundImages = (props, val, imageFiles, prop = 'backgroun
         }
         props[prop] = `${val.gradientType}(${val.value})`;
         break;
+      case '9slice':
+        // TODO: Implement 9-slice scaling, using border-image-slice.
+        if (props !== 'backgroundImage') {
+          return null;
+        }
+        if (!val.file || !imageFiles[val.file]) {
+          return null;
+        }
+        const fileInfo = imageFiles[val.file].raw;
+        const fileUrl = fileInfo.file ?? fileInfo.data;
+        const size = props.backgroundSize || 'auto';
+        const repeat = props.backgroundRepeat || 'stretch';
+
+        delete props.backgroundSize;
+        delete props.backgroundRepeat;
+        
+        const valid9SliceTypes = ['stretch', 'repeat', 'round', 'space'];
+        const sliceType = val.sliceType && valid9SliceTypes.includes(val.sliceType) ? val.sliceType : 'stretch';
+        
+        props.borderImageSource = processImageUrl(fileUrl);
+        props.borderImageSlice = val.slice.join(' ');
+        break;
       default:
         return null;
     }
@@ -148,13 +170,13 @@ export const handleBackground = (background, imageFiles, styleObject = null, bgM
   size: handleBackgroundSize,
   position: handleBackgroundPosition,
   repeat: 'backgroundRepeat',
-  image: handleBackgroundImages,
   clip: (props, val) => {
     Object.assign(props, {
       webkitBackgroundClip: val,
       backgroundClip: val,
     });
   },
+  image: handleBackgroundImages,
 }, backgroundKey = 'background') => {
 
   if (typeof background === 'object') {
