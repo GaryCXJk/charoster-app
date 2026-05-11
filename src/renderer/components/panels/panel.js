@@ -2,177 +2,12 @@ import deepmerge from 'deepmerge';
 import { globalAppReset } from '../../../helpers/global-on';
 import { getDefaultPanelLayout } from '../../../global/styles/layouts/panels';
 import Block from "../base/Block";
-import { getImage, processImageDefinitionLayer } from './processing/layers/image';
-import { clearImageLabels, getLabel, getLabelText, imageLabel } from './processing/layers/label';
-import filterLayers from '../../common/filterLayers';
+import { clearImageLabels } from './processing/layers/label';
+import { panelLayers, panelModifiers } from '../../common/layers';
 
 let applyEvents = globalAppReset(() => {
   clearImageLabels();
 });
-
-const imageContent = async (block, layerInfo, {
-  type,
-  entityId,
-  imageId = null,
-  entity,
-  callbacks,
-  designId = '',
-  panelEntity = null,
-}) => {
-  let panelImageId = imageId;
-
-  if (!panelImageId && callbacks.setImage) {
-    panelImageId = callbacks.setImage({
-      entity,
-    });
-  }
-
-  if (panelImageId) {
-    let usedSizes = ['raw'];
-    let imageData = null;
-    let imageStr = null;
-    if (layerInfo.from?.definition && layerInfo.from?.field) {
-      imageStr = await processImageDefinitionLayer(layerInfo, type, panelEntity ?? {
-        entityId,
-        imageId,
-      });
-    } else if (layerInfo.file) {
-      imageData = await getImage('designs', `${designId}>${layerInfo.file}`, designId);
-    } else {
-      imageData = await getImage(type, panelImageId, designId);
-      usedSizes = layerInfo.size ?? usedSizes;
-    }
-
-    if (imageData) {
-      let imageSize = null;
-      for (let idx = 0; idx < usedSizes.length; idx += 1) {
-        const size = usedSizes[idx];
-        if (imageData[size]) {
-          imageSize = imageData[size];
-          break;
-        }
-      }
-      if (imageSize) {
-        imageStr = imageSize.file ?? imageSize.data;
-      } else {
-        imageStr = imageData.file ?? imageData.data ?? null;
-      }
-    }
-    if (imageStr) {
-      block.element.style.backgroundImage = `url(${imageStr})`;
-    }
-  }
-  return block;
-};
-
-const labelContent = async (block, layerInfo, {
-  panelEntity,
-  type,
-  entity,
-  imageId,
-  showLabel = true,
-  label = null,
-}) => {
-  if (showLabel) {
-    const displayLabel = await getLabelText(
-      layerInfo.caps ?? true,
-      label,
-      (caps) => caps ? (
-        (layerInfo.text ? layerInfo.text.toUpperCase() : null)
-        ?? (panelEntity?.allCapsName ?? null)
-        ?? (panelEntity?.displayName ? panelEntity.displayName.toUpperCase() : null)
-      ) : (
-        layerInfo.text ?? panelEntity?.displayName ?? null
-      ),
-      async (caps) => await getLabel(type, entity, imageId, caps)
-    );
-
-    block.prop('textContent', displayLabel);
-    if (layerInfo.display === 'image') {
-      block.prop('textContent', '');
-      const labelStyle = {};
-      if (layerInfo.fontColor) {
-        labelStyle.fontColor = layerInfo.fontColor;
-      }
-      const labelUrl = await imageLabel({
-        label: displayLabel,
-        ...labelStyle,
-      });
-
-      const labelImage = document.createElement('img');
-      labelImage.className = 'label-image';
-      labelImage.src = labelUrl;
-      block.append(labelImage);
-    }
-
-    return block;
-  }
-  return null;
-};
-
-const containerContent = async (panel, layerInfo, {
-  depth = 0,
-  ...contentProps
-}) => {
-  const {
-    layers,
-  } = layerInfo;
-  const blockPromises = [];
-
-  const filteredLayers = filterLayers(layers, contentProps.type, contentProps.entity, contentProps.panelEntity, contentProps.design?.panels?.properties ?? {});
-
-  for (let idx = 0; idx < filteredLayers.length; idx += 1) {
-    const layer = filteredLayers[idx];
-    if (!layer) {
-      continue;
-    }
-    const contentInfo = {
-      shown: true,
-      className: layer.type,
-    };
-    if (preContentFuncs[layer.type]) {
-      Object.assign(contentInfo, preContentFuncs[layer.type](layer, contentProps));
-    }
-
-    if (layer.className) {
-      contentInfo.className = `${contentInfo.className ?? layer.type} ${layer.className}`;
-    }
-
-    if (contentInfo.shown) {
-      const block = new Block({
-        className: `layer layer-${idx} layer-depth-${depth} ${contentInfo.className}`,
-      });
-      panel.append(block);
-      if (contentFuncs[layer.type]) {
-        blockPromises.push(
-          contentFuncs[layer.type](block, layer, {
-            ...contentProps,
-            depth: depth + 1,
-            layerIndex: idx,
-          })
-        );
-      }
-    }
-  }
-
-  await Promise.all(blockPromises);
-};
-
-const preContentFuncs = {
-  image: (layerInfo, { type }) => ({
-    shown: true,
-    className: !layerInfo.file ? `image image-${type}` : null,
-  }),
-  label: (_layerInfo, { showLabel = true }) => ({
-    shown: showLabel,
-  }),
-};
-
-const contentFuncs = {
-  image: imageContent,
-  label: labelContent,
-  container: containerContent,
-};
 
 const setPanelContent = async ({
   panel,
@@ -215,12 +50,15 @@ const setPanelContent = async ({
     type,
     entity,
     design,
+    properties: design?.panels?.properties ?? {},
     callbacks,
+    modifiers: panelModifiers,
+    layerFunctions: panelLayers,
     ...props
   };
 
   blockPromises.push(
-    containerContent(panel, {
+    panelLayers.container(panel, {
       layers,
     }, contentProps)
   );
