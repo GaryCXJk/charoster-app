@@ -1,3 +1,4 @@
+import Block from "../../components/base/Block";
 import { getLabel, getLabelText } from "../../components/panels/processing/layers/label";
 import { imageLabel } from "../../components/panels/processing/layers/label";
 
@@ -23,24 +24,36 @@ export default async (block, layerInfo, {
       async (caps) => await getLabel(type, entity, imageId, caps)
     );
 
-    block.prop('textContent', displayLabel);
-    if (layerInfo.display === 'image') {
-      block.prop('textContent', '');
-      const labelStyle = {};
-      if (layerInfo.fontColor) {
-        labelStyle.fontColor = layerInfo.fontColor;
+    switch (layerInfo.display) {
+      case 'image': {
+        const labelStyle = {};
+        if (layerInfo.fontColor) {
+          labelStyle.fontColor = layerInfo.fontColor;
+        }
+        const labelUrl = await imageLabel({
+          label: displayLabel,
+          ...labelStyle,
+        });
+
+        const labelImage = document.createElement('img');
+        labelImage.className = 'label-image';
+        labelImage.src = labelUrl;
+        block.append(labelImage);
+        break;
       }
-      const labelUrl = await imageLabel({
-        label: displayLabel,
-        ...labelStyle,
-      });
-
-      const labelImage = document.createElement('img');
-      labelImage.className = 'label-image';
-      labelImage.src = labelUrl;
-      block.append(labelImage);
+      case 'heading': {
+        const depth = layerInfo.depth ?? 1;
+        const heading = new Block({
+          element: `h${depth}`,
+          textContent: displayLabel,
+        });
+        block.append(heading);
+        break;
+      }
+      default:
+        block.prop('textContent', displayLabel);
+        break;
     }
-
     return block;
   }
   return null;
